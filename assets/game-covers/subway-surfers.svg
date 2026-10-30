@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#27105a"/><stop offset="1" stop-color="#e34d93"/></linearGradient>
+    <linearGradient id="train" x2="0" y2="1"><stop stop-color="#5af4e4"/><stop offset="1" stop-color="#198bc5"/></linearGradient>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h640v400H0z"/>
+  <path fill="#130d2d" d="M0 84h95v205H0zm105-44h86v249h-86zm405 25h130v240H510zm-95 53h81v172h-81z"/>
+  <g fill="#ffdd69" opacity=".85"><path d="M22 106h18v26H22zm38 0h18v26H60zm73-34h18v27h-18zm38 0h18v27h-18zm330 37h18v25h-18zm38 0h18v25h-18zm39-17h18v25h-18z"/></g>
+  <path fill="#22264f" d="M0 285h640v115H0z"/>
+  <path fill="#15172f" d="M0 332h640v9H0zm0 49h640v8H0z"/>
+  <path fill="url(#train)" stroke="#bafff4" stroke-width="5" d="M196 184h236q29 0 29 30v135H167V214q0-30 29-30z"/>
+  <path fill="#182648" d="M191 212h80v58h-80zm96 0h80v58h-80zm97 0h62v58h-62z"/>
+  <path fill="#ffe45c" d="M176 323h24v13h-24zm271 0h24v13h-24z"/>
+  <path fill="#fb4caf" d="m116 173 29 23-26 20 24 24-16 14-28-25-23 27-16-16 23-29-25-23 15-17 26 23z"/>
+  <text x="320" y="375" fill="#fff4e6" font-family="system-ui,sans-serif" font-size="31" font-weight="900" text-anchor="middle" letter-spacing="5">SUBWAY SURFERS</text>
+</svg>

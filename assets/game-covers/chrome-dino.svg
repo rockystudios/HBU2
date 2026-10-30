@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#15142b"/><stop offset="1" stop-color="#32206b"/></linearGradient>
+    <linearGradient id="dino" x2="0" y2="1"><stop stop-color="#c5ff8b"/><stop offset="1" stop-color="#36c77b"/></linearGradient>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h640v400H0z"/>
+  <circle cx="510" cy="92" r="42" fill="#f3d9ff" opacity=".8"/>
+  <path fill="#a88fff" opacity=".22" d="M0 260q90-80 180 0t180 0 180 0 180 0v140H0z"/>
+  <path fill="#a5ffbe" d="M0 320h640v5H0z"/>
+  <g fill="#6fff9a">
+    <path d="M74 320v-66h18v26h13v-40h18v80zm421 0v-52h16v16h12v-28h18v64zm47 0v-44h14v14h9v-25h17v55z"/>
+  </g>
+  <g fill="url(#dino)">
+    <path d="M171 212h75v-37h37v-44h72v24h48v48h-31v36h-31v47h-34v-39h-35v39h-33v-40h-39v-34h-29z"/>
+    <path d="M335 159h20v20h-20z" fill="#21153a"/>
+  </g>
+  <path fill="#e8ffef" opacity=".7" d="M100 92h50v12h-50zm25-18h40v10h-40zm322 85h34v10h-34z"/>
+  <text x="320" y="372" fill="#f3f5ff" font-family="system-ui,sans-serif" font-size="31" font-weight="900" text-anchor="middle" letter-spacing="5">CHROME DINO</text>
+</svg>
