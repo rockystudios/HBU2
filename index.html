@@ -118,33 +118,18 @@
     .categories::-webkit-scrollbar { display: none; }
     .chip { flex: 0 0 auto; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: #a9a2b7; background: rgba(255,255,255,.025); cursor: pointer; font-size: 12px; font-weight: 650; }
     .chip:hover, .chip[aria-pressed="true"] { border-color: rgba(192,132,252,.46); color: #f0ddff; background: rgba(168,85,247,.13); }
-    .game-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 17px; }
-    .game-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(155deg, rgba(24,21,36,.94), rgba(15,13,23,.94)); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
-    .game-card:hover { transform: translateY(-4px); border-color: rgba(185,124,255,.4); box-shadow: 0 15px 35px rgba(0,0,0,.24), 0 0 26px rgba(168,85,247,.08); }
-    .game-art { position: relative; height: 142px; display: grid; place-items: center; overflow: hidden; isolation: isolate; }
-    .game-art::before, .game-art::after { position: absolute; z-index: -1; border-radius: 50%; content: ""; }
-    .game-art::before { width: 170px; height: 170px; right: -24px; top: -63px; background: var(--glow); filter: blur(29px); opacity: .3; }
-    .game-art::after { width: 105px; height: 105px; left: -40px; bottom: -63px; border: 1px solid color-mix(in srgb, var(--glow), transparent 40%); box-shadow: 0 0 25px color-mix(in srgb, var(--glow), transparent 72%); }
-    .game-art .emoji { font-size: 58px; filter: drop-shadow(0 10px 18px rgba(0,0,0,.36)); transition: transform .25s ease; }
-    .game-card:hover .emoji { transform: scale(1.1) rotate(-5deg); }
-    .game-art .art-label { position: absolute; left: 14px; top: 13px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 99px; color: #e7d8f8; background: rgba(8,7,13,.4); font-size: 9px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; backdrop-filter: blur(8px); }
-    .game-info { padding: 15px; }
-    .game-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .game-title { overflow: hidden; margin: 0; font-size: 14px; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
-    .favorite { width: 29px; height: 29px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid transparent; border-radius: 8px; color: #797286; background: transparent; cursor: pointer; font-size: 17px; }
-    .favorite:hover, .favorite[aria-pressed="true"] { color: #f0a8ff; background: rgba(232,121,249,.1); }
-    .game-meta { display: flex; align-items: center; gap: 8px; margin: 2px 0 13px; color: var(--muted); font-size: 11px; }
-    .game-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: #6f687d; }
-    .play-link { width: 100%; min-height: 35px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid rgba(190,160,255,.15); border-radius: 9px; color: #d9c8ef; background: rgba(168,85,247,.07); font-size: 11px; font-weight: 750; transition: background .16s ease, border-color .16s ease; }
-    .play-link:hover { border-color: rgba(190,160,255,.44); color: white; background: rgba(168,85,247,.19); }
-    .empty-state { grid-column: 1 / -1; padding: 48px 20px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); text-align: center; }
-    .empty-state strong { display: block; margin-bottom: 5px; color: #e5dcf2; font-size: 15px; }
+    .game-player { overflow: hidden; border: 1px solid rgba(190,160,255,.2); border-radius: var(--radius); background: #080710; box-shadow: 0 15px 55px rgba(0,0,0,.28), 0 0 35px rgba(168,85,247,.09); }
+    .player-bar { min-height: 54px; padding: 0 17px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); background: linear-gradient(100deg, #171222, #100e1b); }
+    .player-indicator { width: 8px; height: 8px; border-radius: 50%; background: #7cffa9; box-shadow: 0 0 12px #7cffa9; }
+    .player-name { font-size: 13px; font-weight: 750; }
+    .player-label { margin-left: 2px; color: var(--muted); font-size: 11px; }
+    .player-spacer { flex: 1; }
+    .player-frame { width: 100%; height: min(72vh, 680px); min-height: 480px; display: block; border: 0; background: #080710; }
     .footer { margin-top: 64px; padding: 22px 0 30px; display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); color: #817a8e; font-size: 11px; }
     .footer strong { color: #c7b1df; }
     :focus-visible { outline: 2px solid #d5a5ff; outline-offset: 3px; }
     @media (max-width: 850px) {
       .hero-art { right: 8%; width: 135px; height: 135px; font-size: 68px; }
-      .game-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 650px) {
       .shell { width: min(100% - 32px, 520px); }
@@ -163,14 +148,12 @@
       .tools { width: 100%; }
       .search-wrap { flex: 1; }
       .search { width: 100%; }
-      .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .game-art { height: 125px; }
-      .game-info { padding: 12px; }
+      .player-frame { height: 65vh; min-height: 420px; }
+      .player-bar { padding-inline: 13px; }
       .footer { flex-direction: column; gap: 5px; margin-top: 45px; }
     }
     @media (max-width: 370px) {
-      .game-grid { grid-template-columns: 1fr; }
-      .game-art { height: 155px; }
+      .player-frame { min-height: 380px; }
       .nav-links { gap: 11px; }
       h1 { font-size: 47px; }
     }
@@ -185,7 +168,6 @@
       <a class="brand" href="#" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true">✦</span><span>HBU <em>ARCADE</em></span></a>
       <div class="nav-links">
         <a class="active" href="#games">Explore</a>
-        <a href="#games" id="favorites-nav">Favorites</a>
       </div>
       <span class="nav-spacer"></span>
       <span class="status">ARCADE ONLINE</span>
@@ -206,132 +188,44 @@
     <section class="section" id="games" aria-labelledby="games-title">
       <div class="section-heading">
         <div>
-          <h2 id="games-title">The game vault</h2>
-          <p>Pick a portal. Jump straight into the action.</p>
-        </div>
-        <div class="tools">
-          <label class="search-wrap"><span class="sr-only" hidden>Search games</span><input id="game-search" class="search" type="search" placeholder="Search games..." autocomplete="off" aria-label="Search games"></label>
-          <button id="favorites-toggle" class="icon-button" type="button" aria-label="Show favorites" aria-pressed="false" title="Show favorites">♡</button>
+          <h2 id="games-title">Moto X3M</h2>
+          <p>Hit the track and play right here in the arcade.</p>
         </div>
       </div>
-      <div class="categories" aria-label="Filter games by category">
-        <button class="chip" type="button" data-category="all" aria-pressed="true">All games</button>
-        <button class="chip" type="button" data-category="Arcade" aria-pressed="false">Arcade</button>
-        <button class="chip" type="button" data-category="Puzzle" aria-pressed="false">Puzzle</button>
-        <button class="chip" type="button" data-category="Action" aria-pressed="false">Action</button>
-        <button class="chip" type="button" data-category="Strategy" aria-pressed="false">Strategy</button>
+      <div class="game-player">
+        <div class="player-bar">
+          <span class="player-indicator" aria-hidden="true"></span>
+          <span class="player-name">Moto X3M</span>
+          <span class="player-label">Playing in HBU Arcade</span>
+          <span class="player-spacer"></span>
+          <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶</button>
+        </div>
+        <iframe
+          class="player-frame"
+          id="game-frame"
+          src="https://unblokedgames.github.io/projects/moto-x3m/index.html"
+          title="Moto X3M"
+          allow="autoplay; fullscreen; gamepad"
+          allowfullscreen>
+        </iframe>
       </div>
-      <div class="game-grid" id="game-grid" aria-live="polite"></div>
     </section>
   </main>
 
   <footer class="footer shell">
     <span><strong>HBU ARCADE</strong> &nbsp;·&nbsp; A little more play in your day.</span>
-    <span>Games open on their original sites. Availability depends on your network.</span>
+    <span>Embedded game hosted by unblokedgames.github.io.</span>
   </footer>
 
   <script>
-    const games = [
-      { name: "2048", category: "Puzzle", players: "Solo", emoji: "🔢", glow: "#a855f7", url: "https://play2048.co/", tag: "Brain teaser" },
-      { name: "Slope", category: "Arcade", players: "Solo", emoji: "🟣", glow: "#41dfff", url: "https://slopegame.io/", tag: "Fan favorite" },
-      { name: "Cookie Clicker", category: "Strategy", players: "Solo", emoji: "🍪", glow: "#ffad5c", url: "https://orteil.dashnet.org/cookieclicker/", tag: "Idle" },
-      { name: "Agar.io", category: "Action", players: "Multiplayer", emoji: "🫧", glow: "#66e9ff", url: "https://agar.io/", tag: "Multiplayer" },
-      { name: "Hextris", category: "Puzzle", players: "Solo", emoji: "🔷", glow: "#b46aff", url: "https://hextris.io/", tag: "Quick play" },
-      { name: "Chess", category: "Strategy", players: "Vs. computer", emoji: "♟️", glow: "#f0d47a", url: "https://www.chess.com/play/computer", tag: "Think ahead" },
-      { name: "Tetris", category: "Arcade", players: "Solo", emoji: "🧩", glow: "#ff6dba", url: "https://tetris.com/play-tetris", tag: "Classic" },
-      { name: "Little Alchemy 2", category: "Puzzle", players: "Solo", emoji: "⚗️", glow: "#7dffa8", url: "https://littlealchemy2.com/", tag: "Discover" }
-    ];
-    const favoritesKey = "hbu-arcade-favorites";
-    const grid = document.querySelector("#game-grid");
-    const search = document.querySelector("#game-search");
-    const chips = [...document.querySelectorAll(".chip")];
-    const favoritesToggle = document.querySelector("#favorites-toggle");
-    let activeCategory = "all";
-    let favoritesOnly = false;
-    let favorites = new Set();
-    try {
-      const saved = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
-      if (Array.isArray(saved)) favorites = new Set(saved.filter(name => games.some(game => game.name === name)));
-    } catch (error) {
-      console.warn("Saved favorites could not be loaded.", error);
-    }
-
-    function renderGames() {
-      const query = search.value.trim().toLowerCase();
-      const visibleGames = games.filter(game =>
-        (activeCategory === "all" || game.category === activeCategory) &&
-        (!favoritesOnly || favorites.has(game.name)) &&
-        `${game.name} ${game.category} ${game.tag}`.toLowerCase().includes(query)
-      );
-      grid.replaceChildren();
-      if (!visibleGames.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty-state";
-        empty.innerHTML = "<strong>No portals found</strong>Try another search or category.";
-        grid.append(empty);
-        return;
-      }
-
-      for (const game of visibleGames) {
-        const card = document.createElement("article");
-        card.className = "game-card";
-        card.innerHTML = `
-          <div class="game-art" style="--glow:${game.glow}">
-            <span class="art-label">${game.tag}</span>
-            <span class="emoji" aria-hidden="true">${game.emoji}</span>
-          </div>
-          <div class="game-info">
-            <div class="game-title-row">
-              <h3 class="game-title">${game.name}</h3>
-              <button class="favorite" type="button" aria-label="${favorites.has(game.name) ? "Remove" : "Add"} ${game.name} ${favorites.has(game.name) ? "from" : "to"} favorites" aria-pressed="${favorites.has(game.name)}" data-favorite="${game.name}">${favorites.has(game.name) ? "♥" : "♡"}</button>
-            </div>
-            <div class="game-meta"><span>${game.category}</span><span class="dot"></span><span>${game.players}</span></div>
-            <a class="play-link" href="${game.url}" target="_blank" rel="noopener noreferrer">Play now <span aria-hidden="true">↗</span></a>
-          </div>`;
-        grid.append(card);
-      }
-    }
-
-    function saveFavorites() {
+    const gameFrame = document.querySelector("#game-frame");
+    document.querySelector("#fullscreen-button").addEventListener("click", async () => {
       try {
-        localStorage.setItem(favoritesKey, JSON.stringify([...favorites]));
+        await gameFrame.requestFullscreen();
       } catch (error) {
-        console.warn("Favorites could not be saved in this browser.", error);
+        console.warn("Fullscreen is unavailable for this game.", error);
       }
-    }
-
-    chips.forEach(chip => chip.addEventListener("click", () => {
-      activeCategory = chip.dataset.category;
-      chips.forEach(item => item.setAttribute("aria-pressed", String(item === chip)));
-      renderGames();
-    }));
-    search.addEventListener("input", renderGames);
-    favoritesToggle.addEventListener("click", () => {
-      favoritesOnly = !favoritesOnly;
-      favoritesToggle.setAttribute("aria-pressed", String(favoritesOnly));
-      favoritesToggle.setAttribute("aria-label", favoritesOnly ? "Show all games" : "Show favorites");
-      favoritesToggle.title = favoritesOnly ? "Show all games" : "Show favorites";
-      favoritesToggle.textContent = favoritesOnly ? "♥" : "♡";
-      renderGames();
     });
-    document.querySelector("#favorites-nav").addEventListener("click", () => {
-      favoritesOnly = true;
-      favoritesToggle.setAttribute("aria-pressed", "true");
-      favoritesToggle.setAttribute("aria-label", "Show all games");
-      favoritesToggle.title = "Show all games";
-      favoritesToggle.textContent = "♥";
-      renderGames();
-    });
-    grid.addEventListener("click", event => {
-      const button = event.target.closest("[data-favorite]");
-      if (!button) return;
-      const name = button.dataset.favorite;
-      if (favorites.has(name)) favorites.delete(name);
-      else favorites.add(name);
-      saveFavorites();
-      renderGames();
-    });
-    renderGames();
   </script>
 </body>
 </html>
