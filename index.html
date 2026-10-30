@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090711" />
+    <meta
+      name="description"
+      content="HBU is your portal to a galaxy of free-to-play browser games."
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%239e4bee'/%3E%3Ctext x='8' y='23' fill='white' font-size='21' font-family='Arial' font-weight='bold'%3EH%3C/text%3E%3C/svg%3E" />
+    <title>HBU — Play beyond the ordinary</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090711;
+        --panel: #11101b;
+        --panel-raised: #171522;
+        --muted: #9c98ad;
+        --text: #f7f4ff;
+        --purple: #a45bff;
+        --pink: #f05aff;
+        --line: rgb(255 255 255 / 8%);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 68% -12%, rgb(101 42 160 / 22%), transparent 42%),
+          var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      button,
+      input {
+        color: inherit;
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+        padding: 27px 17px 20px;
+        border-right: 1px solid var(--line);
+        background: rgb(10 9 18 / 78%);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 9px;
+        color: white;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: 25px;
+        font-weight: 700;
+        letter-spacing: -1.5px;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 31px;
+        height: 31px;
+        place-items: center;
+        border: 1px solid rgb(213 153 255 / 50%);
+        border-radius: 10px;
+        background: linear-gradient(145deg, #a846ff, #632de1);
+        box-shadow: 0 0 20px rgb(161 73 255 / 40%);
+        font-size: 18px;
+      }
+
+      .nav-label {
+        margin: 39px 10px 11px;
+        color: #777287;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+
+      .nav-list {
+        display: grid;
+        gap: 5px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 11px 12px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: #aaa6b8;
+        text-align: left;
+        transition: 160ms ease;
+      }
+
+      .nav-item:hover,
+      .nav-item.active {
+        background: rgb(163 87 255 / 13%);
+        color: #ead9ff;
+      }
+
+      .nav-item.active {
+        box-shadow: inset 2px 0 #b46aff;
+      }
+
+      .nav-icon {
+        width: 17px;
+        color: #c17bff;
+        font-size: 16px;
+        text-align: center;
+      }
+
+      .sidebar-bottom {
+        margin-top: auto;
+      }
+
+      .discord-card {
+        padding: 15px;
+        border: 1px solid rgb(177 118 255 / 19%);
+        border-radius: 13px;
+        background: linear-gradient(145deg, rgb(121 66 181 / 16%), rgb(24 20 38 / 65%));
+      }
+
+      .discord-card strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+      }
+
+      .discord-card p {
+        margin: 0 0 13px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .discord-card button {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid rgb(194 146 255 / 35%);
+        border-radius: 7px;
+        background: rgb(161 81 255 / 18%);
+        color: #e7d2ff;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .main {
+        width: min(100%, 1380px);
+        margin: 0 auto;
+        padding: 22px 40px 70px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 28px;
+      }
+
+      .breadcrumb {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .breadcrumb strong {
+        color: #e9e3f3;
+        font-weight: 500;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+
+      .search {
+        position: relative;
+      }
+
+      .search-icon {
+        position: absolute;
+        top: 9px;
+        left: 12px;
+        color: #9691a4;
+      }
+
+      .search input {
+        width: 225px;
+        padding: 10px 12px 10px 36px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        outline: none;
+        background: #100f19;
+        font-size: 12px;
+      }
+
+      .search input:focus {
+        border-color: rgb(174 103 255 / 65%);
+        box-shadow: 0 0 0 3px rgb(174 103 255 / 11%);
+      }
+
+      .profile {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #e2ddeb;
+        font-size: 12px;
+      }
+
+      .avatar {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        border: 1px solid rgb(205 159 255 / 34%);
+        border-radius: 50%;
+        background: linear-gradient(145deg, #7445ae, #29213d);
+        font-size: 15px;
+      }
+
+      .hero {
+        position: relative;
+        display: flex;
+        min-height: 273px;
+        align-items: center;
+        overflow: hidden;
+        padding: 40px 48px;
+        border: 1px solid rgb(209 152 255 / 20%);
+        border-radius: 18px;
+        background:
+          radial-gradient(ellipse at 78% 53%, rgb(191 58 255 / 31%), transparent 26%),
+          radial-gradient(ellipse at 90% 89%, rgb(69 92 255 / 20%), transparent 35%),
+          linear-gradient(105deg, #191225 0%, #171022 48%, #251333 100%);
+        box-shadow: 0 12px 50px rgb(103 38 159 / 12%), inset 0 1px rgb(255 255 255 / 5%);
+      }
+
+      .hero::after {
+        position: absolute;
+        right: 8%;
+        width: 210px;
+        height: 210px;
+        border: 1px solid rgb(226 155 255 / 28%);
+        border-radius: 50%;
+        box-shadow: 0 0 55px rgb(185 71 255 / 34%), inset 0 0 45px rgb(177 74 255 / 18%);
+        content: "";
+      }
+
+      .hero-orb {
+        position: absolute;
+        right: 12.5%;
+        width: 125px;
+        height: 125px;
+        border: 1px solid rgb(236 180 255 / 68%);
+        border-radius: 50%;
+        background: radial-gradient(circle at 34% 30%, #e8b6ff, #a547ff 29%, #5127aa 69%, #24133d);
+        box-shadow: 0 0 46px #b14dff, 0 0 110px rgb(170 63 255 / 53%);
+      }
+
+      .hero-copy {
+        position: relative;
+        z-index: 1;
+        max-width: 510px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #dbb7ff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.7px;
+        text-transform: uppercase;
+      }
+
+      .eyebrow-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #d583ff;
+        box-shadow: 0 0 9px #ca6aff;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      .hero h1 {
+        margin: 13px 0 8px;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: clamp(32px, 4vw, 48px);
+        letter-spacing: -2px;
+        line-height: 1.06;
+      }
+
+      .gradient-text {
+        background: linear-gradient(90deg, #d6a5ff, #f193ff 60%, #a9a0ff);
+        background-clip: text;
+        color: transparent;
+      }
+
+      .hero-copy p {
+        margin-bottom: 20px;
+        color: #b7aec4;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .primary-button {
+        padding: 10px 16px;
+        border: 1px solid rgb(228 194 255 / 45%);
+        border-radius: 8px;
+        background: linear-gradient(110deg, #9e4bee, #713fe0);
+        box-shadow: 0 4px 20px rgb(150 61 255 / 29%);
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+      }
+
+      .primary-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 7px 24px rgb(150 61 255 / 45%);
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 35px 0 16px;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: 19px;
+        letter-spacing: -.5px;
+      }
+
+      .section-heading p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .view-all {
+        border: 0;
+        background: transparent;
+        color: #c797ff;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .categories {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 2px 0 4px;
+        scrollbar-width: none;
+      }
+
+      .categories::-webkit-scrollbar {
+        display: none;
+      }
+
+      .category {
+        flex: 0 0 auto;
+        padding: 8px 13px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: #100f18;
+        color: #aaa5b7;
+        font-size: 11px;
+        transition: 150ms ease;
+      }
+
+      .category:hover,
+      .category.active {
+        border-color: rgb(177 106 255 / 55%);
+        background: rgb(153 73 255 / 17%);
+        color: #e4caff;
+      }
+
+      .game-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 15px;
+      }
+
+      .game-card {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: var(--panel);
+        transition: transform 170ms ease, border-color 170ms ease, box-shadow 170ms ease;
+      }
+
+      .game-card:hover {
+        transform: translateY(-4px);
+        border-color: rgb(183 118 255 / 41%);
+        box-shadow: 0 11px 30px rgb(0 0 0 / 27%), 0 0 22px rgb(155 77 255 / 9%);
+      }
+
+      .game-art {
+        position: relative;
+        display: grid;
+        height: 138px;
+        overflow: hidden;
+        place-items: center;
+        isolation: isolate;
+      }
+
+      .game-art::before,
+      .game-art::after {
+        position: absolute;
+        z-index: -1;
+        border-radius: 50%;
+        content: "";
+      }
+
+      .game-art::before {
+        width: 135px;
+        height: 135px;
+        border: 1px solid rgb(255 255 255 / 20%);
+        box-shadow: 0 0 36px currentColor, inset 0 0 32px rgb(255 255 255 / 12%);
+      }
+
+      .game-art::after {
+        width: 66px;
+        height: 66px;
+        background: radial-gradient(circle at 30% 27%, #fff, currentColor 32%, transparent 72%);
+        filter: drop-shadow(0 0 18px currentColor);
+      }
+
+      .art-1 { background: linear-gradient(145deg, #241333, #34104c 55%, #1a1441); color: #df72ff; }
+      .art-2 { background: linear-gradient(145deg, #0d2530, #12294b 56%, #27164a); color: #56e4ff; }
+      .art-3 { background: linear-gradient(145deg, #301827, #5b2045 54%, #27183d); color: #ff72b9; }
+      .art-4 { background: linear-gradient(145deg, #171d3d, #332766 54%, #4b1f54); color: #9b8cff; }
+      .art-5 { background: linear-gradient(145deg, #142d2a, #174c51 55%, #20234f); color: #64f2cb; }
+      .art-6 { background: linear-gradient(145deg, #332517, #5a3920 55%, #321b43); color: #ffd16b; }
+      .art-7 { background: linear-gradient(145deg, #1d1535, #492264 52%, #183450); color: #b681ff; }
+      .art-8 { background: linear-gradient(145deg, #361b27, #692e3d 56%, #281b52); color: #ff908a; }
+
+      .art-glyph {
+        z-index: 1;
+        color: #fff;
+        filter: drop-shadow(0 0 12px currentColor);
+        font-size: 43px;
+      }
+
+      .game-rating {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px 7px;
+        border: 1px solid rgb(255 255 255 / 11%);
+        border-radius: 6px;
+        background: rgb(9 8 15 / 65%);
+        color: #f5d485;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .game-info {
+        padding: 12px;
+      }
+
+      .game-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .game-info h3 {
+        overflow: hidden;
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .favorite {
+        padding: 0 2px;
+        border: 0;
+        background: transparent;
+        color: #7f7a8e;
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .favorite.saved {
+        color: #ff75b7;
+      }
+
+      .game-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        color: #8d889d;
+        font-size: 10px;
+      }
+
+      .game-meta span:first-child::before {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        margin: 0 6px 1px 0;
+        border-radius: 50%;
+        background: #ad6dff;
+        content: "";
+      }
+
+      .play-link {
+        margin-top: 11px;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: #cb9cff;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .play-link:hover,
+      .view-all:hover {
+        color: white;
+      }
+
+      .empty-state {
+        display: none;
+        padding: 35px 10px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .empty-state.show {
+        display: block;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        z-index: 5;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgb(5 4 10 / 78%);
+        backdrop-filter: blur(8px);
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(100%, 470px);
+        padding: 23px;
+        border: 1px solid rgb(185 119 255 / 35%);
+        border-radius: 16px;
+        background: #15121f;
+        box-shadow: 0 0 70px rgb(144 63 255 / 20%);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .modal h2 {
+        margin: 0 0 7px;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-size: 22px;
+      }
+
+      .modal p {
+        color: #aca5b8;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .modal-close {
+        padding: 0 4px;
+        border: 0;
+        background: transparent;
+        color: #aaa3b6;
+        font-size: 22px;
+      }
+
+      .game-window {
+        display: grid;
+        min-height: 170px;
+        margin: 16px 0;
+        place-items: center;
+        border: 1px solid rgb(255 255 255 / 8%);
+        border-radius: 11px;
+        background:
+          radial-gradient(circle at 50% 50%, rgb(152 79 255 / 22%), transparent 32%),
+          linear-gradient(135deg, #0e0c17, #171225);
+        text-align: center;
+      }
+
+      .game-window span {
+        font-size: 36px;
+        filter: drop-shadow(0 0 15px #ae65ff);
+      }
+
+      .game-window small {
+        display: block;
+        margin-top: 9px;
+        color: #b4a9c5;
+        font-size: 11px;
+      }
+
+      .modal .primary-button {
+        width: 100%;
+      }
+
+      @media (max-width: 1050px) {
+        .shell {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+
+        .main {
+          padding-right: 26px;
+          padding-left: 26px;
+        }
+
+        .game-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .shell {
+          display: block;
+        }
+
+        .sidebar {
+          position: sticky;
+          z-index: 3;
+          top: 0;
+          height: auto;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          padding: 13px 18px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          backdrop-filter: blur(16px);
+        }
+
+        .brand {
+          padding: 0;
+          font-size: 22px;
+        }
+
+        .nav-label,
+        .sidebar-bottom {
+          display: none;
+        }
+
+        .nav-list {
+          display: flex;
+        }
+
+        .nav-item {
+          width: auto;
+          padding: 8px 10px;
+          font-size: 11px;
+        }
+
+        .nav-icon {
+          display: none;
+        }
+
+        .main {
+          padding: 20px 20px 55px;
+        }
+
+        .hero {
+          min-height: 250px;
+          padding: 30px;
+        }
+
+        .hero::after {
+          right: -40px;
+          opacity: .7;
+        }
+
+        .hero-orb {
+          right: 2%;
+          opacity: .7;
+        }
+
+        .hero-copy {
+          max-width: 75%;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .sidebar {
+          padding: 11px 14px;
+        }
+
+        .sidebar .nav-item.active {
+          padding: 7px 10px;
+        }
+
+        .topbar {
+          align-items: start;
+        }
+
+        .breadcrumb,
+        .profile span:last-child {
+          display: none;
+        }
+
+        .top-actions {
+          width: 100%;
+        }
+
+        .search {
+          flex: 1;
+        }
+
+        .search input {
+          width: 100%;
+        }
+
+        .hero {
+          min-height: 250px;
+          padding: 25px 22px;
+        }
+
+        .hero-copy {
+          max-width: 100%;
+        }
+
+        .hero-copy p {
+          max-width: 250px;
+        }
+
+        .hero::after {
+          right: -103px;
+          opacity: .43;
+        }
+
+        .hero-orb {
+          right: -42px;
+          opacity: .48;
+        }
+
+        .game-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .game-art {
+          height: 112px;
+        }
+
+        .game-info {
+          padding: 10px;
+        }
+
+        .section-heading {
+          margin-top: 29px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: .01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="#" aria-label="HBU home">
+          <span class="brand-mark">H</span>
+          HBU
+        </a>
+        <div class="nav-label">Discover</div>
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-view="all"><span class="nav-icon">⌂</span>Home</button>
+          <button class="nav-item" type="button" data-view="trending"><span class="nav-icon">↗</span>Trending</button>
+          <button class="nav-item" type="button" data-view="favorites"><span class="nav-icon">♡</span>Favorites</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="discord-card">
+            <strong>Find your next favorite</strong>
+            <p>New worlds are waiting. Pick a game and jump right in.</p>
+            <button type="button" id="surprise-button">Surprise me ↗</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="breadcrumb">HBU <span aria-hidden="true">/</span> <strong>Discover</strong></div>
+          <div class="top-actions">
+            <label class="search">
+              <span class="search-icon" aria-hidden="true">⌕</span>
+              <input id="game-search" type="search" placeholder="Search games..." aria-label="Search games" />
+            </label>
+            <div class="profile"><span class="avatar" aria-hidden="true">✦</span><span>Player 01</span></div>
+          </div>
+        </header>
+
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <div class="eyebrow"><span class="eyebrow-dot"></span>Your next world awaits</div>
+            <h1 id="hero-title">Play beyond<br />the <span class="gradient-text">ordinary.</span></h1>
+            <p>Discover your next obsession. A whole universe of games, ready when you are.</p>
+            <button class="primary-button" type="button" id="explore-button">Explore games&nbsp; ↘</button>
+          </div>
+          <div class="hero-orb" aria-hidden="true"></div>
+        </section>
+
+        <section aria-labelledby="games-title">
+          <div class="section-heading">
+            <div>
+              <h2 id="games-title">Explore the universe</h2>
+              <p>Hand-picked worlds for your next play session.</p>
+            </div>
+            <button class="view-all" type="button" id="show-all">View all&nbsp; →</button>
+          </div>
+          <div class="categories" aria-label="Filter games by category">
+            <button class="category active" type="button" data-category="all">✦ All games</button>
+            <button class="category" type="button" data-category="action">⚡ Action</button>
+            <button class="category" type="button" data-category="adventure">◈ Adventure</button>
+            <button class="category" type="button" data-category="puzzle">▦ Puzzle</button>
+            <button class="category" type="button" data-category="racing">⌁ Racing</button>
+            <button class="category" type="button" data-category="arcade">✧ Arcade</button>
+          </div>
+
+          <div class="game-grid" id="game-grid">
+            <article class="game-card" data-name="Neon Drift" data-category="racing" data-trending="true">
+              <div class="game-art art-1"><span class="art-glyph">◉</span><span class="game-rating">★ 4.9</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Neon Drift</h3><button class="favorite" type="button" aria-label="Add Neon Drift to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Racing</span><span>2.4k playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Starbound" data-category="adventure" data-trending="true">
+              <div class="game-art art-2"><span class="art-glyph">✧</span><span class="game-rating">★ 4.8</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Starbound</h3><button class="favorite" type="button" aria-label="Add Starbound to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Adventure</span><span>1.8k playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Pixel Panic" data-category="action" data-trending="false">
+              <div class="game-art art-3"><span class="art-glyph">▣</span><span class="game-rating">★ 4.7</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Pixel Panic</h3><button class="favorite" type="button" aria-label="Add Pixel Panic to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Action</span><span>986 playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Cosmic Clash" data-category="action" data-trending="true">
+              <div class="game-art art-4"><span class="art-glyph">⬡</span><span class="game-rating">★ 4.9</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Cosmic Clash</h3><button class="favorite" type="button" aria-label="Add Cosmic Clash to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Action</span><span>3.1k playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Jelly Jump" data-category="arcade" data-trending="false">
+              <div class="game-art art-5"><span class="art-glyph">♧</span><span class="game-rating">★ 4.6</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Jelly Jump</h3><button class="favorite" type="button" aria-label="Add Jelly Jump to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Arcade</span><span>742 playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Maze of Echoes" data-category="puzzle" data-trending="false">
+              <div class="game-art art-6"><span class="art-glyph">⌘</span><span class="game-rating">★ 4.8</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Maze of Echoes</h3><button class="favorite" type="button" aria-label="Add Maze of Echoes to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Puzzle</span><span>1.2k playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Void Runner" data-category="racing" data-trending="true">
+              <div class="game-art art-7"><span class="art-glyph">➤</span><span class="game-rating">★ 4.7</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Void Runner</h3><button class="favorite" type="button" aria-label="Add Void Runner to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Racing</span><span>1.6k playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+            <article class="game-card" data-name="Bubble Burst" data-category="puzzle" data-trending="false">
+              <div class="game-art art-8"><span class="art-glyph">◎</span><span class="game-rating">★ 4.5</span></div>
+              <div class="game-info">
+                <div class="game-title-row"><h3>Bubble Burst</h3><button class="favorite" type="button" aria-label="Add Bubble Burst to favorites" aria-pressed="false">♡</button></div>
+                <div class="game-meta"><span>Puzzle</span><span>624 playing</span></div>
+                <button class="play-link" type="button">Play now&nbsp; ↗</button>
+              </div>
+            </article>
+          </div>
+          <div class="empty-state" id="empty-state" role="status">No games found. Try another search or category.</div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="game-modal" role="presentation">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+        <div class="modal-header">
+          <div>
+            <h2 id="modal-title">Ready to play?</h2>
+            <p id="modal-description">Your next adventure is one click away.</p>
+          </div>
+          <button class="modal-close" type="button" aria-label="Close game dialog">×</button>
+        </div>
+        <div class="game-window" aria-hidden="true"><div><span>✦</span><small>Game portal ready</small></div></div>
+        <button class="primary-button modal-play" type="button">Launch game&nbsp; ↗</button>
+      </section>
+    </div>
+
+    <script>
+      const cards = [...document.querySelectorAll(".game-card")];
+      const searchInput = document.querySelector("#game-search");
+      const emptyState = document.querySelector("#empty-state");
+      const modal = document.querySelector("#game-modal");
+      const modalTitle = document.querySelector("#modal-title");
+      const modalDescription = document.querySelector("#modal-description");
+      let activeCategory = "all";
+      let activeView = "all";
+
+      function updateGames() {
+        const query = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+          const matchesQuery = card.dataset.name.toLowerCase().includes(query);
+          const matchesCategory = activeCategory === "all" || card.dataset.category === activeCategory;
+          const matchesView =
+            activeView === "all" ||
+            (activeView === "trending" && card.dataset.trending === "true") ||
+            (activeView === "favorites" && card.querySelector(".favorite").classList.contains("saved"));
+          const visible = matchesQuery && matchesCategory && matchesView;
+          card.hidden = !visible;
+          if (visible) visibleCount += 1;
+        });
+
+        emptyState.classList.toggle("show", visibleCount === 0);
+      }
+
+      function openGame(card) {
+        modalTitle.textContent = card.dataset.name;
+        modalDescription.textContent = `${card.querySelector(".game-meta span").textContent} · Free to play · No download needed`;
+        modal.classList.add("open");
+        document.querySelector(".modal-close").focus();
+      }
+
+      document.querySelectorAll(".category").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeCategory = button.dataset.category;
+          document.querySelectorAll(".category").forEach((item) => item.classList.toggle("active", item === button));
+          updateGames();
+        });
+      });
+
+      document.querySelectorAll(".nav-item").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeView = button.dataset.view;
+          document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item === button));
+          updateGames();
+        });
+      });
+
+      searchInput.addEventListener("input", updateGames);
+
+      cards.forEach((card) => {
+        card.querySelector(".play-link").addEventListener("click", () => openGame(card));
+        card.querySelector(".favorite").addEventListener("click", (event) => {
+          const button = event.currentTarget;
+          const isSaved = button.classList.toggle("saved");
+          button.textContent = isSaved ? "♥" : "♡";
+          button.setAttribute("aria-pressed", String(isSaved));
+          button.setAttribute("aria-label", `${isSaved ? "Remove" : "Add"} ${card.dataset.name} ${isSaved ? "from" : "to"} favorites`);
+          updateGames();
+        });
+      });
+
+      function closeModal() {
+        modal.classList.remove("open");
+      }
+
+      document.querySelector(".modal-close").addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal.classList.contains("open")) closeModal();
+      });
+      document.querySelector(".modal-play").addEventListener("click", () => {
+        modalDescription.textContent = "This game is ready to launch. Have fun out there!";
+      });
+
+      document.querySelector("#explore-button").addEventListener("click", () => {
+        document.querySelector("#games-title").scrollIntoView({ behavior: "smooth" });
+      });
+      document.querySelector("#show-all").addEventListener("click", () => {
+        activeCategory = "all";
+        activeView = "all";
+        searchInput.value = "";
+        document.querySelectorAll(".category").forEach((item) => item.classList.toggle("active", item.dataset.category === "all"));
+        document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === "all"));
+        updateGames();
+      });
+      document.querySelector("#surprise-button").addEventListener("click", () => {
+        const available = cards.filter((card) => !card.hidden);
+        openGame(available[Math.floor(Math.random() * available.length)] || cards[0]);
+      });
+    </script>
+  </body>
+</html>
