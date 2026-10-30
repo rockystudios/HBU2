@@ -104,27 +104,36 @@
     .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
     .section-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.7px; }
     .section-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-    .tools { display: flex; align-items: center; gap: 10px; }
-    .search-wrap { position: relative; }
-    .search-wrap::before { position: absolute; top: 50%; left: 13px; color: #8d849e; font-size: 15px; content: "⌕"; transform: translateY(-55%); }
-    .search {
-      width: 218px; height: 40px; padding: 0 13px 0 37px; border: 1px solid var(--line); border-radius: 10px;
-      outline: none; color: var(--text); background: rgba(255,255,255,.035); font-size: 12px;
-    }
-    .search:focus { border-color: rgba(192,132,252,.65); box-shadow: 0 0 0 3px rgba(168,85,247,.12); }
-    .icon-button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.035); cursor: pointer; }
-    .icon-button:hover, .icon-button[aria-pressed="true"] { border-color: rgba(192,132,252,.5); color: #e9c9ff; background: rgba(168,85,247,.12); }
-    .categories { display: flex; gap: 9px; overflow-x: auto; padding: 1px 0 16px; scrollbar-width: none; }
-    .categories::-webkit-scrollbar { display: none; }
-    .chip { flex: 0 0 auto; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: #a9a2b7; background: rgba(255,255,255,.025); cursor: pointer; font-size: 12px; font-weight: 650; }
-    .chip:hover, .chip[aria-pressed="true"] { border-color: rgba(192,132,252,.46); color: #f0ddff; background: rgba(168,85,247,.13); }
-    .game-player { overflow: hidden; border: 1px solid rgba(190,160,255,.2); border-radius: var(--radius); background: #080710; box-shadow: 0 15px 55px rgba(0,0,0,.28), 0 0 35px rgba(168,85,247,.09); }
-    .player-bar { min-height: 54px; padding: 0 17px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); background: linear-gradient(100deg, #171222, #100e1b); }
-    .player-indicator { width: 8px; height: 8px; border-radius: 50%; background: #7cffa9; box-shadow: 0 0 12px #7cffa9; }
-    .player-name { font-size: 13px; font-weight: 750; }
-    .player-label { margin-left: 2px; color: var(--muted); font-size: 11px; }
+    [hidden] { display: none !important; }
+    .icon-button { min-width: 40px; height: 40px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.035); cursor: pointer; font-size: 12px; font-weight: 700; }
+    .icon-button:hover { border-color: rgba(192,132,252,.5); color: #e9c9ff; background: rgba(168,85,247,.12); }
+    .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+    .game-card { position: relative; width: 100%; padding: 0; overflow: hidden; display: block; border: 1px solid var(--line); border-radius: var(--radius); color: inherit; background: var(--surface); cursor: pointer; text-align: left; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+    .game-card:hover, .game-card:focus-visible { transform: translateY(-5px); border-color: rgba(185,124,255,.65); box-shadow: 0 16px 40px rgba(0,0,0,.3), 0 0 32px rgba(168,85,247,.28); }
+    .game-thumb { position: relative; aspect-ratio: 16 / 10; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 70% 20%, #7c3aed, #1a0f2e 70%); font-size: 64px; }
+    .game-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+    .game-card:hover .game-thumb img { transform: scale(1.07); }
+    .game-thumb::after { position: absolute; inset: 0; background: linear-gradient(to top, rgba(9,7,17,.75), transparent 55%); content: ""; }
+    .play-badge { position: absolute; z-index: 1; right: 12px; bottom: 12px; padding: 6px 13px; border-radius: 99px; color: white; background: linear-gradient(105deg, #a855f7, #8b5cf6); box-shadow: 0 0 18px rgba(168,85,247,.5); font-size: 11px; font-weight: 800; opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease; }
+    .game-card:hover .play-badge, .game-card:focus-visible .play-badge { opacity: 1; transform: none; }
+    .game-info { padding: 14px 16px 16px; }
+    .game-title { margin: 0; font-size: 15px; font-weight: 780; }
+    .game-meta { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+    .player-view { padding-top: 28px; }
+    .player-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .player-title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
     .player-spacer { flex: 1; }
-    .player-frame { width: 100%; height: min(72vh, 680px); min-height: 480px; display: block; border: 0; background: #080710; }
+    .player-stage { display: grid; grid-template-columns: 112px minmax(0, 1fr) 112px; gap: 16px; align-items: stretch; }
+    .side-brand { position: relative; overflow: hidden; min-height: 420px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(190,160,255,.18); border-radius: var(--radius); background: radial-gradient(ellipse at 50% 100%, rgba(139,92,246,.4), transparent 62%), linear-gradient(180deg, #151024, #0b0914); box-shadow: inset 0 0 40px rgba(168,85,247,.07); }
+    .side-brand::before { position: absolute; width: 150%; aspect-ratio: 1; border: 1px solid rgba(195,146,255,.14); border-radius: 50%; box-shadow: 0 0 0 28px rgba(195,146,255,.03), 0 0 0 58px rgba(195,146,255,.025); content: ""; }
+    .side-brand-text { position: relative; display: flex; align-items: center; gap: 14px; color: #e9d5ff; font-size: 22px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 22px rgba(192,132,252,.8); white-space: nowrap; writing-mode: vertical-rl; }
+    .side-brand-text small { color: #9d8bb8; font-size: 10px; font-weight: 700; letter-spacing: 3px; text-shadow: none; }
+    .side-brand-left .side-brand-text { transform: rotate(180deg); }
+    .game-frame-wrap { position: relative; overflow: hidden; min-height: 420px; border: 1px solid rgba(190,160,255,.28); border-radius: var(--radius); background: #05040a; box-shadow: 0 15px 55px rgba(0,0,0,.35), 0 0 42px rgba(168,85,247,.2); }
+    .game-frame { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border: 0; background: #05040a; }
+    .game-frame-wrap { aspect-ratio: 16 / 10; }
+    .game-frame-wrap:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; }
     .footer { margin-top: 64px; padding: 22px 0 30px; display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); color: #817a8e; font-size: 11px; }
     .footer strong { color: #c7b1df; }
     :focus-visible { outline: 2px solid #d5a5ff; outline-offset: 3px; }
@@ -135,7 +144,6 @@
       .shell { width: min(100% - 32px, 520px); }
       .nav { min-height: 64px; gap: 20px; }
       .nav-links { gap: 15px; font-size: 12px; }
-      .nav-links a:nth-child(2) { display: none; }
       .status { display: none; }
       .hero { min-height: 390px; margin-top: 22px; padding: 38px 27px; align-items: start; }
       .hero-content { max-width: 100%; }
@@ -145,15 +153,19 @@
       .hero::after { right: -45%; top: 31%; width: 360px; height: 360px; }
       .section { padding-top: 36px; }
       .section-heading { align-items: start; flex-direction: column; }
-      .tools { width: 100%; }
-      .search-wrap { flex: 1; }
-      .search { width: 100%; }
-      .player-frame { height: 65vh; min-height: 420px; }
-      .player-bar { padding-inline: 13px; }
+      .game-grid { grid-template-columns: 1fr; }
+      .player-stage { grid-template-columns: 1fr; }
+      .side-brand { min-height: 0; padding: 14px; }
+      .side-brand-text, .side-brand-left .side-brand-text { writing-mode: horizontal-tb; transform: none; font-size: 15px; }
+      .side-brand-right { order: 3; }
+      .game-frame-wrap { min-height: 0; aspect-ratio: 4 / 3; }
       .footer { flex-direction: column; gap: 5px; margin-top: 45px; }
     }
+    @media (max-width: 900px) and (min-width: 651px) {
+      .player-stage { grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 10px; }
+      .side-brand-text { font-size: 15px; }
+    }
     @media (max-width: 370px) {
-      .player-frame { min-height: 380px; }
       .nav-links { gap: 11px; }
       h1 { font-size: 47px; }
     }
@@ -165,7 +177,7 @@
 <body>
   <header class="topbar">
     <nav class="nav shell" aria-label="Main navigation">
-      <a class="brand" href="#" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true">✦</span><span>HBU <em>ARCADE</em></span></a>
+      <a class="brand" href="#games" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true">✦</span><span>HBU <em>ARCADE</em></span></a>
       <div class="nav-links">
         <a class="active" href="#games">Explore</a>
       </div>
@@ -175,57 +187,131 @@
   </header>
 
   <main class="shell">
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-content">
-        <span class="eyebrow"><span class="spark" aria-hidden="true">✧</span> YOUR NEXT GAME IS HERE</span>
-        <h1 id="hero-title">Play beyond<br>the <span>ordinary.</span></h1>
-        <p>Quick breaks. Big wins. Find your next favorite in a universe of games made to play right in your browser.</p>
-        <a class="button button-primary" href="#games">Explore the arcade <span aria-hidden="true">↗</span></a>
-      </div>
-      <div class="hero-art" aria-hidden="true">🕹️</div>
-    </section>
+    <div id="home-view">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-content">
+          <span class="eyebrow"><span class="spark" aria-hidden="true">✧</span> YOUR NEXT GAME IS HERE</span>
+          <h1 id="hero-title">Play beyond<br>the <span>ordinary.</span></h1>
+          <p>Quick breaks. Big wins. Pick a game and play it right here in the arcade.</p>
+          <a class="button button-primary" href="#games">Explore the arcade <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="hero-art" aria-hidden="true">🕹️</div>
+      </section>
 
-    <section class="section" id="games" aria-labelledby="games-title">
-      <div class="section-heading">
-        <div>
-          <h2 id="games-title">Moto X3M</h2>
-          <p>Hit the track and play right here in the arcade.</p>
+      <section class="section" id="games" aria-labelledby="games-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="games-title">The game vault</h2>
+            <p>Pick a game to start playing.</p>
+          </div>
         </div>
+        <div class="game-grid" id="game-grid"></div>
+      </section>
+    </div>
+
+    <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
+      <div class="player-bar">
+        <button class="icon-button" id="back-button" type="button" aria-label="Back to all games">← All games</button>
+        <h2 class="player-title" id="player-title"></h2>
+        <span class="player-spacer"></span>
+        <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶ Fullscreen</button>
       </div>
-      <div class="game-player">
-        <div class="player-bar">
-          <span class="player-indicator" aria-hidden="true"></span>
-          <span class="player-name">Moto X3M</span>
-          <span class="player-label">Playing in HBU Arcade</span>
-          <span class="player-spacer"></span>
-          <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶</button>
+      <div class="player-stage">
+        <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU ARCADE</span><small>PLAY BEYOND THE ORDINARY</small></div></aside>
+        <div class="game-frame-wrap" id="game-frame-wrap">
+          <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
         </div>
-        <iframe
-          class="player-frame"
-          id="game-frame"
-          src="https://unblokedgames.github.io/projects/moto-x3m/index.html"
-          title="Moto X3M"
-          allow="autoplay; fullscreen; gamepad"
-          allowfullscreen>
-        </iframe>
+        <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU ARCADE</span><small>PLAY BEYOND THE ORDINARY</small></div></aside>
       </div>
     </section>
   </main>
 
   <footer class="footer shell">
     <span><strong>HBU ARCADE</strong> &nbsp;·&nbsp; A little more play in your day.</span>
-    <span>Embedded game hosted by unblokedgames.github.io.</span>
+    <span>Games are hosted by their original publishers.</span>
   </footer>
 
   <script>
-    const gameFrame = document.querySelector("#game-frame");
+    const games = [
+      {
+        id: "moto-x3m",
+        name: "Moto X3M",
+        genre: "Racing",
+        emoji: "🏍️",
+        image: "https://unblokedgames.github.io/projects/moto-x3m/moto-x3m.png",
+        url: "https://unblokedgames.github.io/projects/moto-x3m/index.html"
+      }
+    ];
+    const homeView = document.querySelector("#home-view");
+    const playerView = document.querySelector("#player-view");
+    const grid = document.querySelector("#game-grid");
+    const frame = document.querySelector("#game-frame");
+    const frameWrap = document.querySelector("#game-frame-wrap");
+    const playerTitle = document.querySelector("#player-title");
+
+    for (const game of games) {
+      const card = document.createElement("button");
+      card.className = "game-card";
+      card.type = "button";
+      card.setAttribute("aria-label", `Play ${game.name}`);
+      const thumb = document.createElement("div");
+      thumb.className = "game-thumb";
+      thumb.textContent = game.emoji;
+      const image = document.createElement("img");
+      image.src = game.image;
+      image.alt = "";
+      image.loading = "lazy";
+      image.addEventListener("error", () => image.remove());
+      thumb.append(image);
+      const badge = document.createElement("span");
+      badge.className = "play-badge";
+      badge.textContent = "▶ Play";
+      thumb.append(badge);
+      const info = document.createElement("div");
+      info.className = "game-info";
+      const title = document.createElement("h3");
+      title.className = "game-title";
+      title.textContent = game.name;
+      const meta = document.createElement("p");
+      meta.className = "game-meta";
+      meta.textContent = game.genre;
+      info.append(title, meta);
+      card.append(thumb, info);
+      card.addEventListener("click", () => { location.hash = `play/${game.id}`; });
+      grid.append(card);
+    }
+
+    function route() {
+      const match = location.hash.match(/^#play\/(.+)$/);
+      const game = match && games.find(item => item.id === match[1]);
+      if (game) {
+        playerTitle.textContent = game.name;
+        frame.title = game.name;
+        if (frame.src !== game.url) frame.src = game.url;
+        homeView.hidden = true;
+        playerView.hidden = false;
+        document.title = `${game.name} — HBU Arcade`;
+        window.scrollTo(0, 0);
+      } else {
+        frame.removeAttribute("src");
+        playerView.hidden = true;
+        homeView.hidden = false;
+        document.title = "HBU Arcade — Play beyond the ordinary";
+      }
+    }
+
+    document.querySelector("#back-button").addEventListener("click", () => {
+      location.hash = "games";
+    });
     document.querySelector("#fullscreen-button").addEventListener("click", async () => {
       try {
-        await gameFrame.requestFullscreen();
+        await frameWrap.requestFullscreen();
       } catch (error) {
-        console.warn("Fullscreen is unavailable for this game.", error);
+        console.warn("Fullscreen is unavailable in this browser.", error);
       }
     });
+    window.addEventListener("hashchange", route);
+    route();
   </script>
 </body>
 </html>
