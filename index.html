@@ -105,9 +105,15 @@
     .section-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.7px; }
     .section-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
     [hidden] { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .game-tools { margin-bottom: 14px; display: grid; grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(150px, .55fr)); gap: 10px; }
+    .game-tools input, .game-tools select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
+    .game-count, .empty-state, .player-status { color: var(--muted); font-size: 13px; }
+    .game-count { margin: 0 0 14px; }
     .icon-button { min-width: 40px; height: 40px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.035); cursor: pointer; font-size: 12px; font-weight: 700; }
     .icon-button:hover { border-color: rgba(192,132,252,.5); color: #e9c9ff; background: rgba(168,85,247,.12); }
     .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+    .game-entry { min-width: 0; }
     .game-card { position: relative; width: 100%; padding: 0; overflow: hidden; display: block; border: 1px solid var(--line); border-radius: var(--radius); color: inherit; background: var(--surface); cursor: pointer; text-align: left; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
     .game-card:hover, .game-card:focus-visible { transform: translateY(-5px); border-color: rgba(185,124,255,.65); box-shadow: 0 16px 40px rgba(0,0,0,.3), 0 0 32px rgba(168,85,247,.28); }
     .game-thumb { position: relative; aspect-ratio: 16 / 10; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 70% 20%, #7c3aed, #1a0f2e 70%); font-size: 64px; }
@@ -119,6 +125,12 @@
     .game-info { padding: 14px 16px 16px; }
     .game-title { margin: 0; font-size: 15px; font-weight: 780; }
     .game-meta { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .game-entry-tools { padding-top: 9px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .game-entry-tools .icon-button { min-height: 36px; height: auto; padding: 7px 10px; }
+    .favorite-button[aria-pressed="true"] { border-color: rgba(192,132,252,.55); color: #e9c9ff; background: rgba(168,85,247,.16); }
+    .game-details { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 12px; }
+    .game-details summary { padding: 9px 11px; color: #d7b4ff; cursor: pointer; font-weight: 700; }
+    .game-details ul { margin: 0; padding: 0 12px 10px 29px; }
 
     .player-view { padding-top: 28px; }
     .player-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -134,6 +146,17 @@
     .game-frame { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border: 0; background: #05040a; }
     .game-frame-wrap { aspect-ratio: 16 / 10; }
     .game-frame-wrap:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; }
+    .player-status { margin: 12px 0; }
+    .player-details { margin: 20px 0 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.025); }
+    .player-details h3 { margin: 0 0 6px; font-size: 16px; }
+    .player-details p { margin: 0; color: var(--muted); font-size: 13px; }
+    .player-actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .site-info { margin-top: 46px; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.025); }
+    .site-info h2 { margin: 0 0 7px; font-size: 18px; }
+    .site-info p { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+    .site-info p:last-child { margin-bottom: 0; }
+    .site-info-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .site-info-actions p { flex: 1 1 280px; margin: 0; }
     .footer { margin-top: 64px; padding: 22px 0 30px; display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--line); color: #817a8e; font-size: 11px; }
     .footer strong { color: #c7b1df; }
     :focus-visible { outline: 2px solid #d5a5ff; outline-offset: 3px; }
@@ -153,12 +176,13 @@
       .hero::after { right: -45%; top: 31%; width: 360px; height: 360px; }
       .section { padding-top: 36px; }
       .section-heading { align-items: start; flex-direction: column; }
+      .game-tools { grid-template-columns: 1fr; }
       .game-grid { grid-template-columns: 1fr; }
       .player-stage { grid-template-columns: 1fr; }
       .side-brand { min-height: 0; padding: 14px; }
       .side-brand-text, .side-brand-left .side-brand-text { writing-mode: horizontal-tb; transform: none; font-size: 15px; }
       .side-brand-right { order: 3; }
-      .game-frame-wrap { min-height: 0; aspect-ratio: 4 / 3; }
+      .game-frame-wrap { min-height: min(60vh, 360px); aspect-ratio: 4 / 3; }
       .footer { flex-direction: column; gap: 5px; margin-top: 45px; }
     }
     @media (max-width: 900px) and (min-width: 651px) {
@@ -205,7 +229,14 @@
             <p>Pick a game to start playing.</p>
           </div>
         </div>
+        <div class="game-tools" aria-label="Find a game">
+          <label><span class="sr-only">Search games</span><input id="game-search" type="search" placeholder="Search games..." autocomplete="off"></label>
+          <label><span class="sr-only">Filter by genre</span><select id="genre-filter"><option value="">All genres</option></select></label>
+          <label><span class="sr-only">Choose games to show</span><select id="library-filter"><option value="all">All games</option><option value="favorites">Favorites</option><option value="recent">Recently played</option></select></label>
+        </div>
+        <p class="game-count" id="game-count" aria-live="polite"></p>
         <div class="game-grid" id="game-grid"></div>
+        <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
       </section>
     </div>
 
@@ -216,12 +247,32 @@
         <span class="player-spacer"></span>
         <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶ Fullscreen</button>
       </div>
+      <p class="player-status" id="player-status" role="status" aria-live="polite"></p>
       <div class="player-stage">
         <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU ARCADE</span><small>PLAY BEYOND THE ORDINARY</small></div></aside>
         <div class="game-frame-wrap" id="game-frame-wrap">
           <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
         </div>
         <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU ARCADE</span><small>PLAY BEYOND THE ORDINARY</small></div></aside>
+      </div>
+      <section class="player-details" aria-labelledby="player-details-title">
+        <h3 id="player-details-title">About this game</h3>
+        <p id="player-game-info"></p>
+        <div class="player-actions">
+          <a class="button button-quiet" id="open-game-button" href="#" target="_blank" rel="noopener noreferrer">Open publisher page ↗</a>
+          <a class="button button-quiet" id="report-game-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Report a game issue ↗</a>
+        </div>
+      </section>
+    </section>
+
+    <section class="site-info" aria-labelledby="site-info-title">
+      <h2 id="site-info-title">About HBU Arcade & privacy</h2>
+      <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
+      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
+      <div class="site-info-actions">
+        <p id="usage-summary" aria-live="polite"></p>
+        <button class="icon-button" id="clear-data-button" type="button">Clear saved data</button>
+        <a class="icon-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Feedback ↗</a>
       </div>
     </section>
   </main>
@@ -288,38 +339,169 @@
     const frame = document.querySelector("#game-frame");
     const frameWrap = document.querySelector("#game-frame-wrap");
     const playerTitle = document.querySelector("#player-title");
+    const searchInput = document.querySelector("#game-search");
+    const genreFilter = document.querySelector("#genre-filter");
+    const libraryFilter = document.querySelector("#library-filter");
+    const gameCount = document.querySelector("#game-count");
+    const emptyState = document.querySelector("#empty-state");
+    const playerStatus = document.querySelector("#player-status");
+    const playerGameInfo = document.querySelector("#player-game-info");
+    const openGameButton = document.querySelector("#open-game-button");
+    const reportGameButton = document.querySelector("#report-game-button");
+    const usageSummary = document.querySelector("#usage-summary");
+    const favoriteStorageKey = "hbu-arcade-favorites";
+    const recentStorageKey = "hbu-arcade-recent";
+    const usageStorageKey = "hbu-arcade-usage";
+    const memoryStorage = new Map();
+    let activeLoadTimer;
 
-    for (const game of games) {
-      const card = document.createElement("button");
-      card.className = "game-card";
-      card.type = "button";
-      card.setAttribute("aria-label", `Play ${game.name}`);
-      const thumb = document.createElement("div");
-      thumb.className = "game-thumb";
-      thumb.textContent = game.emoji;
-      const image = document.createElement("img");
-      image.src = game.image;
-      image.alt = "";
-      image.loading = "lazy";
-      image.addEventListener("error", () => image.remove());
-      thumb.append(image);
-      const badge = document.createElement("span");
-      badge.className = "play-badge";
-      badge.textContent = "▶ Play";
-      thumb.append(badge);
-      const info = document.createElement("div");
-      info.className = "game-info";
-      const title = document.createElement("h3");
-      title.className = "game-title";
-      title.textContent = game.name;
-      const meta = document.createElement("p");
-      meta.className = "game-meta";
-      meta.textContent = game.genre;
-      info.append(title, meta);
-      card.append(thumb, info);
-      card.addEventListener("click", () => { location.hash = `play/${game.id}`; });
-      grid.append(card);
+    function readLocal(key, fallback) {
+      try {
+        const stored = localStorage.getItem(key);
+        return stored === null ? fallback : JSON.parse(stored);
+      } catch (error) {
+        console.warn(`Could not read ${key} from local storage.`, error);
+        return memoryStorage.has(key) ? memoryStorage.get(key) : fallback;
+      }
     }
+
+    function writeLocal(key, value) {
+      memoryStorage.set(key, value);
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (error) {
+        console.warn(`Could not save ${key} to local storage.`, error);
+        return false;
+      }
+    }
+
+    let favorites = readLocal(favoriteStorageKey, []);
+    let recentGames = readLocal(recentStorageKey, []);
+    let usage = readLocal(usageStorageKey, { plays: 0, pageLoads: 0, loadTimeouts: 0 });
+    if (!Array.isArray(favorites)) favorites = [];
+    if (!Array.isArray(recentGames)) recentGames = [];
+    if (!usage || typeof usage !== "object" || !Number.isFinite(usage.plays) || !Number.isFinite(usage.pageLoads)) {
+      usage = { plays: 0, pageLoads: 0, loadTimeouts: 0 };
+    }
+    usage.loadTimeouts = Number.isFinite(usage.loadTimeouts) ? usage.loadTimeouts : 0;
+
+    function updateUsageSummary() {
+      usageSummary.textContent = `On this device: ${usage.plays} game launches · ${usage.pageLoads} publisher pages loaded · ${usage.loadTimeouts} slow loads.`;
+    }
+
+    function renderGames() {
+      const query = searchInput.value.trim().toLowerCase();
+      const selectedGenre = genreFilter.value;
+      const selectedLibrary = libraryFilter.value;
+      const visibleGames = games.filter(game => {
+        const matchesSearch = `${game.name} ${game.genre}`.toLowerCase().includes(query);
+        const matchesGenre = !selectedGenre || game.genre === selectedGenre;
+        const matchesLibrary = selectedLibrary === "favorites" ? favorites.includes(game.id)
+          : selectedLibrary === "recent" ? recentGames.includes(game.id)
+            : true;
+        return matchesSearch && matchesGenre && matchesLibrary;
+      });
+      if (selectedLibrary === "recent") {
+        visibleGames.sort((a, b) => recentGames.indexOf(a.id) - recentGames.indexOf(b.id));
+      }
+      grid.replaceChildren();
+      for (const game of visibleGames) {
+        const entry = document.createElement("article");
+        entry.className = "game-entry";
+        const card = document.createElement("button");
+        card.className = "game-card";
+        card.type = "button";
+        card.setAttribute("aria-label", `Play ${game.name}`);
+        const thumb = document.createElement("div");
+        thumb.className = "game-thumb";
+        thumb.textContent = game.emoji;
+        const image = document.createElement("img");
+        image.src = game.image;
+        image.alt = "";
+        image.loading = "lazy";
+        image.addEventListener("error", () => image.remove());
+        thumb.append(image);
+        const badge = document.createElement("span");
+        badge.className = "play-badge";
+        badge.textContent = "▶ Play";
+        thumb.append(badge);
+        const info = document.createElement("div");
+        info.className = "game-info";
+        const title = document.createElement("h3");
+        title.className = "game-title";
+        title.textContent = game.name;
+        const meta = document.createElement("p");
+        meta.className = "game-meta";
+        meta.textContent = game.genre;
+        info.append(title, meta);
+        card.append(thumb, info);
+        card.addEventListener("click", () => { location.hash = `play/${game.id}`; });
+
+        const tools = document.createElement("div");
+        tools.className = "game-entry-tools";
+        const favorite = document.createElement("button");
+        favorite.className = "icon-button favorite-button";
+        favorite.type = "button";
+        favorite.setAttribute("aria-pressed", String(favorites.includes(game.id)));
+        favorite.setAttribute("aria-label", `${favorites.includes(game.id) ? "Remove" : "Add"} ${game.name} ${favorites.includes(game.id) ? "from" : "to"} favorites`);
+        favorite.textContent = favorites.includes(game.id) ? "♥ Favorited" : "♡ Favorite";
+        favorite.addEventListener("click", () => {
+          favorites = favorites.includes(game.id) ? favorites.filter(id => id !== game.id) : [...favorites, game.id];
+          writeLocal(favoriteStorageKey, favorites);
+          renderGames();
+        });
+        const details = document.createElement("details");
+        details.className = "game-details";
+        const summary = document.createElement("summary");
+        summary.textContent = "Game details";
+        const detailList = document.createElement("ul");
+        for (const detail of [
+          "Controls: check the game's start screen; controls vary.",
+          "Age guidance: HBU rating unavailable; review publisher information.",
+          "Play time: varies by player."
+        ]) {
+          const item = document.createElement("li");
+          item.textContent = detail;
+          detailList.append(item);
+        }
+        details.append(summary, detailList);
+        tools.append(favorite);
+        entry.append(card, tools, details);
+        grid.append(entry);
+      }
+      gameCount.textContent = `${visibleGames.length} of ${games.length} games`;
+      emptyState.hidden = visibleGames.length > 0;
+    }
+
+    for (const genre of [...new Set(games.map(game => game.genre))].sort()) {
+      const option = document.createElement("option");
+      option.value = genre;
+      option.textContent = genre;
+      genreFilter.append(option);
+    }
+    searchInput.addEventListener("input", renderGames);
+    genreFilter.addEventListener("change", renderGames);
+    libraryFilter.addEventListener("change", renderGames);
+
+    function reportIssueUrl(game) {
+      const url = new URL("https://github.com/rockystudios/HBU2/issues/new");
+      url.searchParams.set("title", `Game issue: ${game.name}`);
+      url.searchParams.set("body", `Game: ${game.name}\nURL: ${game.url}\n\nWhat happened?`);
+      return url.toString();
+    }
+
+    frame.addEventListener("load", () => {
+      if (!frame.src) return;
+      window.clearTimeout(activeLoadTimer);
+      playerStatus.textContent = "Publisher page loaded. If the game is blank, try opening it on the publisher's site.";
+      usage.pageLoads += 1;
+      writeLocal(usageStorageKey, usage);
+      updateUsageSummary();
+    });
+
+    renderGames();
+    updateUsageSummary();
 
     function route() {
       const match = location.hash.match(/^#play\/(.+)$/);
@@ -327,16 +509,34 @@
       if (game) {
         playerTitle.textContent = game.name;
         frame.title = game.name;
-        if (frame.src !== game.url) frame.src = game.url;
+        playerGameInfo.textContent = "Controls vary by game; check its start screen. HBU does not assign age ratings, so review publisher guidance. Play time varies by player.";
+        openGameButton.href = game.url;
+        reportGameButton.href = reportIssueUrl(game);
         homeView.hidden = true;
         playerView.hidden = false;
         document.title = `${game.name} — HBU Arcade`;
+        recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
+        writeLocal(recentStorageKey, recentGames);
+        usage.plays += 1;
+        writeLocal(usageStorageKey, usage);
+        updateUsageSummary();
+        playerStatus.textContent = "Loading the publisher's game...";
+        window.clearTimeout(activeLoadTimer);
+        activeLoadTimer = window.setTimeout(() => {
+          playerStatus.textContent = "Still waiting for the publisher page. You can try opening it in a new tab.";
+          usage.loadTimeouts += 1;
+          writeLocal(usageStorageKey, usage);
+          updateUsageSummary();
+        }, 12000);
+        if (frame.src !== game.url) frame.src = game.url;
         window.scrollTo(0, 0);
       } else {
+        window.clearTimeout(activeLoadTimer);
         frame.removeAttribute("src");
         playerView.hidden = true;
         homeView.hidden = false;
         document.title = "HBU Arcade — Play beyond the ordinary";
+        renderGames();
       }
     }
 
@@ -349,6 +549,21 @@
       } catch (error) {
         console.warn("Fullscreen is unavailable in this browser.", error);
       }
+    });
+    document.querySelector("#clear-data-button").addEventListener("click", () => {
+      favorites = [];
+      recentGames = [];
+      usage = { plays: 0, pageLoads: 0, loadTimeouts: 0 };
+      for (const key of [favoriteStorageKey, recentStorageKey, usageStorageKey]) {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.warn(`Could not remove ${key} from local storage.`, error);
+        }
+      }
+      memoryStorage.clear();
+      updateUsageSummary();
+      renderGames();
     });
     window.addEventListener("hashchange", route);
     route();
