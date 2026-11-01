@@ -132,16 +132,25 @@
     .game-details summary { padding: 9px 11px; color: #d7b4ff; cursor: pointer; font-weight: 700; }
     .game-details ul { margin: 0; padding: 0 12px 10px 29px; }
     .message-board { margin-top: 48px; }
-    .message-form { margin-bottom: 16px; display: grid; grid-template-columns: minmax(140px, .7fr) minmax(200px, 1.5fr) auto; gap: 10px; align-items: end; }
-    .message-form label { display: grid; gap: 6px; color: #c9c1d8; font-size: 12px; font-weight: 700; }
-    .message-form input, .message-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
-    .message-form textarea { min-height: 44px; max-height: 180px; resize: vertical; }
-    .message-status { min-height: 20px; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
-    .message-list { display: grid; gap: 10px; }
-    .message-entry { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025); }
-    .message-entry-header { display: flex; justify-content: space-between; gap: 12px; color: #d7b4ff; font-size: 12px; font-weight: 750; }
+    .chat { overflow: hidden; border: 1px solid rgba(190,160,255,.22); border-radius: var(--radius); background: var(--surface); box-shadow: 0 0 40px rgba(168,85,247,.12); }
+    .chat-live { color: #7cffa9; font-size: 12px; font-weight: 750; }
+    .chat-live.offline { color: #ff8a9b; }
+    .chat-join { padding: 28px 20px; }
+    .chat-join-form { max-width: 420px; display: grid; gap: 12px; }
+    .chat-join-form label { display: grid; gap: 8px; color: #c9c1d8; font-size: 13px; font-weight: 700; }
+    .chat-bar { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .chat-bar strong { color: #e9c9ff; }
+    .chat input, .chat textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); }
+    .message-list { height: 380px; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message-form { padding: 12px; display: flex; gap: 10px; align-items: flex-end; border-top: 1px solid var(--line); }
+    .message-form textarea { min-height: 44px; max-height: 120px; resize: none; }
+    .message-status { min-height: 20px; margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; }
+    .chat-empty { margin: auto; color: var(--muted); font-size: 13px; }
+    .message-entry { max-width: min(80%, 520px); padding: 9px 13px; align-self: flex-start; border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.04); }
+    .message-entry.own { align-self: flex-end; border-color: rgba(192,132,252,.45); border-radius: 14px 14px 4px 14px; background: linear-gradient(105deg, rgba(168,85,247,.5), rgba(124,58,237,.4)); }
+    .message-entry-header { display: flex; justify-content: space-between; gap: 14px; color: #d7b4ff; font-size: 11px; font-weight: 750; }
     .message-entry time { color: var(--muted); font-weight: 500; }
-    .message-entry p { margin: 7px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message-entry p { margin: 3px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
 
     .player-view { padding-top: 28px; }
     .player-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -188,7 +197,7 @@
       .section { padding-top: 36px; }
       .section-heading { align-items: start; flex-direction: column; }
       .game-tools { grid-template-columns: 1fr; }
-      .message-form { grid-template-columns: 1fr; }
+      .message-entry { max-width: 92%; }
       .game-grid { grid-template-columns: 1fr; }
       .player-stage { grid-template-columns: 1fr; }
       .side-brand { min-height: 0; padding: 14px; }
@@ -255,22 +264,34 @@
       <section class="section message-board" id="messages" aria-labelledby="messages-title">
         <div class="section-heading">
           <div>
-            <h2 id="messages-title">Message board</h2>
-            <p>Say hi to the HBU Arcade community.</p>
+            <h2 id="messages-title">Global chat</h2>
+            <p>Talk with everyone playing HBU Arcade right now.</p>
           </div>
-          <button class="icon-button" id="refresh-messages-button" type="button">Refresh</button>
+          <span class="chat-live" id="chat-live">● Live</span>
         </div>
-        <form class="message-form" id="message-form">
-          <label for="message-name">Your name
-            <input id="message-name" name="name" type="text" maxlength="40" autocomplete="nickname" required>
-          </label>
-          <label for="message-text">Your message
-            <textarea id="message-text" name="message" maxlength="500" rows="2" required></textarea>
-          </label>
-          <button class="button button-primary" id="send-message-button" type="submit">Post message</button>
-        </form>
-        <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
-        <div class="message-list" id="message-list" aria-live="polite"></div>
+        <div class="chat">
+          <div class="chat-join" id="chat-join">
+            <form class="chat-join-form" id="name-form">
+              <label for="message-name">Pick a name to join the chat
+                <input id="message-name" name="name" type="text" maxlength="24" autocomplete="nickname" placeholder="Your name" required>
+              </label>
+              <button class="button button-primary" type="submit">Join chat</button>
+            </form>
+          </div>
+          <div id="chat-room" hidden>
+            <div class="chat-bar">
+              <span>Chatting as <strong id="chat-user"></strong></span>
+              <button class="icon-button" id="change-name-button" type="button">Change name</button>
+            </div>
+            <div class="message-list" id="message-list" role="log" aria-live="polite" tabindex="0"></div>
+            <form class="message-form" id="message-form">
+              <label class="sr-only" for="message-text">Message</label>
+              <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
+              <button class="button button-primary" id="send-message-button" type="submit">Send</button>
+            </form>
+          </div>
+          <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
+        </div>
       </section>
     </div>
 
@@ -303,7 +324,7 @@
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
       <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
-      <p>Message board posts are stored in Supabase and visible to visitors. Do not post private or sensitive information.</p>
+      <p>Global chat messages and the name you choose are stored in Supabase and visible to all visitors; your chat name is also remembered in this browser. Do not post private or sensitive information.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
         <button class="icon-button" id="clear-data-button" type="button">Clear saved data</button>
@@ -389,13 +410,20 @@
     const usageStorageKey = "hbu-arcade-usage";
     const supabaseMessagesUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1/messages";
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
+    const chatNameKey = "hbu-arcade-chat-name";
+    const chatPollMs = 3000;
     const messageForm = document.querySelector("#message-form");
+    const nameForm = document.querySelector("#name-form");
     const messageName = document.querySelector("#message-name");
     const messageText = document.querySelector("#message-text");
     const messageStatus = document.querySelector("#message-status");
     const messageList = document.querySelector("#message-list");
     const sendMessageButton = document.querySelector("#send-message-button");
-    const refreshMessagesButton = document.querySelector("#refresh-messages-button");
+    const chatJoin = document.querySelector("#chat-join");
+    const chatRoom = document.querySelector("#chat-room");
+    const chatUser = document.querySelector("#chat-user");
+    const chatLive = document.querySelector("#chat-live");
+    const changeNameButton = document.querySelector("#change-name-button");
     const memoryStorage = new Map();
     let activeLoadTimer;
 
@@ -528,48 +556,74 @@
     genreFilter.addEventListener("change", renderGames);
     libraryFilter.addEventListener("change", renderGames);
 
+    let chatName = "";
+    let lastMessagesKey = "";
+    let chatTimer;
+
+    function showChat() {
+      chatJoin.hidden = Boolean(chatName);
+      chatRoom.hidden = !chatName;
+      chatUser.textContent = chatName;
+      window.clearInterval(chatTimer);
+      if (chatName) {
+        lastMessagesKey = "";
+        loadMessages();
+        chatTimer = window.setInterval(() => {
+          if (!document.hidden && !homeView.hidden) loadMessages();
+        }, chatPollMs);
+      } else {
+        messageStatus.textContent = "";
+      }
+    }
+
     function renderMessages(messages) {
+      const key = JSON.stringify(messages);
+      if (key === lastMessagesKey) return;
+      lastMessagesKey = key;
+      const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
       messageList.replaceChildren();
       for (const message of messages) {
-        if (typeof message.name !== "string" || typeof message.message !== "string") {
-          throw new Error("A message is missing its name or message text.");
-        }
+        if (typeof message.name !== "string" || typeof message.message !== "string") continue;
         const entry = document.createElement("article");
         entry.className = "message-entry";
+        if (message.name === chatName) entry.classList.add("own");
         const header = document.createElement("div");
         header.className = "message-entry-header";
         const name = document.createElement("span");
         name.textContent = message.name;
         header.append(name);
-        if (message.created_at) {
-          const date = new Date(message.created_at);
-          if (!Number.isNaN(date.getTime())) {
-            const time = document.createElement("time");
-            time.dateTime = date.toISOString();
-            time.textContent = date.toLocaleString();
-            header.append(time);
-          }
+        const date = new Date(message.created_at);
+        if (message.created_at && !Number.isNaN(date.getTime())) {
+          const time = document.createElement("time");
+          time.dateTime = date.toISOString();
+          time.textContent = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+          header.append(time);
         }
         const text = document.createElement("p");
         text.textContent = message.message;
         entry.append(header, text);
         messageList.append(entry);
       }
-      if (messages.length === 0) {
-        messageStatus.textContent = "No messages yet. Be the first to say hi!";
+      if (!messageList.children.length) {
+        const empty = document.createElement("p");
+        empty.className = "chat-empty";
+        empty.textContent = "No messages yet. Say hi!";
+        messageList.append(empty);
+      }
+      if (nearBottom || !messageList.dataset.scrolled) {
+        messageList.scrollTop = messageList.scrollHeight;
+        messageList.dataset.scrolled = "1";
       }
     }
 
     async function loadMessages() {
       if (!supabaseAnonKey) {
-        messageStatus.textContent = "Message board setup needed: add your Supabase publishable (anon) key to enable messages.";
+        messageStatus.textContent = "Chat setup needed: add your Supabase publishable (anon) key to enable it.";
         sendMessageButton.disabled = true;
-        refreshMessagesButton.disabled = true;
         return;
       }
-      messageStatus.textContent = "Loading messages...";
       try {
-        const response = await fetch(`${supabaseMessagesUrl}?select=name,message,created_at&order=created_at.desc&limit=50`, {
+        const response = await fetch(`${supabaseMessagesUrl}?select=name,message,created_at&order=created_at.desc&limit=100`, {
           headers: {
             apikey: supabaseAnonKey
           }
@@ -581,29 +635,51 @@
         if (!Array.isArray(messages)) {
           throw new Error("Supabase returned an unexpected message list.");
         }
-        renderMessages(messages);
-        if (messages.length > 0) messageStatus.textContent = `${messages.length} recent message${messages.length === 1 ? "" : "s"}.`;
+        renderMessages(messages.reverse());
+        chatLive.textContent = "● Live";
+        chatLive.classList.remove("offline");
+        if (messageStatus.textContent.startsWith("Could not load")) messageStatus.textContent = "";
       } catch (error) {
-        console.error("Could not load message board.", error);
+        console.error("Could not load chat.", error);
+        chatLive.textContent = "● Offline";
+        chatLive.classList.add("offline");
         messageStatus.textContent = error.message || "Could not load messages. Please try again.";
       }
     }
 
+    nameForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = messageName.value.trim();
+      if (!name) return;
+      chatName = name;
+      writeLocal(chatNameKey, name);
+      showChat();
+      messageText.focus();
+    });
+    changeNameButton.addEventListener("click", () => {
+      chatName = "";
+      messageName.value = "";
+      showChat();
+      messageName.focus();
+    });
+    messageText.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        messageForm.requestSubmit();
+      }
+    });
+
     messageForm.addEventListener("submit", async event => {
       event.preventDefault();
-      if (!messageForm.reportValidity()) return;
       if (!supabaseAnonKey) {
-        messageStatus.textContent = "Message board setup needed: add your Supabase publishable (anon) key to enable messages.";
+        messageStatus.textContent = "Chat setup needed: add your Supabase publishable (anon) key to enable it.";
         return;
       }
-      const name = messageName.value.trim();
+      const name = chatName;
       const message = messageText.value.trim();
-      if (!name || !message) {
-        messageStatus.textContent = "Enter your name and a message before posting.";
-        return;
-      }
+      if (!name || !message) return;
       sendMessageButton.disabled = true;
-      messageStatus.textContent = "Posting your message...";
+      messageStatus.textContent = "";
       try {
         const response = await fetch(supabaseMessagesUrl, {
           method: "POST",
@@ -618,17 +694,19 @@
           throw new Error(`Could not post your message (${response.status}). Check the Supabase table columns and insert policy.`);
         }
         messageText.value = "";
-        messageStatus.textContent = "Message posted!";
+        messageList.dataset.scrolled = "";
         await loadMessages();
       } catch (error) {
         console.error("Could not post message.", error);
         messageStatus.textContent = error.message || "Could not post your message. Please try again.";
       } finally {
         sendMessageButton.disabled = false;
+        messageText.focus();
       }
     });
-    refreshMessagesButton.addEventListener("click", loadMessages);
-    loadMessages();
+    const savedChatName = readLocal(chatNameKey, "");
+    chatName = typeof savedChatName === "string" ? savedChatName.trim().slice(0, 24) : "";
+    showChat();
 
     function reportIssueUrl(game) {
       const url = new URL("https://github.com/rockystudios/HBU2/issues/new");
@@ -700,7 +778,7 @@
       favorites = [];
       recentGames = [];
       usage = { plays: 0, pageLoads: 0, loadTimeouts: 0 };
-      for (const key of [favoriteStorageKey, recentStorageKey, usageStorageKey]) {
+      for (const key of [favoriteStorageKey, recentStorageKey, usageStorageKey, chatNameKey]) {
         try {
           localStorage.removeItem(key);
         } catch (error) {
