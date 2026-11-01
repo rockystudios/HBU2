@@ -150,6 +150,18 @@
     .dm-new input { min-height: 36px; padding: 6px 9px; font-size: 12px; }
     .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
     .chat-main { min-width: 0; }
+    .chat-layout.has-admin { grid-template-columns: 190px minmax(0, 1fr) 270px; }
+    .admin-panel { padding: 12px; border-left: 1px solid var(--line); overflow-y: auto; max-height: 520px; }
+    .admin-panel h3 { margin: 0 0 10px; font-size: 14px; color: #e9c9ff; }
+    .admin-panel h4 { margin: 16px 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .admin-ban-form { display: grid; gap: 8px; }
+    .admin-ban-form input, .admin-ban-form select { width: 100%; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); font-size: 13px; }
+    .banned-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+    .banned-item { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); font-size: 12px; }
+    .banned-item strong { color: #e9c9ff; overflow-wrap: anywhere; }
+    .banned-item small { display: block; margin: 2px 0 7px; color: var(--muted); overflow-wrap: anywhere; }
+    .banned-item .icon-button { min-height: 32px; height: auto; padding: 5px 10px; }
+    .admin-status { min-height: 18px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
     .chat-bar { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
     .chat-bar strong { color: #e9c9ff; }
     .chat input, .chat textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); }
@@ -211,7 +223,8 @@
       .section-heading { align-items: start; flex-direction: column; }
       .game-tools { grid-template-columns: 1fr; }
       .message-entry { max-width: 92%; }
-      .chat-layout { grid-template-columns: 1fr; }
+      .chat-layout, .chat-layout.has-admin { grid-template-columns: 1fr; }
+      .admin-panel { max-height: none; border-left: 0; border-top: 1px solid var(--line); }
       .chat-sidebar { max-height: 160px; border-right: 0; border-bottom: 1px solid var(--line); }
       .game-grid { grid-template-columns: 1fr; }
       .player-stage { grid-template-columns: 1fr; }
@@ -327,6 +340,27 @@
                   <button class="button button-primary" id="send-message-button" type="submit">Send</button>
                 </form>
               </div>
+              <aside class="admin-panel" id="admin-panel" aria-label="Admin tools" hidden>
+                <h3>🛡 Admin</h3>
+                <form class="admin-ban-form" id="admin-ban-form">
+                  <label class="sr-only" for="admin-target">Username to ban</label>
+                  <input id="admin-target" type="text" maxlength="20" placeholder="Username to ban" autocomplete="off" required>
+                  <label class="sr-only" for="admin-hours">Ban length</label>
+                  <select id="admin-hours">
+                    <option value="1">1 hour</option>
+                    <option value="24" selected>1 day</option>
+                    <option value="72">3 days</option>
+                    <option value="168">1 week</option>
+                    <option value="720">30 days</option>
+                  </select>
+                  <label class="sr-only" for="admin-reason">Reason</label>
+                  <input id="admin-reason" type="text" maxlength="100" placeholder="Reason (optional)" autocomplete="off">
+                  <button class="button button-primary" type="submit">Ban user</button>
+                </form>
+                <h4>Banned users</h4>
+                <ul class="banned-list" id="banned-list"></ul>
+                <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
+              </aside>
             </div>
           </div>
           <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
@@ -475,6 +509,15 @@
     const dmNewName = document.querySelector("#dm-new-name");
     const convoMain = document.querySelector("#convo-main");
     const convoTitle = document.querySelector("#convo-title");
+    const chatLayout = document.querySelector(".chat-layout");
+    const adminPanel = document.querySelector("#admin-panel");
+    const adminBanForm = document.querySelector("#admin-ban-form");
+    const adminTarget = document.querySelector("#admin-target");
+    const adminHours = document.querySelector("#admin-hours");
+    const adminReason = document.querySelector("#admin-reason");
+    const bannedList = document.querySelector("#banned-list");
+    const adminStatus = document.querySelector("#admin-status");
+    const adminRefreshMs = 15000;
     const memoryStorage = new Map();
     let activeLoadTimer;
 
@@ -613,6 +656,7 @@
     let signupMode = false;
     let lastMessagesKey = "";
     let chatTimer;
+    let adminTimer;
 
     async function rpc(fn, args) {
       const response = await fetch(`${supabaseRestUrl}/rpc/${fn}`, {
@@ -636,6 +680,89 @@
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error((body && body.error) || `Request failed (${response.status}).`);
     }
+
+    const isAdminAccount = () => Boolean(account) && account.username.toLowerCase() === "rocky";
+
+    async function adminCall(action, extra = {}) {
+      const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
+        method: "POST",
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ username: account.username, password: account.password, action, ...extra })
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error((body && body.error) || `Request failed (${response.status}).`);
+      return body;
+    }
+
+    function timeLeft(until) {
+      const minutes = Math.max(1, Math.round((new Date(until).getTime() - Date.now()) / 60000));
+      if (minutes < 60) return `${minutes} min left`;
+      const hours = Math.round(minutes / 60);
+      if (hours < 48) return `${hours} hr left`;
+      return `${Math.round(hours / 24)} days left`;
+    }
+
+    function renderBanned(banned) {
+      bannedList.replaceChildren();
+      if (!banned.length) {
+        const none = document.createElement("li");
+        none.className = "admin-status";
+        none.textContent = "Nobody is banned.";
+        bannedList.append(none);
+        return;
+      }
+      for (const row of banned) {
+        const item = document.createElement("li");
+        item.className = "banned-item";
+        const name = document.createElement("strong");
+        name.textContent = row.username;
+        const info = document.createElement("small");
+        const until = new Date(row.banned_until);
+        info.textContent = `${timeLeft(row.banned_until)} · until ${until.toLocaleString()}${row.ban_reason ? ` · ${row.ban_reason}` : ""}`;
+        const unban = document.createElement("button");
+        unban.type = "button";
+        unban.className = "icon-button";
+        unban.textContent = "Unban";
+        unban.addEventListener("click", async () => {
+          unban.disabled = true;
+          try {
+            await adminCall("admin_unban", { target: row.username });
+            adminStatus.textContent = `${row.username} was unbanned.`;
+            await loadBanned();
+          } catch (error) {
+            adminStatus.textContent = error.message;
+            unban.disabled = false;
+          }
+        });
+        item.append(name, info, unban);
+        bannedList.append(item);
+      }
+    }
+
+    async function loadBanned() {
+      if (!isAdminAccount()) return;
+      try {
+        const result = await adminCall("admin_list");
+        renderBanned(Array.isArray(result.banned) ? result.banned : []);
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    }
+
+    adminBanForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const target = adminTarget.value.trim();
+      if (!target) return;
+      adminStatus.textContent = "Banning...";
+      try {
+        await adminCall("admin_ban", { target, hours: Number(adminHours.value), reason: adminReason.value.trim() });
+        adminStatus.textContent = `${target} was banned.`;
+        adminBanForm.reset();
+        await Promise.all([loadBanned(), loadMessages()]);
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    });
 
     function creds() {
       return { p_username: account.username, p_password: account.password };
@@ -690,8 +817,20 @@
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
+      window.clearInterval(adminTimer);
       if (account) {
         chatUser.textContent = account.username;
+        const admin = isAdminAccount();
+        adminPanel.hidden = !admin;
+        chatLayout.classList.toggle("has-admin", admin);
+        adminStatus.textContent = "";
+        window.clearInterval(adminTimer);
+        if (admin) {
+          loadBanned();
+          adminTimer = window.setInterval(() => {
+            if (!document.hidden && !homeView.hidden) loadBanned();
+          }, adminRefreshMs);
+        }
         currentConvo = "everyone";
         dmPartners = [];
         lastMessagesKey = "";
