@@ -35,7 +35,7 @@
     }
 
     a { color: inherit; text-decoration: none; }
-    button, input { font: inherit; }
+    button, input, textarea { font: inherit; }
     button { color: inherit; }
     .shell { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
     .topbar {
@@ -131,6 +131,17 @@
     .game-details { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 12px; }
     .game-details summary { padding: 9px 11px; color: #d7b4ff; cursor: pointer; font-weight: 700; }
     .game-details ul { margin: 0; padding: 0 12px 10px 29px; }
+    .message-board { margin-top: 48px; }
+    .message-form { margin-bottom: 16px; display: grid; grid-template-columns: minmax(140px, .7fr) minmax(200px, 1.5fr) auto; gap: 10px; align-items: end; }
+    .message-form label { display: grid; gap: 6px; color: #c9c1d8; font-size: 12px; font-weight: 700; }
+    .message-form input, .message-form textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
+    .message-form textarea { min-height: 44px; max-height: 180px; resize: vertical; }
+    .message-status { min-height: 20px; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    .message-list { display: grid; gap: 10px; }
+    .message-entry { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.025); }
+    .message-entry-header { display: flex; justify-content: space-between; gap: 12px; color: #d7b4ff; font-size: 12px; font-weight: 750; }
+    .message-entry time { color: var(--muted); font-weight: 500; }
+    .message-entry p { margin: 7px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
 
     .player-view { padding-top: 28px; }
     .player-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -177,6 +188,7 @@
       .section { padding-top: 36px; }
       .section-heading { align-items: start; flex-direction: column; }
       .game-tools { grid-template-columns: 1fr; }
+      .message-form { grid-template-columns: 1fr; }
       .game-grid { grid-template-columns: 1fr; }
       .player-stage { grid-template-columns: 1fr; }
       .side-brand { min-height: 0; padding: 14px; }
@@ -204,6 +216,7 @@
       <a class="brand" href="#games" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true">✦</span><span>HBU <em>ARCADE</em></span></a>
       <div class="nav-links">
         <a class="active" href="#games">Explore</a>
+        <a href="#messages">Messages</a>
       </div>
       <span class="nav-spacer"></span>
       <span class="status">ARCADE ONLINE</span>
@@ -238,6 +251,27 @@
         <div class="game-grid" id="game-grid"></div>
         <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
       </section>
+
+      <section class="section message-board" id="messages" aria-labelledby="messages-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="messages-title">Message board</h2>
+            <p>Say hi to the HBU Arcade community.</p>
+          </div>
+          <button class="icon-button" id="refresh-messages-button" type="button">Refresh</button>
+        </div>
+        <form class="message-form" id="message-form">
+          <label for="message-name">Your name
+            <input id="message-name" name="name" type="text" maxlength="40" autocomplete="nickname" required>
+          </label>
+          <label for="message-text">Your message
+            <textarea id="message-text" name="message" maxlength="500" rows="2" required></textarea>
+          </label>
+          <button class="button button-primary" id="send-message-button" type="submit">Post message</button>
+        </form>
+        <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
+        <div class="message-list" id="message-list" aria-live="polite"></div>
+      </section>
     </div>
 
     <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
@@ -269,6 +303,7 @@
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
       <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
+      <p>Message board posts are stored in Supabase and visible to visitors. Do not post private or sensitive information.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
         <button class="icon-button" id="clear-data-button" type="button">Clear saved data</button>
@@ -352,6 +387,15 @@
     const favoriteStorageKey = "hbu-arcade-favorites";
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
+    const supabaseMessagesUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1/messages";
+    const supabaseAnonKey = "";
+    const messageForm = document.querySelector("#message-form");
+    const messageName = document.querySelector("#message-name");
+    const messageText = document.querySelector("#message-text");
+    const messageStatus = document.querySelector("#message-status");
+    const messageList = document.querySelector("#message-list");
+    const sendMessageButton = document.querySelector("#send-message-button");
+    const refreshMessagesButton = document.querySelector("#refresh-messages-button");
     const memoryStorage = new Map();
     let activeLoadTimer;
 
@@ -483,6 +527,110 @@
     searchInput.addEventListener("input", renderGames);
     genreFilter.addEventListener("change", renderGames);
     libraryFilter.addEventListener("change", renderGames);
+
+    function renderMessages(messages) {
+      messageList.replaceChildren();
+      for (const message of messages) {
+        if (typeof message.name !== "string" || typeof message.message !== "string") {
+          throw new Error("A message is missing its name or message text.");
+        }
+        const entry = document.createElement("article");
+        entry.className = "message-entry";
+        const header = document.createElement("div");
+        header.className = "message-entry-header";
+        const name = document.createElement("span");
+        name.textContent = message.name;
+        header.append(name);
+        if (message.created_at) {
+          const date = new Date(message.created_at);
+          if (!Number.isNaN(date.getTime())) {
+            const time = document.createElement("time");
+            time.dateTime = date.toISOString();
+            time.textContent = date.toLocaleString();
+            header.append(time);
+          }
+        }
+        const text = document.createElement("p");
+        text.textContent = message.message;
+        entry.append(header, text);
+        messageList.append(entry);
+      }
+      if (messages.length === 0) {
+        messageStatus.textContent = "No messages yet. Be the first to say hi!";
+      }
+    }
+
+    async function loadMessages() {
+      if (!supabaseAnonKey) {
+        messageStatus.textContent = "Message board setup needed: add your Supabase publishable (anon) key to enable messages.";
+        sendMessageButton.disabled = true;
+        refreshMessagesButton.disabled = true;
+        return;
+      }
+      messageStatus.textContent = "Loading messages...";
+      try {
+        const response = await fetch(`${supabaseMessagesUrl}?select=name,message,created_at&order=created_at.desc&limit=50`, {
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Could not load messages (${response.status}). Check the Supabase key, table columns, and read policy.`);
+        }
+        const messages = await response.json();
+        if (!Array.isArray(messages)) {
+          throw new Error("Supabase returned an unexpected message list.");
+        }
+        renderMessages(messages);
+        if (messages.length > 0) messageStatus.textContent = `${messages.length} recent message${messages.length === 1 ? "" : "s"}.`;
+      } catch (error) {
+        console.error("Could not load message board.", error);
+        messageStatus.textContent = error.message || "Could not load messages. Please try again.";
+      }
+    }
+
+    messageForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!messageForm.reportValidity()) return;
+      if (!supabaseAnonKey) {
+        messageStatus.textContent = "Message board setup needed: add your Supabase publishable (anon) key to enable messages.";
+        return;
+      }
+      const name = messageName.value.trim();
+      const message = messageText.value.trim();
+      if (!name || !message) {
+        messageStatus.textContent = "Enter your name and a message before posting.";
+        return;
+      }
+      sendMessageButton.disabled = true;
+      messageStatus.textContent = "Posting your message...";
+      try {
+        const response = await fetch(supabaseMessagesUrl, {
+          method: "POST",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal"
+          },
+          body: JSON.stringify({ name, message })
+        });
+        if (!response.ok) {
+          throw new Error(`Could not post your message (${response.status}). Check the Supabase table columns and insert policy.`);
+        }
+        messageText.value = "";
+        messageStatus.textContent = "Message posted!";
+        await loadMessages();
+      } catch (error) {
+        console.error("Could not post message.", error);
+        messageStatus.textContent = error.message || "Could not post your message. Please try again.";
+      } finally {
+        sendMessageButton.disabled = false;
+      }
+    });
+    refreshMessagesButton.addEventListener("click", loadMessages);
+    loadMessages();
 
     function reportIssueUrl(game) {
       const url = new URL("https://github.com/rockystudios/HBU2/issues/new");
