@@ -583,14 +583,14 @@
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
       messageList.replaceChildren();
       for (const message of messages) {
-        if (typeof message.name !== "string" || typeof message.message !== "string") continue;
+        if (typeof message.user !== "string" || typeof message.message !== "string") continue;
         const entry = document.createElement("article");
         entry.className = "message-entry";
-        if (message.name === chatName) entry.classList.add("own");
+        if (message.user === chatName) entry.classList.add("own");
         const header = document.createElement("div");
         header.className = "message-entry-header";
         const name = document.createElement("span");
-        name.textContent = message.name;
+        name.textContent = message.user;
         header.append(name);
         const date = new Date(message.created_at);
         if (message.created_at && !Number.isNaN(date.getTime())) {
@@ -623,7 +623,7 @@
         return;
       }
       try {
-        const response = await fetch(`${supabaseMessagesUrl}?select=name,message,created_at&order=created_at.desc&limit=100`, {
+        const response = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&order=created_at.desc&limit=100`, {
           headers: {
             apikey: supabaseAnonKey
           }
@@ -688,7 +688,7 @@
             "Content-Type": "application/json",
             Prefer: "return=minimal"
           },
-          body: JSON.stringify({ name, message })
+          body: JSON.stringify({ user: name, message })
         });
         if (!response.ok) {
           throw new Error(`Could not post your message (${response.status}). Check the Supabase table columns and insert policy.`);
