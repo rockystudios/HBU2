@@ -388,7 +388,7 @@
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
     const supabaseMessagesUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1/messages";
-    const supabaseAnonKey = "";
+    const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const messageForm = document.querySelector("#message-form");
     const messageName = document.querySelector("#message-name");
     const messageText = document.querySelector("#message-text");
@@ -571,8 +571,7 @@
       try {
         const response = await fetch(`${supabaseMessagesUrl}?select=name,message,created_at&order=created_at.desc&limit=50`, {
           headers: {
-            apikey: supabaseAnonKey,
-            Authorization: `Bearer ${supabaseAnonKey}`
+            apikey: supabaseAnonKey
           }
         });
         if (!response.ok) {
@@ -610,7 +609,6 @@
           method: "POST",
           headers: {
             apikey: supabaseAnonKey,
-            Authorization: `Bearer ${supabaseAnonKey}`,
             "Content-Type": "application/json",
             Prefer: "return=minimal"
           },
