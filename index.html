@@ -162,6 +162,14 @@
     .banned-item small { display: block; margin: 2px 0 7px; color: var(--muted); overflow-wrap: anywhere; }
     .banned-item .icon-button { min-height: 32px; height: auto; padding: 5px 10px; }
     .admin-status { min-height: 18px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+    .chat-bar-actions { display: flex; gap: 8px; }
+    .chat-main { display: flex; flex-direction: column; }
+    .chat.chat-full { position: fixed; z-index: 50; inset: 0; width: 100%; height: 100%; display: flex; flex-direction: column; border: 0; border-radius: 0; background: var(--bg); }
+    .chat.chat-full #chat-room { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .chat.chat-full .chat-layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+    .chat.chat-full .chat-sidebar, .chat.chat-full .admin-panel { max-height: none; }
+    .chat.chat-full .chat-main { min-height: 0; }
+    .chat.chat-full .message-list { flex: 1; height: auto; min-height: 0; }
     .chat-bar { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
     .chat-bar strong { color: #e9c9ff; }
     .chat input, .chat textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); }
@@ -242,6 +250,10 @@
       .nav-links { gap: 11px; }
       h1 { font-size: 47px; }
     }
+    @media (max-width: 650px) {
+      .chat.chat-full .chat-layout, .chat.chat-full .chat-layout.has-admin { grid-template-rows: auto minmax(0, 1fr) auto; }
+      .chat.chat-full .chat-sidebar { max-height: 120px; }
+    }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
     }
@@ -319,7 +331,10 @@
           <div id="chat-room" hidden>
             <div class="chat-bar">
               <span>Signed in as <strong id="chat-user"></strong></span>
-              <button class="icon-button" id="logout-button" type="button">Log out</button>
+              <span class="chat-bar-actions">
+                <button class="icon-button" id="chat-fullscreen-button" type="button" aria-pressed="false">⛶ Fullscreen</button>
+                <button class="icon-button" id="logout-button" type="button">Log out</button>
+              </span>
             </div>
             <div class="chat-layout">
               <nav class="chat-sidebar" aria-label="Conversations">
@@ -950,6 +965,8 @@
       }
     });
     document.querySelector("#logout-button").addEventListener("click", () => {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      setChatFull(false);
       account = null;
       saveSession();
       showChat();
@@ -975,24 +992,57 @@
       }
     });
 
+    let sending = false;
     messageForm.addEventListener("submit", async event => {
       event.preventDefault();
       const message = messageText.value.trim();
-      if (!account || !message) return;
+      if (!account || !message || sending) return;
+      sending = true;
       sendMessageButton.disabled = true;
       messageStatus.textContent = "";
+      messageText.value = "";
       try {
         await sendMessage(message);
-        messageText.value = "";
         delete messageList.dataset.scrolled;
         await loadMessages();
       } catch (error) {
         console.error("Could not post message.", error);
         messageStatus.textContent = `Could not send: ${error.message}`;
+        if (!messageText.value) messageText.value = message;
       } finally {
+        sending = false;
         sendMessageButton.disabled = false;
         messageText.focus();
       }
+    });
+
+    const chatBox = document.querySelector(".chat");
+    const chatFullscreenButton = document.querySelector("#chat-fullscreen-button");
+    function setChatFull(on) {
+      chatBox.classList.toggle("chat-full", on);
+      document.body.style.overflow = on ? "hidden" : "";
+      chatFullscreenButton.setAttribute("aria-pressed", String(on));
+      chatFullscreenButton.textContent = on ? "✕ Exit fullscreen" : "⛶ Fullscreen";
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+    chatFullscreenButton.addEventListener("click", async () => {
+      if (chatBox.classList.contains("chat-full")) {
+        setChatFull(false);
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        return;
+      }
+      setChatFull(true);
+      try {
+        await chatBox.requestFullscreen();
+      } catch (error) {
+        console.warn("Browser fullscreen is unavailable; using the expanded view.", error);
+      }
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && chatBox.classList.contains("chat-full")) setChatFull(false);
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && chatBox.classList.contains("chat-full")) setChatFull(false);
     });
     try {
       account = JSON.parse(sessionStorage.getItem(sessionKey));
