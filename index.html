@@ -160,6 +160,7 @@
     .chat-empty { margin: auto; color: var(--muted); font-size: 13px; }
     .message-entry { max-width: min(80%, 520px); padding: 9px 13px; align-self: flex-start; border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.04); }
     .message-entry.own { align-self: flex-end; border-color: rgba(192,132,252,.45); border-radius: 14px 14px 4px 14px; background: linear-gradient(105deg, rgba(168,85,247,.5), rgba(124,58,237,.4)); }
+    .message-entry.bot { border-color: rgba(102,233,255,.5); background: rgba(102,233,255,.08); }
     .message-entry-header { display: flex; justify-content: space-between; gap: 14px; color: #d7b4ff; font-size: 11px; font-weight: 750; }
     .message-entry time { color: var(--muted); font-weight: 500; }
     .message-entry p { margin: 3px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -362,7 +363,7 @@
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
       <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
-      <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
+      <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Every message is checked by an AI moderator (mod-bot, using OpenAI): curse words are removed, hateful messages can lead to a chat ban of up to a week, and you can ask it questions with @mod-bot in the main chat. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
         <button class="icon-button" id="clear-data-button" type="button">Clear saved data</button>
@@ -447,6 +448,7 @@
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
     const supabaseRestUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1";
+    const supabaseFunctionsUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1";
     const supabaseMessagesUrl = `${supabaseRestUrl}/messages`;
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const sessionKey = "hbu-arcade-session";
@@ -625,6 +627,16 @@
       return body;
     }
 
+    async function sendMessage(message) {
+      const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
+        method: "POST",
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ username: account.username, password: account.password, receiver: currentConvo, message })
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error((body && body.error) || `Request failed (${response.status}).`);
+    }
+
     function creds() {
       return { p_username: account.username, p_password: account.password };
     }
@@ -705,10 +717,11 @@
         const entry = document.createElement("article");
         entry.className = "message-entry";
         if (account && message.user === account.username) entry.classList.add("own");
+        if (message.user === "mod-bot") entry.classList.add("bot");
         const header = document.createElement("div");
         header.className = "message-entry-header";
         const name = document.createElement("span");
-        name.textContent = message.user;
+        name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
         header.append(name);
         const date = new Date(message.created_at);
         if (message.created_at && !Number.isNaN(date.getTime())) {
@@ -830,7 +843,7 @@
       sendMessageButton.disabled = true;
       messageStatus.textContent = "";
       try {
-        await rpc("hbu_send", { ...creds(), p_receiver: currentConvo, p_message: message });
+        await sendMessage(message);
         messageText.value = "";
         delete messageList.dataset.scrolled;
         await loadMessages();
