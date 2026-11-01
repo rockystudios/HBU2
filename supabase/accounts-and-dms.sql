@@ -127,3 +127,6 @@ grant execute on function
   public.hbu_get_dms(text, text, text),
   public.hbu_dm_partners(text, text)
 to anon, authenticated;
+
+-- Make the API pick up the new functions immediately.
+notify pgrst, 'reload schema';
