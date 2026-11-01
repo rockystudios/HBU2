@@ -138,6 +138,18 @@
     .chat-join { padding: 28px 20px; }
     .chat-join-form { max-width: 420px; display: grid; gap: 12px; }
     .chat-join-form label { display: grid; gap: 8px; color: #c9c1d8; font-size: 13px; font-weight: 700; }
+    .auth-tabs { margin-bottom: 14px; display: flex; gap: 8px; }
+    .auth-tabs .icon-button[aria-pressed="true"] { border-color: rgba(192,132,252,.55); color: #e9c9ff; background: rgba(168,85,247,.16); }
+    .chat-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); }
+    .chat-sidebar { padding: 10px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid var(--line); overflow-y: auto; max-height: 520px; }
+    .chat-convo { width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: 9px; background: none; cursor: pointer; font-size: 13px; font-weight: 700; text-align: left; overflow-wrap: anywhere; }
+    .chat-convo:hover { background: rgba(255,255,255,.04); }
+    .chat-convo[aria-pressed="true"] { border-color: rgba(192,132,252,.45); color: #e9c9ff; background: rgba(168,85,247,.16); }
+    #dm-list { display: flex; flex-direction: column; gap: 6px; }
+    .dm-new { margin-top: 6px; display: flex; gap: 6px; }
+    .dm-new input { min-height: 36px; padding: 6px 9px; font-size: 12px; }
+    .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
+    .chat-main { min-width: 0; }
     .chat-bar { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
     .chat-bar strong { color: #e9c9ff; }
     .chat input, .chat textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); }
@@ -198,6 +210,8 @@
       .section-heading { align-items: start; flex-direction: column; }
       .game-tools { grid-template-columns: 1fr; }
       .message-entry { max-width: 92%; }
+      .chat-layout { grid-template-columns: 1fr; }
+      .chat-sidebar { max-height: 160px; border-right: 0; border-bottom: 1px solid var(--line); }
       .game-grid { grid-template-columns: 1fr; }
       .player-stage { grid-template-columns: 1fr; }
       .side-brand { min-height: 0; padding: 14px; }
@@ -271,24 +285,48 @@
         </div>
         <div class="chat">
           <div class="chat-join" id="chat-join">
-            <form class="chat-join-form" id="name-form">
-              <label for="message-name">Pick a name to join the chat
-                <input id="message-name" name="name" type="text" maxlength="24" autocomplete="nickname" placeholder="Your name" required>
+            <div class="auth-tabs" role="tablist">
+              <button class="icon-button" id="tab-login" type="button" aria-pressed="true">Log in</button>
+              <button class="icon-button" id="tab-signup" type="button" aria-pressed="false">Create account</button>
+            </div>
+            <form class="chat-join-form" id="auth-form">
+              <label for="auth-username">Username
+                <input id="auth-username" type="text" maxlength="20" autocomplete="username" required>
               </label>
-              <button class="button button-primary" type="submit">Join chat</button>
+              <label for="auth-password">Password
+                <input id="auth-password" type="password" minlength="6" autocomplete="current-password" required>
+              </label>
+              <label for="auth-student-id" id="student-id-label" hidden>Student ID
+                <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
+              </label>
+              <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
           </div>
           <div id="chat-room" hidden>
             <div class="chat-bar">
-              <span>Chatting as <strong id="chat-user"></strong></span>
-              <button class="icon-button" id="change-name-button" type="button">Change name</button>
+              <span>Signed in as <strong id="chat-user"></strong></span>
+              <button class="icon-button" id="logout-button" type="button">Log out</button>
             </div>
-            <div class="message-list" id="message-list" role="log" aria-live="polite" tabindex="0"></div>
-            <form class="message-form" id="message-form">
-              <label class="sr-only" for="message-text">Message</label>
-              <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
-              <button class="button button-primary" id="send-message-button" type="submit">Send</button>
-            </form>
+            <div class="chat-layout">
+              <nav class="chat-sidebar" aria-label="Conversations">
+                <button class="chat-convo" id="convo-main" type="button" data-convo="everyone" aria-pressed="true"># Main chat</button>
+                <div id="dm-list"></div>
+                <form class="dm-new" id="dm-new-form">
+                  <label class="sr-only" for="dm-new-name">Start a DM</label>
+                  <input id="dm-new-name" type="text" maxlength="20" placeholder="DM a username" autocomplete="off">
+                  <button class="icon-button" type="submit">Go</button>
+                </form>
+              </nav>
+              <div class="chat-main">
+                <div class="chat-convo-title" id="convo-title"># Main chat</div>
+                <div class="message-list" id="message-list" role="log" aria-live="polite" tabindex="0"></div>
+                <form class="message-form" id="message-form">
+                  <label class="sr-only" for="message-text">Message</label>
+                  <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
+                  <button class="button button-primary" id="send-message-button" type="submit">Send</button>
+                </form>
+              </div>
+            </div>
           </div>
           <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
         </div>
@@ -324,7 +362,7 @@
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
       <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
-      <p>Global chat messages and the name you choose are stored in Supabase and visible to all visitors; your chat name is also remembered in this browser. Do not post private or sensitive information.</p>
+      <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
         <button class="icon-button" id="clear-data-button" type="button">Clear saved data</button>
@@ -408,13 +446,12 @@
     const favoriteStorageKey = "hbu-arcade-favorites";
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
-    const supabaseMessagesUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1/messages";
+    const supabaseRestUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1";
+    const supabaseMessagesUrl = `${supabaseRestUrl}/messages`;
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
-    const chatNameKey = "hbu-arcade-chat-name";
+    const sessionKey = "hbu-arcade-session";
     const chatPollMs = 3000;
     const messageForm = document.querySelector("#message-form");
-    const nameForm = document.querySelector("#name-form");
-    const messageName = document.querySelector("#message-name");
     const messageText = document.querySelector("#message-text");
     const messageStatus = document.querySelector("#message-status");
     const messageList = document.querySelector("#message-list");
@@ -423,7 +460,19 @@
     const chatRoom = document.querySelector("#chat-room");
     const chatUser = document.querySelector("#chat-user");
     const chatLive = document.querySelector("#chat-live");
-    const changeNameButton = document.querySelector("#change-name-button");
+    const authForm = document.querySelector("#auth-form");
+    const authUsername = document.querySelector("#auth-username");
+    const authPassword = document.querySelector("#auth-password");
+    const authStudentId = document.querySelector("#auth-student-id");
+    const studentIdLabel = document.querySelector("#student-id-label");
+    const authSubmit = document.querySelector("#auth-submit");
+    const tabLogin = document.querySelector("#tab-login");
+    const tabSignup = document.querySelector("#tab-signup");
+    const dmList = document.querySelector("#dm-list");
+    const dmNewForm = document.querySelector("#dm-new-form");
+    const dmNewName = document.querySelector("#dm-new-name");
+    const convoMain = document.querySelector("#convo-main");
+    const convoTitle = document.querySelector("#convo-title");
     const memoryStorage = new Map();
     let activeLoadTimer;
 
@@ -556,17 +605,86 @@
     genreFilter.addEventListener("change", renderGames);
     libraryFilter.addEventListener("change", renderGames);
 
-    let chatName = "";
+    let account = null;
+    let currentConvo = "everyone";
+    let dmPartners = [];
+    let signupMode = false;
     let lastMessagesKey = "";
     let chatTimer;
 
+    async function rpc(fn, args) {
+      const response = await fetch(`${supabaseRestUrl}/rpc/${fn}`, {
+        method: "POST",
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        body: JSON.stringify(args)
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error((body && body.message) || `Request failed (${response.status}).`);
+      }
+      return body;
+    }
+
+    function creds() {
+      return { p_username: account.username, p_password: account.password };
+    }
+
+    function saveSession() {
+      try {
+        if (account) sessionStorage.setItem(sessionKey, JSON.stringify(account));
+        else sessionStorage.removeItem(sessionKey);
+      } catch (error) {
+        console.warn("Could not save the chat session.", error);
+      }
+    }
+
+    function setAuthMode(signup) {
+      signupMode = signup;
+      tabLogin.setAttribute("aria-pressed", String(!signup));
+      tabSignup.setAttribute("aria-pressed", String(signup));
+      studentIdLabel.hidden = !signup;
+      authStudentId.required = signup;
+      authSubmit.textContent = signup ? "Create account" : "Log in";
+      authPassword.autocomplete = signup ? "new-password" : "current-password";
+      messageStatus.textContent = "";
+    }
+
+    function renderConvos() {
+      dmList.replaceChildren();
+      for (const partner of dmPartners) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chat-convo";
+        button.dataset.convo = partner;
+        button.textContent = `✉ ${partner}`;
+        button.setAttribute("aria-pressed", String(currentConvo === partner));
+        button.addEventListener("click", () => openConvo(partner));
+        dmList.append(button);
+      }
+      convoMain.setAttribute("aria-pressed", String(currentConvo === "everyone"));
+      convoTitle.textContent = currentConvo === "everyone" ? "# Main chat" : `Direct messages with ${currentConvo}`;
+    }
+
+    function openConvo(convo) {
+      currentConvo = convo;
+      lastMessagesKey = "";
+      delete messageList.dataset.scrolled;
+      renderConvos();
+      loadMessages();
+      messageText.focus();
+    }
+
     function showChat() {
-      chatJoin.hidden = Boolean(chatName);
-      chatRoom.hidden = !chatName;
-      chatUser.textContent = chatName;
+      chatJoin.hidden = Boolean(account);
+      chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
-      if (chatName) {
+      if (account) {
+        chatUser.textContent = account.username;
+        currentConvo = "everyone";
+        dmPartners = [];
         lastMessagesKey = "";
+        delete messageList.dataset.scrolled;
+        renderConvos();
         loadMessages();
         chatTimer = window.setInterval(() => {
           if (!document.hidden && !homeView.hidden) loadMessages();
@@ -586,7 +704,7 @@
         if (typeof message.user !== "string" || typeof message.message !== "string") continue;
         const entry = document.createElement("article");
         entry.className = "message-entry";
-        if (message.user === chatName) entry.classList.add("own");
+        if (account && message.user === account.username) entry.classList.add("own");
         const header = document.createElement("div");
         header.className = "message-entry-header";
         const name = document.createElement("span");
@@ -607,7 +725,7 @@
       if (!messageList.children.length) {
         const empty = document.createElement("p");
         empty.className = "chat-empty";
-        empty.textContent = "No messages yet. Say hi!";
+        empty.textContent = currentConvo === "everyone" ? "No messages yet. Say hi!" : `No messages with ${currentConvo} yet.`;
         messageList.append(empty);
       }
       if (nearBottom || !messageList.dataset.scrolled) {
@@ -617,50 +735,86 @@
     }
 
     async function loadMessages() {
-      if (!supabaseAnonKey) {
-        messageStatus.textContent = "Chat setup needed: add your Supabase publishable (anon) key to enable it.";
-        sendMessageButton.disabled = true;
-        return;
-      }
+      if (!account) return;
+      const convo = currentConvo;
       try {
-        const response = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&order=created_at.desc&limit=100`, {
-          headers: {
-            apikey: supabaseAnonKey
+        let messages;
+        if (convo === "everyone") {
+          const response = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
+            headers: { apikey: supabaseAnonKey }
+          });
+          if (!response.ok) throw new Error(`Could not load messages (${response.status}).`);
+          messages = (await response.json()).reverse();
+        } else {
+          messages = await rpc("hbu_get_dms", { ...creds(), p_other: convo });
+        }
+        const partners = await rpc("hbu_dm_partners", creds());
+        if (convo !== currentConvo) return;
+        if (Array.isArray(partners)) {
+          const names = partners.map(item => item.partner).filter(Boolean);
+          if (convo !== "everyone" && !names.includes(convo)) names.push(convo);
+          if (names.join("|") !== dmPartners.join("|")) {
+            dmPartners = names.sort((a, b) => a.localeCompare(b));
+            renderConvos();
           }
-        });
-        if (!response.ok) {
-          throw new Error(`Could not load messages (${response.status}). Check the Supabase key, table columns, and read policy.`);
         }
-        const messages = await response.json();
-        if (!Array.isArray(messages)) {
-          throw new Error("Supabase returned an unexpected message list.");
-        }
-        renderMessages(messages.reverse());
+        if (!Array.isArray(messages)) throw new Error("Unexpected message list.");
+        renderMessages(messages);
         chatLive.textContent = "● Live";
         chatLive.classList.remove("offline");
-        if (messageStatus.textContent.startsWith("Could not load")) messageStatus.textContent = "";
+        if (messageStatus.textContent.startsWith("Could not")) messageStatus.textContent = "";
       } catch (error) {
         console.error("Could not load chat.", error);
         chatLive.textContent = "● Offline";
         chatLive.classList.add("offline");
-        messageStatus.textContent = error.message || "Could not load messages. Please try again.";
+        messageStatus.textContent = `Could not load messages: ${error.message}`;
       }
     }
 
-    nameForm.addEventListener("submit", event => {
+    tabLogin.addEventListener("click", () => setAuthMode(false));
+    tabSignup.addEventListener("click", () => setAuthMode(true));
+    authForm.addEventListener("submit", async event => {
       event.preventDefault();
-      const name = messageName.value.trim();
-      if (!name) return;
-      chatName = name;
-      writeLocal(chatNameKey, name);
-      showChat();
-      messageText.focus();
+      const username = authUsername.value.trim();
+      const password = authPassword.value;
+      if (!username || !password) return;
+      authSubmit.disabled = true;
+      messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
+      try {
+        if (signupMode) {
+          await rpc("hbu_signup", { p_username: username, p_password: password, p_student_id: authStudentId.value.trim() });
+        }
+        const realName = await rpc("hbu_login", { p_username: username, p_password: password });
+        account = { username: realName, password };
+        saveSession();
+        authForm.reset();
+        messageStatus.textContent = "";
+        showChat();
+      } catch (error) {
+        console.error("Could not sign in.", error);
+        messageStatus.textContent = error.message;
+      } finally {
+        authSubmit.disabled = false;
+      }
     });
-    changeNameButton.addEventListener("click", () => {
-      chatName = "";
-      messageName.value = "";
+    document.querySelector("#logout-button").addEventListener("click", () => {
+      account = null;
+      saveSession();
       showChat();
-      messageName.focus();
+    });
+    convoMain.addEventListener("click", () => openConvo("everyone"));
+    dmNewForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = dmNewName.value.trim();
+      if (!name) return;
+      if (account && name.toLowerCase() === account.username.toLowerCase()) {
+        messageStatus.textContent = "You cannot DM yourself.";
+        return;
+      }
+      dmNewName.value = "";
+      const existing = dmPartners.find(item => item.toLowerCase() === name.toLowerCase());
+      if (!existing) dmPartners = [...dmPartners, name].sort((a, b) => a.localeCompare(b));
+      openConvo(existing || name);
     });
     messageText.addEventListener("keydown", event => {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -671,41 +825,29 @@
 
     messageForm.addEventListener("submit", async event => {
       event.preventDefault();
-      if (!supabaseAnonKey) {
-        messageStatus.textContent = "Chat setup needed: add your Supabase publishable (anon) key to enable it.";
-        return;
-      }
-      const name = chatName;
       const message = messageText.value.trim();
-      if (!name || !message) return;
+      if (!account || !message) return;
       sendMessageButton.disabled = true;
       messageStatus.textContent = "";
       try {
-        const response = await fetch(supabaseMessagesUrl, {
-          method: "POST",
-          headers: {
-            apikey: supabaseAnonKey,
-            "Content-Type": "application/json",
-            Prefer: "return=minimal"
-          },
-          body: JSON.stringify({ user: name, message })
-        });
-        if (!response.ok) {
-          throw new Error(`Could not post your message (${response.status}). Check the Supabase table columns and insert policy.`);
-        }
+        await rpc("hbu_send", { ...creds(), p_receiver: currentConvo, p_message: message });
         messageText.value = "";
-        messageList.dataset.scrolled = "";
+        delete messageList.dataset.scrolled;
         await loadMessages();
       } catch (error) {
         console.error("Could not post message.", error);
-        messageStatus.textContent = error.message || "Could not post your message. Please try again.";
+        messageStatus.textContent = `Could not send: ${error.message}`;
       } finally {
         sendMessageButton.disabled = false;
         messageText.focus();
       }
     });
-    const savedChatName = readLocal(chatNameKey, "");
-    chatName = typeof savedChatName === "string" ? savedChatName.trim().slice(0, 24) : "";
+    try {
+      account = JSON.parse(sessionStorage.getItem(sessionKey));
+      if (!account || typeof account.username !== "string" || typeof account.password !== "string") account = null;
+    } catch (error) {
+      account = null;
+    }
     showChat();
 
     function reportIssueUrl(game) {
@@ -778,7 +920,7 @@
       favorites = [];
       recentGames = [];
       usage = { plays: 0, pageLoads: 0, loadTimeouts: 0 };
-      for (const key of [favoriteStorageKey, recentStorageKey, usageStorageKey, chatNameKey]) {
+      for (const key of [favoriteStorageKey, recentStorageKey, usageStorageKey]) {
         try {
           localStorage.removeItem(key);
         } catch (error) {
