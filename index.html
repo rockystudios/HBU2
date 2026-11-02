@@ -82,11 +82,11 @@
     }
     .hero::before { position: absolute; right: 17%; top: 16%; width: 220px; height: 220px; border-radius: 50%; background: #9a4dff; filter: blur(100px); opacity: .2; content: ""; }
     .hero-content { position: relative; z-index: 1; max-width: 510px; }
-    .splash { position: absolute; z-index: 2; right: -20px; top: -30px; width: min(300px, 42%); text-align: center; font-weight: 900; font-size: clamp(1.15rem, 2.4vw, 1.7rem); line-height: 1.15; overflow-wrap: anywhere; color: #ffe94d; text-shadow: 0 0 14px currentColor, 2px 2px 0 #1a0533; transform: rotate(-14deg); animation: splash-pulse 1.1s ease-in-out infinite, splash-rainbow 6s linear infinite; pointer-events: none; }
+    .splash { position: absolute; z-index: 2; left: calc(100% + clamp(10px, 4vw, 90px)); top: -10px; width: clamp(240px, 28vw, 340px); text-wrap: balance; text-align: center; font-weight: 900; font-size: clamp(1rem, 1.7vw, 1.3rem); line-height: 1.15; overflow-wrap: anywhere; color: #ffe94d; text-shadow: 0 0 14px currentColor, 2px 2px 0 #1a0533; transform: rotate(-14deg); animation: splash-pulse 1.1s ease-in-out infinite, splash-rainbow 6s linear infinite; pointer-events: none; }
     @keyframes splash-pulse { 0%, 100% { transform: rotate(-14deg) scale(.88); } 50% { transform: rotate(-14deg) scale(1.1); } }
     @keyframes splash-rainbow { 0% { color: #ff3b3b; } 17% { color: #ff9f1c; } 33% { color: #ffe94d; } 50% { color: #3dff6e; } 67% { color: #3dd9ff; } 83% { color: #b36bff; } 100% { color: #ff3b3b; } }
     @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } }
-    @media (max-width: 900px) { .splash { position: static; display: block; width: auto; max-width: 100%; margin: 0 0 14px; font-size: clamp(1.1rem, 5vw, 1.4rem); transform: none; animation: splash-rainbow 6s linear infinite; } }
+    @media (max-width: 1000px) { .splash { position: static; left: auto; top: auto; display: block; width: auto; max-width: 100%; margin: 0 0 14px; font-size: clamp(1.1rem, 5vw, 1.4rem); transform: none; animation: splash-rainbow 6s linear infinite; } }
     .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #d7b4ff; font-size: 11px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; }
     .eyebrow .spark { color: #f0abfc; font-size: 17px; }
     h1 { max-width: 520px; margin: 15px 0 12px; font-size: clamp(42px, 6vw, 66px); line-height: .99; letter-spacing: -3.4px; }
@@ -543,18 +543,18 @@
       "Homework can wait. Probably.",
       "Shhh... the teacher is right there",
       "Your chair called, it wants you to keep playing",
-      "Ctrl + Alt + Procrastinate",
+      "Cmd + Opt + Procrastinate",
       "Is it lunch yet?",
       "Spin the wheel, get the coins!",
       "100% more fun than math class",
       "Don't forget your name plate!",
-      "Quick, alt-tab!!!",
       "Free coins every day. Just saying.",
       "Boredom has been defeated",
       "Plot twist: you have no homework",
-      "Hello, fellow humans. Beep boop.",
+      "Dont ask where i got the games......",
       "Press any key to skip class",
-      "Mod-bot is watching. Be nice!"
+      "Mod-bot is watching your every move.....",
+      "QUICK DO COMMAND-SHIFT-W TRUST"
     ];
     document.getElementById("splash").textContent = splashMessages[Math.floor(Math.random() * splashMessages.length)];
 
