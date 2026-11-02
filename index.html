@@ -774,7 +774,11 @@
         body: JSON.stringify({ username: account.username, password: account.password, action, ...extra })
       });
       const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error((body && body.error) || `Request failed (${response.status}).`);
+      if (!response.ok) {
+        const detail = (body && body.error) || `Request failed (${response.status}).`;
+        if (/^Missing username, password or message/.test(detail)) throw new Error("The send-message function in Supabase is out of date. Redeploy it with the latest code.");
+        throw new Error(detail);
+      }
       return body;
     }
 
