@@ -182,6 +182,10 @@
     .chat-convo:hover { background: rgba(255,255,255,.04); }
     .chat-convo[aria-pressed="true"] { border-color: rgba(192,132,252,.45); color: #e9c9ff; background: rgba(168,85,247,.16); }
     #dm-list { display: flex; flex-direction: column; gap: 6px; }
+    .chat-convo { position: relative; }
+    .chat-convo.unread { color: white; }
+    .chat-convo.unread::after { content: attr(data-unread); position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-width: 20px; padding: 1px 6px; border-radius: 999px; background: #a855f7; box-shadow: 0 0 10px rgba(168,85,247,.8); color: white; font-size: 11px; font-weight: 800; text-align: center; }
+    .chat-convo.unread { padding-right: 36px; }
     .dm-new { margin-top: 6px; display: flex; gap: 6px; }
     .dm-new input { min-height: 36px; padding: 6px 9px; font-size: 12px; }
     .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
@@ -394,14 +398,16 @@
             <div class="chat-bar">
               <span>Signed in as <strong id="chat-user"></strong></span>
               <span class="chat-bar-actions">
+                <button class="icon-button" id="notify-button" type="button" hidden>🔔 Notifications</button>
                 <button class="icon-button" id="chat-fullscreen-button" type="button" aria-pressed="false">⛶ Fullscreen</button>
                 <button class="icon-button" id="logout-button" type="button">Log out</button>
               </span>
             </div>
             <div class="chat-layout">
               <nav class="chat-sidebar" aria-label="Conversations">
-                <button class="chat-convo" id="convo-main" type="button" data-convo="everyone" aria-pressed="true"># Main chat</button>
-                <div id="dm-list"></div>
+                <div id="dm-list">
+                  <button class="chat-convo" id="convo-main" type="button" data-convo="everyone" aria-pressed="true"># Main chat</button>
+                </div>
                 <form class="dm-new" id="dm-new-form">
                   <label class="sr-only" for="dm-new-name">Start a DM</label>
                   <input id="dm-new-name" type="text" maxlength="20" placeholder="DM a username" autocomplete="off">
@@ -801,6 +807,8 @@
     let account = null;
     let currentConvo = "everyone";
     let dmPartners = [];
+    let convoActivity = {};
+    let seenAt = {};
     let signupMode = false;
     let lastMessagesKey = "";
     let chatTimer;
@@ -1032,24 +1040,58 @@
       messageStatus.textContent = "";
     }
 
-    function renderConvos() {
-      dmList.replaceChildren();
-      for (const partner of dmPartners) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "chat-convo";
-        button.dataset.convo = partner;
-        button.textContent = `✉ ${partner}`;
-        button.setAttribute("aria-pressed", String(currentConvo === partner));
-        button.addEventListener("click", () => openConvo(partner));
-        dmList.append(button);
+    const convoKey = convo => convo.toLowerCase();
+    const activityAt = convo => (convoActivity[convoKey(convo)] || { at: 0 }).at;
+
+    function unreadCount(convo) {
+      const info = convoActivity[convoKey(convo)];
+      if (!info || !account || info.user.toLowerCase() === account.username.toLowerCase()) return 0;
+      return info.at > (seenAt[convoKey(convo)] || 0) ? 1 : 0;
+    }
+
+    function markSeen(convo) {
+      const at = activityAt(convo);
+      if (at > (seenAt[convoKey(convo)] || 0)) {
+        seenAt[convoKey(convo)] = at;
+        if (account) writeLocal(`hbu-seen:${account.username.toLowerCase()}`, seenAt);
       }
-      convoMain.setAttribute("aria-pressed", String(currentConvo === "everyone"));
+    }
+
+    function applyBadge() {
+      const total = ["everyone", ...dmPartners].reduce((sum, convo) => sum + unreadCount(convo), 0);
+      document.title = document.title.replace(/^\(\d+\) /, "");
+      if (total && account) document.title = `(${total}) ${document.title}`;
+    }
+
+    function renderConvos() {
+      const order = ["everyone", ...dmPartners].sort((a, b) => activityAt(b) - activityAt(a) || (a === "everyone" ? -1 : b === "everyone" ? 1 : a.localeCompare(b)));
+      const items = [];
+      for (const convo of order) {
+        let button;
+        if (convo === "everyone") {
+          button = convoMain;
+        } else {
+          button = document.createElement("button");
+          button.type = "button";
+          button.className = "chat-convo";
+          button.dataset.convo = convo;
+          button.textContent = `✉ ${convo}`;
+          button.addEventListener("click", () => openConvo(convo));
+        }
+        button.setAttribute("aria-pressed", String(currentConvo === convo));
+        const unread = unreadCount(convo);
+        button.classList.toggle("unread", unread > 0 && currentConvo !== convo);
+        if (unread > 0) button.dataset.unread = "●"; else delete button.dataset.unread;
+        items.push(button);
+      }
+      dmList.replaceChildren(...items);
+      applyBadge();
       convoTitle.textContent = currentConvo === "everyone" ? "# Main chat" : `Direct messages with ${currentConvo}`;
     }
 
     function openConvo(convo) {
       currentConvo = convo;
+      markSeen(convo);
       serverMessages = [];
       lastMessagesKey = "";
       delete messageList.dataset.scrolled;
@@ -1057,6 +1099,151 @@
       loadMessages();
       messageText.focus();
     }
+
+    const notifyButton = document.querySelector("#notify-button");
+    const notifySupported = "Notification" in window;
+    let inboxTimer;
+    let inboxBaseline = false;
+    let inboxBusy = false;
+    let lastSpinReady = null;
+
+    function updateNotifyButton() {
+      notifyButton.hidden = !notifySupported || !account;
+      if (!notifySupported) return;
+      const state = Notification.permission;
+      notifyButton.textContent = state === "granted" ? "🔔 Notifications on" : state === "denied" ? "🔕 Notifications blocked" : "🔔 Enable notifications";
+      notifyButton.disabled = state !== "default";
+    }
+
+    async function askNotificationPermission() {
+      if (!notifySupported || Notification.permission !== "default") return;
+      try {
+        await Notification.requestPermission();
+      } catch (error) {
+        console.warn("Could not ask for notification permission.", error);
+      }
+      updateNotifyButton();
+    }
+    notifyButton.addEventListener("click", askNotificationPermission);
+
+    function notify(title, body, target) {
+      showToast(`${title}: ${body}`);
+      if (!notifySupported || Notification.permission !== "granted") return;
+      if (!document.hidden && document.hasFocus()) return;
+      try {
+        const popup = new Notification(title, { body, tag: target, icon: "assets/logo.jpg" });
+        popup.onclick = () => {
+          window.focus();
+          if (target === "rewards") location.hash = "rewards";
+          else {
+            location.hash = "messages";
+            if (account) openConvo(target);
+          }
+          popup.close();
+        };
+      } catch (error) {
+        console.warn("Could not show a notification.", error);
+      }
+    }
+
+    function viewingConvo(convo) {
+      return !document.hidden && !homeView.hidden && currentConvo === convo;
+    }
+
+    async function pollInbox() {
+      if (!account || inboxBusy) return;
+      inboxBusy = true;
+      const current = account;
+      try {
+        const next = {};
+        const latest = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=1`, { headers: { apikey: supabaseAnonKey } });
+        if (latest.ok) {
+          const [row] = await latest.json();
+          if (row) next.everyone = { at: new Date(row.created_at).getTime(), user: row.user, text: row.message };
+        }
+        const inbox = await rpc("hbu_inbox", creds()).catch(() => null);
+        const partners = new Set(dmPartners);
+        for (const row of inbox || []) {
+          next[convoKey(row.partner)] = { at: new Date(row.last_at).getTime(), user: row.last_user, text: row.last_message };
+          partners.add(row.partner);
+        }
+        if (account !== current) return;
+        const previous = convoActivity;
+        convoActivity = { ...previous, ...next };
+        dmPartners = [...partners].sort((a, b) => a.localeCompare(b));
+        if (inboxBaseline) {
+          for (const [key, info] of Object.entries(next)) {
+            const before = previous[key];
+            const isNew = !before || info.at > before.at;
+            const mine = info.user.toLowerCase() === account.username.toLowerCase();
+            if (!isNew || mine) continue;
+            const convo = key === "everyone" ? "everyone" : dmPartners.find(name => convoKey(name) === key) || key;
+            if (viewingConvo(convo)) continue;
+            if (convo === "everyone") {
+              if (info.text.toLowerCase().includes(`@${account.username.toLowerCase()}`)) notify(`${info.user} mentioned you`, info.text.slice(0, 120), "everyone");
+            } else {
+              notify(`New message from ${info.user}`, info.text.slice(0, 120), convo);
+            }
+          }
+        }
+        inboxBaseline = true;
+        for (const convo of ["everyone", ...dmPartners]) if (viewingConvo(convo)) markSeen(convo);
+        renderConvos();
+      } catch (error) {
+        console.warn("Could not check for new messages.", error);
+      } finally {
+        inboxBusy = false;
+      }
+    }
+
+    async function checkSpinReady() {
+      if (!account) return;
+      const current = account;
+      try {
+        const result = await rpc("hbu_wallet", creds());
+        if (account !== current) return;
+        wallet = result;
+        const ready = Boolean(result.can_spin);
+        const dayKey = `hbu-spin-notified:${account.username.toLowerCase()}`;
+        const today = new Date().toISOString().slice(0, 10);
+        if (ready && readLocal(dayKey, "") !== today && !(location.hash === "#rewards" && !document.hidden)) {
+          writeLocal(dayKey, today);
+          notify("Daily wheel", "Your daily spin is ready! 🎡", "rewards");
+        }
+        lastSpinReady = ready;
+        if (!rewardsView.hidden) renderWallet();
+        else {
+          coinPill.classList.add("show");
+          coinCount.textContent = result.coins;
+        }
+      } catch (error) {
+        console.warn("Could not check the daily wheel.", error);
+      }
+    }
+
+    function startInbox() {
+      stopInbox();
+      inboxBaseline = false;
+      updateNotifyButton();
+      pollInbox();
+      checkSpinReady();
+      inboxTimer = window.setInterval(pollInbox, 5000);
+      spinCheckTimer = window.setInterval(checkSpinReady, 60000);
+    }
+
+    let spinCheckTimer;
+    function stopInbox() {
+      window.clearInterval(inboxTimer);
+      window.clearInterval(spinCheckTimer);
+      applyBadge();
+      updateNotifyButton();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && account) {
+        for (const convo of ["everyone", ...dmPartners]) if (viewingConvo(convo)) markSeen(convo);
+        renderConvos();
+      }
+    });
 
     const coinPill = document.querySelector("#coin-pill");
     const coinCount = document.querySelector("#coin-count");
@@ -1262,6 +1449,7 @@
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
       window.clearInterval(adminTimer);
+      stopInbox();
       if (!account) {
         staffRole = "user";
         adminPanel.hidden = true;
@@ -1272,12 +1460,15 @@
         setupStaff();
         currentConvo = "everyone";
         dmPartners = [];
+        convoActivity = {};
+        seenAt = readLocal(`hbu-seen:${account.username.toLowerCase()}`, {}) || {};
         serverMessages = [];
         pendingMessages = [];
         lastMessagesKey = "";
         delete messageList.dataset.scrolled;
         renderConvos();
         loadMessages();
+        startInbox();
         chatTimer = window.setInterval(() => {
           if (!document.hidden && !homeView.hidden) loadMessages();
         }, chatPollMs);
@@ -1400,8 +1591,9 @@
         if (Array.isArray(partners)) {
           const names = partners.map(item => item.partner).filter(Boolean);
           if (convo !== "everyone" && !names.includes(convo)) names.push(convo);
-          if (names.join("|") !== dmPartners.join("|")) {
-            dmPartners = names.sort((a, b) => a.localeCompare(b));
+          const merged = [...new Set([...names, ...dmPartners])].sort((a, b) => a.localeCompare(b));
+          if (merged.join("|") !== dmPartners.join("|")) {
+            dmPartners = merged;
             renderConvos();
           }
         }
@@ -1435,6 +1627,7 @@
         const realName = await rpc("hbu_login", { p_username: username, p_password: password });
         account = { username: realName, password };
         saveSession();
+        askNotificationPermission();
         authForm.reset();
         messageStatus.textContent = "";
         showChat();
@@ -1619,6 +1812,7 @@
         }
         renderGames();
       }
+      applyBadge();
     }
 
     document.querySelector("#back-button").addEventListener("click", () => {
