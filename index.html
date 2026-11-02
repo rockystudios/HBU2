@@ -195,6 +195,10 @@
     .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
     .chat-main { min-width: 0; }
     .chat-layout.has-admin { grid-template-columns: 190px minmax(0, 1fr) 270px; }
+    .mention { padding: 0 4px; border-radius: 5px; background: rgba(168,85,247,.22); color: #e0c4ff; font-weight: 700; }
+    .mention-me { background: rgba(255,214,102,.28); color: #ffe9a8; box-shadow: 0 0 10px rgba(255,214,102,.35); }
+    .mention-group { background: rgba(255,77,109,.22); color: #ffb3c0; }
+    .mention-bot { background: rgba(102,233,255,.2); color: #aaf2ff; }
     .admin-panel { padding: 12px; border-left: 1px solid var(--line); overflow-y: auto; max-height: 520px; }
     .admin-panel h3 { margin: 0 0 10px; font-size: 14px; color: #e9c9ff; }
     .admin-panel h4 { margin: 16px 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
@@ -585,6 +589,13 @@
                 </form>
                 <h4>Banned users</h4>
                 <ul class="banned-list" id="banned-list"></ul>
+                <h4>mod-bot access</h4>
+                <form class="dm-new" id="botblock-form">
+                  <label class="sr-only" for="botblock-name">Username to block from mod-bot</label>
+                  <input id="botblock-name" type="text" maxlength="20" placeholder="Block from mod-bot" autocomplete="off" required>
+                  <button class="icon-button" type="submit">Block</button>
+                </form>
+                <ul class="banned-list" id="botblock-list"></ul>
                 <section id="admin-mods-section" hidden>
                   <h4>Moderators</h4>
                   <form class="dm-new" id="mod-add-form">
@@ -851,6 +862,9 @@
       }).observe(node, { childList: true, characterData: true, subtree: true });
     });
     const adminTitle = document.querySelector("#admin-title");
+    const botBlockForm = document.querySelector("#botblock-form");
+    const botBlockName = document.querySelector("#botblock-name");
+    const botBlockList = document.querySelector("#botblock-list");
     const modsSection = document.querySelector("#admin-mods-section");
     const modList = document.querySelector("#mod-list");
     const modAddForm = document.querySelector("#mod-add-form");
@@ -1120,11 +1134,58 @@
       }
     }
 
+    function renderBotBlocked(names) {
+      botBlockList.replaceChildren();
+      if (!names.length) {
+        const none = document.createElement("li");
+        none.className = "admin-status";
+        none.textContent = "Nobody is blocked from mod-bot.";
+        botBlockList.append(none);
+        return;
+      }
+      for (const username of names) {
+        const item = document.createElement("li");
+        item.className = "banned-item";
+        const name = document.createElement("strong");
+        name.textContent = username;
+        const restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "icon-button";
+        restore.textContent = "Restore";
+        restore.addEventListener("click", async () => {
+          try {
+            await adminCall("admin_bot_restore", { target: username });
+            adminStatus.textContent = `${username} can talk to mod-bot again.`;
+            loadBanned();
+          } catch (error) {
+            adminStatus.textContent = error.message;
+          }
+        });
+        item.append(name, document.createElement("br"), restore);
+        botBlockList.append(item);
+      }
+    }
+
+    botBlockForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const target = botBlockName.value.trim();
+      if (!target) return;
+      try {
+        await adminCall("admin_bot_block", { target });
+        botBlockName.value = "";
+        adminStatus.textContent = `${target} is blocked from mod-bot.`;
+        loadBanned();
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    });
+
     async function loadBanned() {
       if (!isStaff()) return;
       try {
         const result = await adminCall("admin_list");
         renderBanned(Array.isArray(result.banned) ? result.banned : []);
+        renderBotBlocked(Array.isArray(result.bot_blocked) ? result.bot_blocked : []);
         if (staffRole === "admin") renderMods(Array.isArray(result.mods) ? result.mods : []);
       } catch (error) {
         adminStatus.textContent = error.message;
@@ -1464,7 +1525,7 @@
             const convo = key === "everyone" ? "everyone" : dmPartners.find(name => convoKey(name) === key) || key;
             if (viewingConvo(convo)) continue;
             if (convo === "everyone") {
-              if (info.text.toLowerCase().includes(`@${account.username.toLowerCase()}`)) notify(`${info.user} mentioned you`, info.text.slice(0, 120), "everyone");
+              if (mentionsMe(info.text)) notify(`${info.user} mentioned you`, info.text.slice(0, 120), "everyone");
             } else {
               notify(`New message from ${info.user}`, info.text.slice(0, 120), convo);
             }
@@ -1766,6 +1827,30 @@
     let serverMessages = [];
     let pendingMessages = [];
 
+    function appendWithMentions(el, content) {
+      const me = account ? account.username.toLowerCase() : "";
+      let last = 0;
+      for (const match of content.matchAll(/@[A-Za-z0-9_-]+/g)) {
+        const tag = match[0].slice(1).toLowerCase();
+        el.append(content.slice(last, match.index));
+        const span = document.createElement("span");
+        span.className = "mention";
+        if (tag === me) span.classList.add("mention-me");
+        else if (tag === "everyone" || tag === "mods") span.classList.add("mention-group");
+        else if (tag === "mod-bot") span.classList.add("mention-bot");
+        span.textContent = match[0];
+        el.append(span);
+        last = match.index + match[0].length;
+      }
+      el.append(content.slice(last));
+    }
+
+    function mentionsMe(content) {
+      const lower = content.toLowerCase();
+      const has = tag => new RegExp(`@${tag}(?![A-Za-z0-9_-])`).test(lower);
+      return has(account.username.toLowerCase().replace(/[^a-z0-9_-]/g, "")) || has("everyone") || (isStaff() && has("mods"));
+    }
+
     function renderMessages(messages) {
       serverMessages = messages;
       drawMessages();
@@ -1841,7 +1926,7 @@
         }
         if (message.user !== "mod-bot") applyPlate(entry, header.firstElementChild && !joined ? header.firstElementChild : null, plateByUser[message.user.toLowerCase()]);
         const text = document.createElement("p");
-        text.textContent = message.message;
+        appendWithMentions(text, message.message);
         entry.append(header, text);
         messageList.append(entry);
       }
