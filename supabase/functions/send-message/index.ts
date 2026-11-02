@@ -163,31 +163,73 @@ async function findAccount(name: string): Promise<{ username: string } | undefin
   return rows.find((row: { username: string }) => row.username.toLowerCase() === name.toLowerCase());
 }
 
-async function handleAdmin(action: string, admin: string, body: Record<string, unknown>) {
-  if (!isAdmin(admin)) throw new UserError("Admins only.", 403);
+type Role = "admin" | "mod" | "user";
+
+async function roleOf(name: string, ignoreBan = false): Promise<Role> {
+  if (isAdmin(name)) return "admin";
+  const [row] = await db(`accounts?select=is_mod,banned_until&username=eq.${enc(name)}`) ?? [];
+  if (row?.is_mod === true && (ignoreBan || !(row.banned_until && new Date(row.banned_until) > new Date()))) return "mod";
+  return "user";
+}
+
+async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
+  const role = await roleOf(staff);
+  if (role === "user") throw new UserError("Moderators only.", 403);
+  const adminOnly = () => {
+    if (role !== "admin") throw new UserError("Only the admin can do that.", 403);
+  };
+
+  if (action === "admin_role") return json({ role });
   if (action === "admin_list") {
     const now = enc(new Date().toISOString());
     const banned = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? [];
-    return json({ banned });
+    const mods = role === "admin" ? await db("accounts?select=username&is_mod=eq.true&order=username.asc") ?? [] : [];
+    return json({ role, banned, mods: mods.map((row: { username: string }) => row.username) });
   }
+  if (action === "admin_delete") {
+    const id = Number(body.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new UserError("Invalid message.");
+    const [row] = await db(`messages?select=id,user,message,receiver&id=eq.${id}`) ?? [];
+    if (!row) throw new UserError("That message no longer exists.");
+    if (row.receiver !== "everyone") throw new UserError("Direct messages cannot be deleted.", 403);
+    await db(`messages?id=eq.${id}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    await log({ username: row.user, receiver: "everyone", original: row.message, action: `deleted by ${staff}` });
+    return json({ ok: true });
+  }
+
   const target = typeof body.target === "string" && body.target.trim() ? await findAccount(body.target.trim()) : undefined;
   if (!target) throw new UserError("That user does not exist.");
+
+  if (action === "admin_add_mod" || action === "admin_remove_mod") {
+    adminOnly();
+    if (isAdmin(target.username)) throw new UserError("The admin is already all-powerful.");
+    const makeMod = action === "admin_add_mod";
+    await db(`accounts?username=eq.${enc(target.username)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ is_mod: makeMod }),
+    });
+    await log({ username: target.username, action: `${makeMod ? "made moderator" : "removed as moderator"} by ${staff}` });
+    return json({ ok: true });
+  }
   if (action === "admin_unban") {
+    adminOnly();
     await db(`accounts?username=eq.${enc(target.username)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ banned_until: null, ban_reason: null }),
     });
-    await log({ username: target.username, action: `unbanned by ${admin}` });
+    await log({ username: target.username, action: `unbanned by ${staff}` });
     return json({ ok: true });
   }
   if (action === "admin_ban") {
-    if (isAdmin(target.username)) throw new UserError("You cannot ban an admin.");
+    if (isAdmin(target.username)) throw new UserError("You cannot ban the admin.");
+    if (role !== "admin" && (await roleOf(target.username, true)) !== "user") throw new UserError("Only the admin can ban a moderator.", 403);
     const hours = Math.min(MAX_ADMIN_BAN_HOURS, Math.max(1, Math.round(Number(body.hours)) || 24));
     const reason = (typeof body.reason === "string" && body.reason.trim() ? body.reason.trim() : "Broke the chat rules").slice(0, 200);
     await applyBan(target.username, hours, reason);
-    await log({ username: target.username, action: `ban ${hours}h by ${admin}`, reason });
-    await announceBan(target.username, hours, admin, reason);
+    await log({ username: target.username, action: `ban ${hours}h by ${staff}`, reason });
+    await announceBan(target.username, hours, staff, reason);
     return json({ ok: true });
   }
   throw new UserError("Unknown action.");
