@@ -7,7 +7,7 @@
   <meta name="description" content="HBU Arcade is your neon-lit hub for quick, free browser games. Find your next favorite and jump straight into the fun.">
   <link rel="icon" href="assets/logo.jpg">
   <link rel="apple-touch-icon" href="assets/logo.jpg">
-  <title>HBU Arcade — Welcome, Fellow Humans</title>
+  <title>HBU Arcade67</title>
   <style>
     :root {
       color-scheme: dark;
@@ -414,7 +414,7 @@
 <body>
   <div id="desktop">
     <header class="statusbar">
-      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE</em></span></span>
+      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE67</em></span></span>
       <span class="nav-spacer"></span>
       <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
@@ -443,7 +443,7 @@
         </button>
       </nav>
       <footer class="home-footer">
-        <span><strong>HBU ARCADE</strong> &nbsp;·&nbsp; Yw now your not bored</span>
+        <span><strong>HBU ARCADE67</strong> &nbsp;·&nbsp; Yw now your not bored</span>
         <span>shhhh dont ask where i got the games</span>
       </footer>
     </main>
@@ -2105,7 +2105,7 @@
       if (name === "arcade") {
         stopGame();
         if (location.hash.startsWith("#play/")) history.replaceState(null, "", location.pathname + location.search);
-        document.title = "HBU Arcade — Welcome, Fellow Humans";
+        document.title = "HBU Arcade67";
       }
       const next = Object.values(windowEls).filter(el => !el.hidden).sort((a, b) => Number(b.style.zIndex) - Number(a.style.zIndex))[0];
       if (next) focusWindow(next);
@@ -2321,7 +2321,7 @@
         homeView.hidden = true;
         playerView.hidden = false;
         openApp("arcade");
-        document.title = `${game.name} — HBU Arcade`;
+        document.title = "HBU Arcade67";
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
         writeLocal(recentStorageKey, recentGames);
         usage.plays += 1;
@@ -2343,7 +2343,7 @@
         } else {
           stopGame();
           if (target) openApp("arcade");
-          document.title = "HBU Arcade — Welcome, Fellow Humans";
+          document.title = "HBU Arcade67";
           renderGames();
         }
         if (target) history.replaceState(null, "", location.pathname + location.search);
