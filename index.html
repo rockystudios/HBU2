@@ -136,6 +136,15 @@
     .rewards-login { padding: 18px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; }
     .rewards-login a { color: #d7b4ff; text-decoration: underline; }
     @media (max-width: 800px) { .rewards-grid { grid-template-columns: 1fr; } }
+    .settings-view { padding-top: 40px; }
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; align-items: start; }
+    .settings-form { display: flex; flex-direction: column; gap: 10px; }
+    .settings-form label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .settings-form input, .settings-inline input { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
+    .settings-inline { display: flex; gap: 8px; margin-bottom: 14px; }
+    .blocked-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .blocked-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; font-weight: 700; overflow-wrap: anywhere; }
+    .blocked-empty { color: var(--muted); font-size: 13px; }
     .section { padding-top: 48px; }
     .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
     .section-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.7px; }
@@ -330,6 +339,7 @@
         <a class="active" href="#games">Explore</a>
         <a href="#messages">Messages</a>
         <a href="#rewards">Rewards</a>
+        <a href="#settings">Settings</a>
       </div>
       <span class="nav-spacer"></span>
       <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins">🪙 <span id="coin-count">0</span></a>
@@ -490,6 +500,40 @@
       </div>
     </section>
 
+    <section class="settings-view" id="settings-view" aria-labelledby="settings-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="settings-title">Settings</h2>
+          <p>Manage who you see in the chat and your username.</p>
+        </div>
+      </div>
+      <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
+      <div class="settings-grid" id="settings-grid">
+        <div class="rewards-card">
+          <h3>Change username</h3>
+          <p>Your messages, DMs and coins come with you. You must confirm with your password.</p>
+          <form class="settings-form" id="rename-form" autocomplete="off">
+            <label for="rename-new">New username</label>
+            <input id="rename-new" type="text" maxlength="20" required autocomplete="off">
+            <label for="rename-password">Current password</label>
+            <input id="rename-password" type="password" required autocomplete="current-password">
+            <button class="button button-primary" id="rename-submit" type="submit">Change username</button>
+          </form>
+        </div>
+        <div class="rewards-card">
+          <h3>Blocked users</h3>
+          <p>You won't see their messages, DMs or notifications.</p>
+          <form class="settings-inline" id="block-form">
+            <label class="sr-only" for="block-name">Username to block</label>
+            <input id="block-name" type="text" maxlength="20" placeholder="Username to block" autocomplete="off" required>
+            <button class="button button-primary" type="submit">Block</button>
+          </form>
+          <ul class="blocked-list" id="blocked-list"></ul>
+          <p class="blocked-empty" id="blocked-empty">You haven't blocked anyone.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
       <div class="player-bar">
         <button class="icon-button" id="back-button" type="button" aria-label="Back to all games">← All games</button>
@@ -611,6 +655,7 @@
     const homeView = document.querySelector("#home-view");
     const playerView = document.querySelector("#player-view");
     const rewardsView = document.querySelector("#rewards-view");
+    const settingsView = document.querySelector("#settings-view");
     const grid = document.querySelector("#game-grid");
     const frame = document.querySelector("#game-frame");
     const frameWrap = document.querySelector("#game-frame-wrap");
@@ -824,6 +869,8 @@
     let dmPartners = [];
     let convoActivity = {};
     let seenAt = {};
+    let blockedUsers = [];
+    const isBlocked = name => typeof name === "string" && name !== "mod-bot" && blockedUsers.includes(name.toLowerCase());
     let signupMode = false;
     let lastMessagesKey = "";
     let chatTimer;
@@ -1060,7 +1107,7 @@
 
     function unreadCount(convo) {
       const info = convoActivity[convoKey(convo)];
-      if (!info || !account || info.user.toLowerCase() === account.username.toLowerCase()) return 0;
+      if (!info || !account || info.user.toLowerCase() === account.username.toLowerCase() || isBlocked(info.user)) return 0;
       return info.at > (seenAt[convoKey(convo)] || 0) ? 1 : 0;
     }
 
@@ -1079,7 +1126,7 @@
     }
 
     function renderConvos() {
-      const order = ["everyone", ...dmPartners].sort((a, b) => activityAt(b) - activityAt(a) || (a === "everyone" ? -1 : b === "everyone" ? 1 : a.localeCompare(b)));
+      const order = ["everyone", ...dmPartners.filter(name => !isBlocked(name) || name === currentConvo)].sort((a, b) => activityAt(b) - activityAt(a) || (a === "everyone" ? -1 : b === "everyone" ? 1 : a.localeCompare(b)));
       const items = [];
       for (const convo of order) {
         let button;
@@ -1114,6 +1161,99 @@
       loadMessages();
       messageText.focus();
     }
+
+    const settingsLogin = document.querySelector("#settings-login");
+    const settingsGrid = document.querySelector("#settings-grid");
+    const renameForm = document.querySelector("#rename-form");
+    const renameNew = document.querySelector("#rename-new");
+    const renamePassword = document.querySelector("#rename-password");
+    const renameSubmit = document.querySelector("#rename-submit");
+    const blockForm = document.querySelector("#block-form");
+    const blockName = document.querySelector("#block-name");
+    const blockedListEl = document.querySelector("#blocked-list");
+    const blockedEmpty = document.querySelector("#blocked-empty");
+
+    function renderBlocked() {
+      blockedListEl.replaceChildren();
+      for (const name of blockedUsers) {
+        const item = document.createElement("li");
+        const label = document.createElement("span");
+        label.textContent = name;
+        const unblock = document.createElement("button");
+        unblock.type = "button";
+        unblock.className = "icon-button";
+        unblock.textContent = "Unblock";
+        unblock.addEventListener("click", () => setBlock(name, false));
+        item.append(label, unblock);
+        blockedListEl.append(item);
+      }
+      blockedEmpty.hidden = blockedUsers.length > 0;
+      lastMessagesKey = "";
+      drawMessages();
+      renderConvos();
+    }
+
+    async function loadBlocked() {
+      if (!account) {
+        blockedUsers = [];
+        renderBlocked();
+        return;
+      }
+      const current = account;
+      try {
+        const list = await rpc("hbu_get_blocked", creds());
+        if (account !== current) return;
+        blockedUsers = Array.isArray(list) ? list.map(name => String(name).toLowerCase()) : [];
+        renderBlocked();
+      } catch (error) {
+        console.warn("Blocked users unavailable (has supabase/settings.sql been run?).", error);
+      }
+    }
+
+    async function setBlock(name, block) {
+      try {
+        const list = await rpc("hbu_set_block", { ...creds(), p_target: name, p_block: block });
+        blockedUsers = (list || []).map(item => String(item).toLowerCase());
+        renderBlocked();
+        showToast(block ? `Blocked ${name}.` : `Unblocked ${name}.`);
+      } catch (error) {
+        showToast(`Could not ${block ? "block" : "unblock"}: ${error.message}`);
+      }
+    }
+
+    function renderSettings() {
+      settingsLogin.hidden = Boolean(account);
+      settingsGrid.hidden = !account;
+      if (account) loadBlocked();
+    }
+
+    blockForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const name = blockName.value.trim();
+      if (!name || !account) return;
+      await setBlock(name, true);
+      blockName.value = "";
+    });
+
+    renameForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) return;
+      const newName = renameNew.value.trim();
+      renameSubmit.disabled = true;
+      try {
+        await rpc("hbu_login", { p_username: account.username, p_password: renamePassword.value });
+        const realName = await rpc("hbu_rename", { p_username: account.username, p_password: renamePassword.value, p_new: newName });
+        account = { username: realName, password: renamePassword.value };
+        saveSession();
+        renameForm.reset();
+        showToast(`Your username is now ${realName}.`);
+        showChat();
+      } catch (error) {
+        showToast(`Could not change username: ${error.message}`);
+      } finally {
+        renameSubmit.disabled = false;
+      }
+    });
 
     const notifyButton = document.querySelector("#notify-button");
     const notifySupported = "Notification" in window;
@@ -1191,7 +1331,7 @@
             const before = previous[key];
             const isNew = !before || info.at > before.at;
             const mine = info.user.toLowerCase() === account.username.toLowerCase();
-            if (!isNew || mine) continue;
+            if (!isNew || mine || isBlocked(info.user)) continue;
             const convo = key === "everyone" ? "everyone" : dmPartners.find(name => convoKey(name) === key) || key;
             if (viewingConvo(convo)) continue;
             if (convo === "everyone") {
@@ -1466,6 +1606,7 @@
       window.clearInterval(adminTimer);
       stopInbox();
       if (!account) {
+        blockedUsers = [];
         staffRole = "user";
         adminPanel.hidden = true;
         chatLayout.classList.remove("has-admin");
@@ -1483,6 +1624,7 @@
         delete messageList.dataset.scrolled;
         renderConvos();
         loadMessages();
+        loadBlocked();
         startInbox();
         chatTimer = window.setInterval(() => {
           if (!document.hidden && !homeView.hidden) loadMessages();
@@ -1504,8 +1646,8 @@
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, pending: true }));
-      const messages = [...serverMessages, ...pending];
-      const key = JSON.stringify(messages);
+      const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user));
+      const key = JSON.stringify(messages) + blockedUsers.join(",");
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -1795,6 +1937,7 @@
         reportGameButton.href = reportIssueUrl(game);
         homeView.hidden = true;
         rewardsView.hidden = true;
+        settingsView.hidden = true;
         playerView.hidden = false;
         document.title = `${game.name} — HBU Arcade`;
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
@@ -1817,9 +1960,15 @@
         frame.removeAttribute("src");
         playerView.hidden = true;
         const onRewards = location.hash === "#rewards";
-        homeView.hidden = onRewards;
+        const onSettings = location.hash === "#settings";
+        homeView.hidden = onRewards || onSettings;
         rewardsView.hidden = !onRewards;
-        document.title = onRewards ? "Rewards — HBU Arcade" : "HBU Arcade — Welcome, Fellow Humans";
+        settingsView.hidden = !onSettings;
+        document.title = onRewards ? "Rewards — HBU Arcade" : onSettings ? "Settings — HBU Arcade" : "HBU Arcade — Welcome, Fellow Humans";
+        if (onSettings) {
+          renderSettings();
+          window.scrollTo(0, 0);
+        }
         if (onRewards) {
           refreshWallet();
           loadPlates(true);
