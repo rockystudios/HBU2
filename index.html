@@ -334,6 +334,8 @@
     .statusbar { position: absolute; z-index: 3; inset: 0 0 auto 0; height: 54px; padding: 0 20px; display: flex; align-items: center; gap: 14px; background: rgba(9, 7, 17, .55); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(190, 160, 255, .1); }
     .clock { color: #d9ccf0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
     .coin-pill { margin-left: 4px; }
+    .music-btn { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.05); cursor: pointer; font-size: 16px; line-height: 1; }
+    .music-btn:hover, .music-btn[aria-pressed="true"] { border-color: rgba(192,132,252,.6); box-shadow: 0 0 14px rgba(168,85,247,.45); }
     .splash { position: absolute; z-index: 2; right: clamp(14px, 3vw, 48px); top: 70px; width: clamp(180px, 26vw, 300px); text-align: center; font-weight: 900; font-size: clamp(.95rem, 1.5vw, 1.25rem); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: #ffe94d; text-shadow: 0 0 14px currentColor, 2px 2px 0 #1a0533; transform: rotate(-9deg); animation: splash-pulse 1.1s ease-in-out infinite, splash-rainbow 6s linear infinite; pointer-events: none; }
     @keyframes splash-pulse { 0%, 100% { transform: rotate(-9deg) scale(.9); } 50% { transform: rotate(-9deg) scale(1.08); } }
     @keyframes splash-rainbow { 0% { color: #ff3b3b; } 17% { color: #ff9f1c; } 33% { color: #ffe94d; } 50% { color: #3dff6e; } 67% { color: #3dd9ff; } 83% { color: #b36bff; } 100% { color: #ff3b3b; } }
@@ -414,6 +416,7 @@
     <header class="statusbar">
       <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE</em></span></span>
       <span class="nav-spacer"></span>
+      <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
       <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins. Open rewards">🪙 <span id="coin-count">0</span></a>
     </header>
@@ -2184,6 +2187,113 @@
       const max = Object.values(windowEls).find(el => !el.hidden && el.classList.contains("maximized") && !document.fullscreenElement);
       if (max) toggleMaximize(max);
     });
+
+    // Calm sci-fi ambient music, generated live with Web Audio (no audio files).
+    const music = (() => {
+      const button = document.querySelector("#music-button");
+      const chords = [[57, 60, 64, 71], [53, 57, 60, 67], [48, 55, 59, 64], [55, 59, 62, 69]];
+      const scale = [69, 72, 74, 76, 79, 81, 84];
+      const hz = note => 440 * 2 ** ((note - 69) / 12);
+      let ctx, master, bus, timer, step = 0, wanted = false, touched = false;
+
+      function build() {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain();
+        master.gain.value = 0;
+        master.connect(ctx.destination);
+        bus = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.value = 900;
+        const sweep = ctx.createOscillator();
+        const sweepAmount = ctx.createGain();
+        sweep.frequency.value = 0.05;
+        sweepAmount.gain.value = 350;
+        sweep.connect(sweepAmount).connect(filter.frequency);
+        sweep.start();
+        const echo = ctx.createDelay(2);
+        const feedback = ctx.createGain();
+        const wet = ctx.createGain();
+        echo.delayTime.value = 0.62;
+        feedback.gain.value = 0.55;
+        wet.gain.value = 0.5;
+        bus.connect(filter);
+        filter.connect(master);
+        filter.connect(echo);
+        echo.connect(feedback).connect(echo);
+        echo.connect(wet).connect(master);
+      }
+
+      function tone(freq, start, length, peak, type) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.detune.value = (Math.random() - 0.5) * 12;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(peak, start + length * 0.4);
+        gain.gain.linearRampToValueAtTime(0, start + length);
+        osc.connect(gain).connect(bus);
+        osc.start(start);
+        osc.stop(start + length + 0.1);
+      }
+
+      function schedule() {
+        const now = ctx.currentTime + 0.05;
+        const chord = chords[step++ % chords.length];
+        chord.forEach(note => tone(hz(note), now, 9, 0.05, "sine"));
+        tone(hz(chord[0] - 12), now, 9, 0.07, "triangle");
+        for (let i = 0; i < 3; i += 1) {
+          if (Math.random() < 0.75) tone(hz(scale[Math.floor(Math.random() * scale.length)]), now + 1.2 + i * 2.4 + Math.random(), 3.5, 0.035, "sine");
+        }
+        timer = window.setTimeout(schedule, 7500);
+      }
+
+      function show() {
+        button.textContent = wanted ? "🔊" : "🔇";
+        button.setAttribute("aria-pressed", String(wanted));
+      }
+
+      async function start() {
+        wanted = true;
+        if (!ctx) build();
+        await ctx.resume();
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 3);
+        if (!timer) schedule();
+        show();
+      }
+
+      function stop() {
+        wanted = false;
+        if (ctx) {
+          master.gain.cancelScheduledValues(ctx.currentTime);
+          master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+        }
+        window.clearTimeout(timer);
+        timer = undefined;
+        show();
+      }
+
+      button.addEventListener("click", () => {
+        touched = true;
+        if (wanted) { stop(); writeLocal("hbu-music", "off"); } else { start(); writeLocal("hbu-music", "on"); }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (!ctx) return;
+        if (document.hidden) ctx.suspend(); else if (wanted) ctx.resume();
+      });
+      // Browsers only allow sound after a click, so music starts on the first one unless turned off.
+      if (readLocal("hbu-music", "on") === "on") {
+        const first = event => {
+          if (event.target.closest("#music-button")) return;
+          document.removeEventListener("pointerdown", first, true);
+          if (!touched) start().catch(() => {});
+        };
+        document.addEventListener("pointerdown", first, true);
+      }
+      return { start, stop };
+    })();
 
     const clockEl = document.querySelector("#clock");
     const tickClock = () => { clockEl.textContent = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); };
