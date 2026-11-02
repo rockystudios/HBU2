@@ -883,7 +883,9 @@
         if (account !== current || !["admin", "mod"].includes(result.role)) return;
         staffRole = result.role;
       } catch (error) {
-        return;
+        // An outdated server can't report roles; Rocky still gets the panel (the server enforces real permissions).
+        if (account !== current || account.username.toLowerCase() !== "rocky") return;
+        staffRole = "admin";
       }
       adminTitle.textContent = staffRole === "admin" ? "🛡 Admin" : "🛡 Moderator";
       modsSection.hidden = staffRole !== "admin";
