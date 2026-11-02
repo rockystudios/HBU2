@@ -82,11 +82,6 @@
     }
     .hero::before { position: absolute; right: 17%; top: 16%; width: 220px; height: 220px; border-radius: 50%; background: #9a4dff; filter: blur(100px); opacity: .2; content: ""; }
     .hero-content { position: relative; z-index: 1; max-width: 510px; }
-    .splash { position: absolute; z-index: 2; left: calc(100% + clamp(10px, 4vw, 90px)); top: -10px; width: clamp(240px, 28vw, 340px); text-wrap: balance; text-align: center; font-weight: 900; font-size: clamp(1rem, 1.7vw, 1.3rem); line-height: 1.15; overflow-wrap: anywhere; color: #ffe94d; text-shadow: 0 0 14px currentColor, 2px 2px 0 #1a0533; transform: rotate(-14deg); animation: splash-pulse 1.1s ease-in-out infinite, splash-rainbow 6s linear infinite; pointer-events: none; }
-    @keyframes splash-pulse { 0%, 100% { transform: rotate(-14deg) scale(.88); } 50% { transform: rotate(-14deg) scale(1.1); } }
-    @keyframes splash-rainbow { 0% { color: #ff3b3b; } 17% { color: #ff9f1c; } 33% { color: #ffe94d; } 50% { color: #3dff6e; } 67% { color: #3dd9ff; } 83% { color: #b36bff; } 100% { color: #ff3b3b; } }
-    @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } }
-    @media (max-width: 1000px) { .splash { position: static; left: auto; top: auto; display: block; width: auto; max-width: 100%; margin: 0 0 14px; font-size: clamp(1.1rem, 5vw, 1.4rem); transform: none; animation: splash-rainbow 6s linear infinite; } }
     .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #d7b4ff; font-size: 11px; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; }
     .eyebrow .spark { color: #f0abfc; font-size: 17px; }
     h1 { max-width: 520px; margin: 15px 0 12px; font-size: clamp(42px, 6vw, 66px); line-height: .99; letter-spacing: -3.4px; }
@@ -329,38 +324,137 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
     }
+
+    /* ---- Home screen + app windows ---- */
+    html, body { height: 100%; overflow: hidden; }
+    #desktop { position: fixed; inset: 0; overflow: hidden; background:
+      radial-gradient(ellipse at 15% 10%, rgba(168, 85, 247, .26), transparent 38rem),
+      radial-gradient(ellipse at 90% 85%, rgba(102, 233, 255, .12), transparent 34rem),
+      radial-gradient(ellipse at 60% 40%, rgba(124, 58, 237, .16), transparent 40rem), var(--bg); }
+    .statusbar { position: absolute; z-index: 3; inset: 0 0 auto 0; height: 54px; padding: 0 20px; display: flex; align-items: center; gap: 14px; background: rgba(9, 7, 17, .55); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(190, 160, 255, .1); }
+    .clock { color: #d9ccf0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .coin-pill { margin-left: 4px; }
+    .splash { position: absolute; z-index: 2; right: clamp(14px, 3vw, 48px); top: 70px; width: clamp(180px, 26vw, 300px); text-align: center; font-weight: 900; font-size: clamp(.95rem, 1.5vw, 1.25rem); line-height: 1.15; text-wrap: balance; overflow-wrap: anywhere; color: #ffe94d; text-shadow: 0 0 14px currentColor, 2px 2px 0 #1a0533; transform: rotate(-9deg); animation: splash-pulse 1.1s ease-in-out infinite, splash-rainbow 6s linear infinite; pointer-events: none; }
+    @keyframes splash-pulse { 0%, 100% { transform: rotate(-9deg) scale(.9); } 50% { transform: rotate(-9deg) scale(1.08); } }
+    @keyframes splash-rainbow { 0% { color: #ff3b3b; } 17% { color: #ff9f1c; } 33% { color: #ffe94d; } 50% { color: #3dff6e; } 67% { color: #3dd9ff; } 83% { color: #b36bff; } 100% { color: #ff3b3b; } }
+    .home-screen { position: absolute; inset: 54px 0 0 0; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 44px; overflow-y: auto; text-align: center; }
+    .home-greeting { display: flex; flex-direction: column; align-items: center; }
+    .home-greeting h1 { max-width: none; margin: 14px 0 10px; font-size: clamp(38px, 7vw, 68px); }
+    .home-greeting p { margin: 0 0 20px; color: #aaa2b8; font-size: 15px; }
+    .app-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(22px, 5vw, 48px); }
+    .app-icon { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0; border: 0; background: none; cursor: pointer; color: #efe7ff; font-size: 13px; font-weight: 700; transition: transform .2s ease; }
+    .app-icon:hover { transform: translateY(-6px) scale(1.05); }
+    .app-icon:active { transform: scale(.95); }
+    .app-glyph { position: relative; width: 92px; height: 92px; display: grid; place-items: center; border-radius: 26px; font-size: 46px; border: 1px solid rgba(255,255,255,.2); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 14px 34px rgba(0,0,0,.45), 0 0 30px var(--glow, rgba(168,85,247,.5)); }
+    .app-arcade { background: linear-gradient(150deg, #c084fc, #6d28d9); }
+    .app-chat { --glow: rgba(61,217,255,.45); background: linear-gradient(150deg, #66e9ff, #3b5bdb); }
+    .app-settings { --glow: rgba(180,180,200,.35); background: linear-gradient(150deg, #8f8aa8, #3a3552); }
+    .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
+    .home-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; color: #817a8e; font-size: 11px; }
+    .home-footer strong { color: #c7b1df; }
+    .toast-stack { position: fixed; z-index: 1000; top: 64px; }
+    .toast-stack { right: 16px; }
+
+    .app-window { position: absolute; z-index: 10; min-width: 300px; min-height: 260px; display: flex; flex-direction: column; border: 1px solid rgba(190,160,255,.3); border-radius: 16px; overflow: hidden; background: #0f0b1a; box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 40px rgba(168,85,247,.2); animation: win-in .22s ease-out; }
+    .app-window.active { border-color: rgba(192,132,252,.6); box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 50px rgba(168,85,247,.35); }
+    @keyframes win-in { from { opacity: 0; transform: scale(.94); } }
+    .win-titlebar { flex: none; height: 44px; padding: 0 10px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.04); cursor: grab; user-select: none; touch-action: none; }
+    .app-window.dragging .win-titlebar { cursor: grabbing; }
+    .win-title { font-size: 14px; font-weight: 800; color: #e9c9ff; }
+    .win-controls { display: flex; gap: 8px; }
+    .win-btn { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.05); cursor: pointer; font-size: 14px; line-height: 1; }
+    .win-btn:hover { border-color: rgba(192,132,252,.6); background: rgba(168,85,247,.2); }
+    .win-close:hover { border-color: rgba(255,100,120,.7); background: rgba(255,77,109,.3); }
+    .win-body { flex: 1; min-height: 0; padding: 18px; overflow: auto; container-type: inline-size; }
+    .win-body.fill { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+    .win-resize { position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 55%, rgba(192,132,252,.7) 55% 62%, transparent 62% 72%, rgba(192,132,252,.7) 72% 79%, transparent 79%); }
+    .app-window.dragging iframe, .app-window.resizing iframe { pointer-events: none; }
+    .app-window.maximized { inset: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; border: 0; }
+    .app-window.maximized .win-resize, .app-window.maximized .win-titlebar { cursor: default; }
+    .app-window.maximized .win-resize { display: none; }
+    .win-body .section, .win-body .rewards-view, .win-body .settings-view, .win-body .player-view { padding-top: 0; margin-top: 0; }
+    .win-body .section-heading { margin-bottom: 14px; }
+    .win-body .message-board { margin-top: 0; }
+    .win-body.fill .message-board { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .win-body.fill .section-heading { margin: 0; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+    .win-body.fill .section-heading h2 { font-size: 15px; }
+    .win-body.fill .section-heading p { display: none; }
+    .win-body.fill .chat { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 0; border-radius: 0; box-shadow: none; }
+    .win-body.fill .chat-join { overflow-y: auto; }
+    .win-body.fill #chat-room { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .win-body.fill .chat-layout { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+    .win-body.fill .chat-sidebar, .win-body.fill .admin-panel { max-height: none; }
+    .win-body.fill .chat-main { min-height: 0; }
+    .win-body.fill .message-list { flex: 1; height: auto; min-height: 0; }
+    .win-body .site-info { margin-top: 26px; }
+    #chat-fullscreen-button { display: none; }
+    @container (max-width: 640px) {
+      .chat-layout, .chat-layout.has-admin { grid-template-columns: 1fr; }
+      .win-body.fill .chat-layout, .win-body.fill .chat-layout.has-admin { grid-template-rows: auto minmax(0, 1fr) auto; }
+      .win-body.fill .chat-sidebar { max-height: 120px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .admin-panel { max-height: 220px; border-left: 0; border-top: 1px solid var(--line); }
+      .player-stage { grid-template-columns: 1fr; }
+      .side-brand { display: none; }
+      .game-frame-wrap { min-height: 0; aspect-ratio: 4 / 3; }
+    }
+    @media (max-width: 700px) {
+      .app-window { inset: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0; border: 0; }
+      .win-resize { display: none; }
+      .win-titlebar { cursor: default; }
+      .home-screen { justify-content: flex-start; padding-top: 96px; gap: 30px; }
+      .splash { top: 62px; width: min(70%, 260px); }
+      .app-glyph { width: 78px; height: 78px; font-size: 38px; border-radius: 22px; }
+      .clock { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } .app-window { animation: none; } }
   </style>
 </head>
 <body>
-  <header class="topbar">
-    <nav class="nav shell" aria-label="Main navigation">
-      <a class="brand" href="#games" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE</em></span></a>
-      <div class="nav-links">
-        <a class="active" href="#games">Explore</a>
-        <a href="#messages">Messages</a>
-        <a href="#rewards">Rewards</a>
-        <a href="#settings">Settings</a>
-      </div>
+  <div id="desktop">
+    <header class="statusbar">
+      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE</em></span></span>
       <span class="nav-spacer"></span>
-      <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins">🪙 <span id="coin-count">0</span></a>
-      <span class="status">ARCADE ONLINE</span>
-    </nav>
-  </header>
-
-  <main class="shell">
-    <div id="home-view">
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-content">
-          <div class="splash" id="splash" aria-hidden="true"></div>
-          <span class="eyebrow"><span class="spark" aria-hidden="true">✧</span> PLAY BEFORE THE TEACHER COMES</span>
-          <h1 id="hero-title">Welcome,<br>Fellow <span>Humans.</span></h1>
-          <p>ahhhhhhh amazing games</p>
-          <a class="button button-primary" href="#games">Go play my games - rocky <span aria-hidden="true">↗</span></a>
-        </div>
-        <div class="hero-art" aria-hidden="true">🕹️</div>
-      </section>
-
-      <section class="section" id="games" aria-labelledby="games-title">
+      <span class="clock" id="clock" aria-label="Time"></span>
+      <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins. Open rewards">🪙 <span id="coin-count">0</span></a>
+    </header>
+    <div class="splash" id="splash" aria-hidden="true"></div>
+    <main class="home-screen">
+      <div class="home-greeting">
+        <span class="eyebrow"><span class="spark" aria-hidden="true">✧</span> PLAY BEFORE THE TEACHER COMES</span>
+        <h1 id="hero-title">Welcome,<br>Fellow <span>Humans.</span></h1>
+        <p>ahhhhhhh amazing games</p>
+        <a class="button button-primary" href="#games">Go play my games - rocky <span aria-hidden="true">↗</span></a>
+      </div>
+      <nav class="app-grid" aria-label="Apps">
+        <button class="app-icon" type="button" data-app="arcade">
+          <span class="app-glyph app-arcade" aria-hidden="true">🕹️<span class="app-badge" id="badge-arcade" hidden></span></span>
+          <span class="app-label">Arcade</span>
+        </button>
+        <button class="app-icon" type="button" data-app="chat">
+          <span class="app-glyph app-chat" aria-hidden="true">💬<span class="app-badge" id="badge-chat" hidden></span></span>
+          <span class="app-label">Chat</span>
+        </button>
+        <button class="app-icon" type="button" data-app="settings">
+          <span class="app-glyph app-settings" aria-hidden="true">⚙️<span class="app-badge" id="badge-settings" hidden></span></span>
+          <span class="app-label">Settings</span>
+        </button>
+      </nav>
+      <footer class="home-footer">
+        <span><strong>HBU ARCADE</strong> &nbsp;·&nbsp; Yw now your not bored</span>
+        <span>shhhh dont ask where i got the games</span>
+      </footer>
+    </main>
+    <section class="app-window" id="win-arcade" data-app="arcade" role="dialog" aria-label="Arcade" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🕹️</span> Arcade</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Arcade" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body ">
+<div id="home-view">
+<section class="section" id="games" aria-labelledby="games-title">
         <div class="section-heading">
           <div>
             <h2 id="games-title">The game vault</h2>
@@ -376,8 +470,44 @@
         <div class="game-grid" id="game-grid"></div>
         <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
       </section>
-
-      <section class="section message-board" id="messages" aria-labelledby="messages-title">
+</div>
+<section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
+      <div class="player-bar">
+        <button class="icon-button" id="back-button" type="button" aria-label="Back to all games">← All games</button>
+        <h2 class="player-title" id="player-title"></h2>
+        <span class="player-spacer"></span>
+        <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶ Fullscreen</button>
+      </div>
+      <p class="player-status" id="player-status" role="status" aria-live="polite"></p>
+      <div class="player-stage">
+        <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
+        <div class="game-frame-wrap" id="game-frame-wrap">
+          <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
+        </div>
+        <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
+      </div>
+      <section class="player-details" aria-labelledby="player-details-title">
+        <h3 id="player-details-title">About this game</h3>
+        <p id="player-game-info"></p>
+        <div class="player-actions">
+          <a class="button button-quiet" id="open-game-button" href="#" target="_blank" rel="noopener noreferrer">Open publisher page ↗</a>
+          <a class="button button-quiet" id="report-game-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Report a game issue ↗</a>
+        </div>
+      </section>
+    </section>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-chat" data-app="chat" role="dialog" aria-label="Chat" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">💬</span> Chat</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Chat" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body fill">
+<section class="section message-board" id="messages" aria-labelledby="messages-title">
         <div class="section-heading">
           <div>
             <h2 id="messages-title">Global chat</h2>
@@ -465,42 +595,22 @@
               </aside>
             </div>
           </div>
-          <div class="toast-stack" id="toast-stack"></div>
           <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
         </div>
       </section>
-    </div>
-
-    <section class="rewards-view" id="rewards-view" aria-labelledby="rewards-title" hidden>
-      <div class="section-heading">
-        <div>
-          <h2 id="rewards-title">Rewards</h2>
-          <p>Spin the daily wheel for coins, then spend them on name plates for the chat.</p>
-        </div>
-        <span class="coin-pill show" id="rewards-coins" hidden>🪙 <span id="rewards-coin-count">0</span> coins</span>
       </div>
-      <p class="rewards-login" id="rewards-login" hidden>Log in from <a href="#messages">Messages</a> to earn coins and buy name plates.</p>
-      <div class="rewards-grid">
-        <div class="rewards-card wheel-card">
-          <h3>Daily wheel</h3>
-          <p>One free spin every day (resets at midnight UTC).</p>
-          <div class="wheel-wrap">
-            <div class="wheel-pointer" aria-hidden="true">▼</div>
-            <div class="wheel" id="wheel" aria-hidden="true"></div>
-            <div class="wheel-hub" aria-hidden="true">🪙</div>
-          </div>
-          <button class="button button-primary" id="spin-button" type="button">Spin the wheel</button>
-          <p class="spin-note" id="spin-note" role="status" aria-live="polite"></p>
-        </div>
-        <div class="rewards-card">
-          <h3>Name plates</h3>
-          <p>Changes your name colour and message background in the chat.</p>
-          <div class="plate-grid" id="plate-grid"></div>
-        </div>
-      </div>
+      <span class="win-resize" aria-hidden="true"></span>
     </section>
-
-    <section class="settings-view" id="settings-view" aria-labelledby="settings-title" hidden>
+    <section class="app-window" id="win-settings" data-app="settings" role="dialog" aria-label="Settings" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">⚙️</span> Settings</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Settings" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body ">
+<section class="settings-view" id="settings-view" aria-labelledby="settings-title">
       <div class="section-heading">
         <div>
           <h2 id="settings-title">Settings</h2>
@@ -533,33 +643,7 @@
         </div>
       </div>
     </section>
-
-    <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
-      <div class="player-bar">
-        <button class="icon-button" id="back-button" type="button" aria-label="Back to all games">← All games</button>
-        <h2 class="player-title" id="player-title"></h2>
-        <span class="player-spacer"></span>
-        <button class="icon-button" id="fullscreen-button" type="button" aria-label="Play fullscreen" title="Play fullscreen">⛶ Fullscreen</button>
-      </div>
-      <p class="player-status" id="player-status" role="status" aria-live="polite"></p>
-      <div class="player-stage">
-        <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
-        <div class="game-frame-wrap" id="game-frame-wrap">
-          <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
-        </div>
-        <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
-      </div>
-      <section class="player-details" aria-labelledby="player-details-title">
-        <h3 id="player-details-title">About this game</h3>
-        <p id="player-game-info"></p>
-        <div class="player-actions">
-          <a class="button button-quiet" id="open-game-button" href="#" target="_blank" rel="noopener noreferrer">Open publisher page ↗</a>
-          <a class="button button-quiet" id="report-game-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Report a game issue ↗</a>
-        </div>
-      </section>
-    </section>
-
-    <section class="site-info" aria-labelledby="site-info-title">
+<section class="site-info" aria-labelledby="site-info-title">
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
       <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
@@ -570,12 +654,51 @@
         <a class="icon-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Feedback ↗</a>
       </div>
     </section>
-  </main>
-
-  <footer class="footer shell">
-    <span><strong>HBU ARCADE</strong> &nbsp;·&nbsp; Yw now your not bored</span>
-    <span>shhhh dont ask where i got the games</span>
-  </footer>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-rewards" data-app="rewards" role="dialog" aria-label="Rewards" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🪙</span> Rewards</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Rewards" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body ">
+<section class="rewards-view" id="rewards-view" aria-labelledby="rewards-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="rewards-title">Rewards</h2>
+          <p>Spin the daily wheel for coins, then spend them on name plates for the chat.</p>
+        </div>
+        <span class="coin-pill show" id="rewards-coins" hidden>🪙 <span id="rewards-coin-count">0</span> coins</span>
+      </div>
+      <p class="rewards-login" id="rewards-login" hidden>Log in from <a href="#messages">Messages</a> to earn coins and buy name plates.</p>
+      <div class="rewards-grid">
+        <div class="rewards-card wheel-card">
+          <h3>Daily wheel</h3>
+          <p>One free spin every day (resets at midnight UTC).</p>
+          <div class="wheel-wrap">
+            <div class="wheel-pointer" aria-hidden="true">▼</div>
+            <div class="wheel" id="wheel" aria-hidden="true"></div>
+            <div class="wheel-hub" aria-hidden="true">🪙</div>
+          </div>
+          <button class="button button-primary" id="spin-button" type="button">Spin the wheel</button>
+          <p class="spin-note" id="spin-note" role="status" aria-live="polite"></p>
+        </div>
+        <div class="rewards-card">
+          <h3>Name plates</h3>
+          <p>Changes your name colour and message background in the chat.</p>
+          <div class="plate-grid" id="plate-grid"></div>
+        </div>
+      </div>
+    </section>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <div class="toast-stack" id="toast-stack"></div>
+  </div>
 
   <script>
     const splashMessages = [
@@ -654,8 +777,6 @@
     ];
     const homeView = document.querySelector("#home-view");
     const playerView = document.querySelector("#player-view");
-    const rewardsView = document.querySelector("#rewards-view");
-    const settingsView = document.querySelector("#settings-view");
     const grid = document.querySelector("#game-grid");
     const frame = document.querySelector("#game-frame");
     const frameWrap = document.querySelector("#game-frame-wrap");
@@ -1059,7 +1180,7 @@
       drawMessages();
       loadBanned();
       adminTimer = window.setInterval(() => {
-        if (!document.hidden && !homeView.hidden) loadBanned();
+        if (!document.hidden && appOpen("chat")) loadBanned();
       }, adminRefreshMs);
     }
 
@@ -1123,6 +1244,11 @@
       const total = ["everyone", ...dmPartners].reduce((sum, convo) => sum + unreadCount(convo), 0);
       document.title = document.title.replace(/^\(\d+\) /, "");
       if (total && account) document.title = `(${total}) ${document.title}`;
+      const chatBadge = document.querySelector("#badge-chat");
+      if (chatBadge) {
+        chatBadge.hidden = !(total && account);
+        chatBadge.textContent = total;
+      }
     }
 
     function renderConvos() {
@@ -1302,7 +1428,7 @@
     }
 
     function viewingConvo(convo) {
-      return !document.hidden && !homeView.hidden && currentConvo === convo;
+      return !document.hidden && appOpen("chat") && currentConvo === convo;
     }
 
     async function pollInbox() {
@@ -1361,12 +1487,12 @@
         const ready = Boolean(result.can_spin);
         const dayKey = `hbu-spin-notified:${account.username.toLowerCase()}`;
         const today = new Date().toISOString().slice(0, 10);
-        if (ready && readLocal(dayKey, "") !== today && !(location.hash === "#rewards" && !document.hidden)) {
+        if (ready && readLocal(dayKey, "") !== today && !(appOpen("rewards") && !document.hidden)) {
           writeLocal(dayKey, today);
           notify("Daily wheel", "Your daily spin is ready! 🎡", "rewards");
         }
         lastSpinReady = ready;
-        if (!rewardsView.hidden) renderWallet();
+        if (appOpen("rewards")) renderWallet();
         else {
           coinPill.classList.add("show");
           coinCount.textContent = result.coins;
@@ -1627,7 +1753,7 @@
         loadBlocked();
         startInbox();
         chatTimer = window.setInterval(() => {
-          if (!document.hidden && !homeView.hidden) loadMessages();
+          if (!document.hidden && appOpen("chat")) loadMessages();
         }, chatPollMs);
       } else {
         messageStatus.textContent = "";
@@ -1926,6 +2052,153 @@
     renderGames();
     updateUsageSummary();
 
+    const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620] };
+    const mobileQuery = window.matchMedia("(max-width: 700px)");
+    let windowZ = 10;
+    let windowCount = 0;
+    const appOpen = name => Boolean(windowEls[name]) && !windowEls[name].hidden;
+
+    function focusWindow(win) {
+      win.style.zIndex = ++windowZ;
+      for (const other of Object.values(windowEls)) other.classList.toggle("active", other === win);
+    }
+
+    function placeWindow(win, name) {
+      const [wantW, wantH] = windowSizes[name];
+      const width = Math.min(wantW, window.innerWidth - 24);
+      const height = Math.min(wantH, window.innerHeight - 80);
+      const nudge = (windowCount++ % 5) * 28;
+      win.style.width = `${width}px`;
+      win.style.height = `${height}px`;
+      win.style.left = `${Math.max(8, Math.round((window.innerWidth - width) / 2) + nudge - 56)}px`;
+      win.style.top = `${Math.max(60, Math.round((window.innerHeight - height) / 2) + nudge)}px`;
+    }
+
+    const appHooks = {
+      arcade: { open: () => renderGames() },
+      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } } },
+      settings: { open: () => renderSettings() },
+      rewards: { open: () => { refreshWallet(); loadPlates(true); } }
+    };
+
+    function openApp(name) {
+      const win = windowEls[name];
+      if (!win) return;
+      const wasClosed = win.hidden;
+      if (wasClosed) {
+        if (!win.style.width) placeWindow(win, name);
+        win.hidden = false;
+      }
+      focusWindow(win);
+      if (wasClosed && appHooks[name]) appHooks[name].open();
+    }
+
+    function closeApp(name) {
+      const win = windowEls[name];
+      if (!win || win.hidden) return;
+      win.hidden = true;
+      win.classList.remove("maximized");
+      if (name === "arcade") {
+        stopGame();
+        if (location.hash.startsWith("#play/")) history.replaceState(null, "", location.pathname + location.search);
+        document.title = "HBU Arcade — Welcome, Fellow Humans";
+      }
+      const next = Object.values(windowEls).filter(el => !el.hidden).sort((a, b) => Number(b.style.zIndex) - Number(a.style.zIndex))[0];
+      if (next) focusWindow(next);
+      applyBadge();
+    }
+
+    function toggleMaximize(win) {
+      const on = win.classList.toggle("maximized");
+      win.querySelector(".win-full").title = on ? "Exit full screen" : "Full screen";
+      win.querySelector(".win-full").textContent = on ? "🗗" : "⛶";
+      focusWindow(win);
+    }
+
+    function clampWindow(win) {
+      if (win.classList.contains("maximized") || mobileQuery.matches || win.hidden) return;
+      const left = Math.min(Math.max(win.offsetLeft, -win.offsetWidth + 120), window.innerWidth - 120);
+      const top = Math.min(Math.max(win.offsetTop, 0), window.innerHeight - 50);
+      win.style.left = `${left}px`;
+      win.style.top = `${top}px`;
+    }
+
+    for (const [name, win] of Object.entries(windowEls)) {
+      win.addEventListener("pointerdown", () => focusWindow(win), true);
+      win.querySelector(".win-close").addEventListener("click", () => closeApp(name));
+      win.querySelector(".win-full").addEventListener("click", () => toggleMaximize(win));
+      const bar = win.querySelector(".win-titlebar");
+      bar.addEventListener("dblclick", event => {
+        if (!event.target.closest(".win-btn") && !mobileQuery.matches) toggleMaximize(win);
+      });
+      bar.addEventListener("pointerdown", event => {
+        if (event.target.closest(".win-btn") || win.classList.contains("maximized") || mobileQuery.matches || event.button > 0) return;
+        const startX = event.clientX - win.offsetLeft;
+        const startY = event.clientY - win.offsetTop;
+        bar.setPointerCapture(event.pointerId);
+        win.classList.add("dragging");
+        const move = e => {
+          win.style.left = `${Math.min(Math.max(e.clientX - startX, -win.offsetWidth + 120), window.innerWidth - 120)}px`;
+          win.style.top = `${Math.min(Math.max(e.clientY - startY, 0), window.innerHeight - 50)}px`;
+        };
+        const stop = () => {
+          win.classList.remove("dragging");
+          bar.removeEventListener("pointermove", move);
+          bar.removeEventListener("pointerup", stop);
+          bar.removeEventListener("pointercancel", stop);
+        };
+        bar.addEventListener("pointermove", move);
+        bar.addEventListener("pointerup", stop);
+        bar.addEventListener("pointercancel", stop);
+      });
+      const grip = win.querySelector(".win-resize");
+      grip.addEventListener("pointerdown", event => {
+        if (win.classList.contains("maximized") || mobileQuery.matches || event.button > 0) return;
+        event.preventDefault();
+        const startW = win.offsetWidth;
+        const startH = win.offsetHeight;
+        const startX = event.clientX;
+        const startY = event.clientY;
+        grip.setPointerCapture(event.pointerId);
+        win.classList.add("resizing");
+        const move = e => {
+          win.style.width = `${Math.min(Math.max(startW + e.clientX - startX, 300), window.innerWidth - win.offsetLeft)}px`;
+          win.style.height = `${Math.min(Math.max(startH + e.clientY - startY, 260), window.innerHeight - win.offsetTop)}px`;
+        };
+        const stop = () => {
+          win.classList.remove("resizing");
+          grip.removeEventListener("pointermove", move);
+          grip.removeEventListener("pointerup", stop);
+          grip.removeEventListener("pointercancel", stop);
+        };
+        grip.addEventListener("pointermove", move);
+        grip.addEventListener("pointerup", stop);
+        grip.addEventListener("pointercancel", stop);
+      });
+    }
+    for (const icon of document.querySelectorAll(".app-icon")) icon.addEventListener("click", () => openApp(icon.dataset.app));
+    window.addEventListener("resize", () => Object.values(windowEls).forEach(clampWindow));
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      const max = Object.values(windowEls).find(el => !el.hidden && el.classList.contains("maximized") && !document.fullscreenElement);
+      if (max) toggleMaximize(max);
+    });
+
+    const clockEl = document.querySelector("#clock");
+    const tickClock = () => { clockEl.textContent = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); };
+    tickClock();
+    window.setInterval(tickClock, 15000);
+
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards" };
+
+    function stopGame() {
+      window.clearTimeout(activeLoadTimer);
+      frame.removeAttribute("src");
+      playerView.hidden = true;
+      homeView.hidden = false;
+    }
+
     function route() {
       const match = location.hash.match(/^#play\/(.+)$/);
       const game = match && games.find(item => item.id === match[1]);
@@ -1936,9 +2209,8 @@
         openGameButton.href = game.url;
         reportGameButton.href = reportIssueUrl(game);
         homeView.hidden = true;
-        rewardsView.hidden = true;
-        settingsView.hidden = true;
         playerView.hidden = false;
+        openApp("arcade");
         document.title = `${game.name} — HBU Arcade`;
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
         writeLocal(recentStorageKey, recentGames);
@@ -1954,27 +2226,17 @@
           updateUsageSummary();
         }, 12000);
         if (frame.src !== game.url) frame.src = game.url;
-        window.scrollTo(0, 0);
       } else {
-        window.clearTimeout(activeLoadTimer);
-        frame.removeAttribute("src");
-        playerView.hidden = true;
-        const onRewards = location.hash === "#rewards";
-        const onSettings = location.hash === "#settings";
-        homeView.hidden = onRewards || onSettings;
-        rewardsView.hidden = !onRewards;
-        settingsView.hidden = !onSettings;
-        document.title = onRewards ? "Rewards — HBU Arcade" : onSettings ? "Settings — HBU Arcade" : "HBU Arcade — Welcome, Fellow Humans";
-        if (onSettings) {
-          renderSettings();
-          window.scrollTo(0, 0);
+        const target = appByHash[location.hash];
+        if (target && target !== "arcade") {
+          openApp(target);
+        } else {
+          stopGame();
+          if (target) openApp("arcade");
+          document.title = "HBU Arcade — Welcome, Fellow Humans";
+          renderGames();
         }
-        if (onRewards) {
-          refreshWallet();
-          loadPlates(true);
-          window.scrollTo(0, 0);
-        }
-        renderGames();
+        if (target) history.replaceState(null, "", location.pathname + location.search);
       }
       applyBadge();
     }
