@@ -7,7 +7,7 @@
   <meta name="description" content="HBU Arcade is your neon-lit hub for quick, free browser games. Find your next favorite and jump straight into the fun.">
   <link rel="icon" href="assets/logo.jpg">
   <link rel="apple-touch-icon" href="assets/logo.jpg">
-  <title>HBU Arcade67</title>
+  <title>Clever</title>
   <style>
     :root {
       color-scheme: dark;
@@ -447,7 +447,7 @@
         </button>
       </nav>
       <footer class="home-footer">
-        <span><strong>HBU ARCADE67</strong> &nbsp;·&nbsp; Yw now your not bored</span>
+        <span><strong>Clever</strong> &nbsp;·&nbsp; Yw now your not bored</span>
         <span>shhhh dont ask where i got the games</span>
       </footer>
     </main>
@@ -2190,7 +2190,7 @@
       if (name === "arcade") {
         stopGame();
         if (location.hash.startsWith("#play/")) history.replaceState(null, "", location.pathname + location.search);
-        document.title = "HBU Arcade67";
+        document.title = "Clever";
       }
       const next = Object.values(windowEls).filter(el => !el.hidden).sort((a, b) => Number(b.style.zIndex) - Number(a.style.zIndex))[0];
       if (next) focusWindow(next);
@@ -2406,7 +2406,7 @@
         homeView.hidden = true;
         playerView.hidden = false;
         openApp("arcade");
-        document.title = "HBU Arcade67";
+        document.title = "Clever";
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
         writeLocal(recentStorageKey, recentGames);
         usage.plays += 1;
@@ -2428,7 +2428,7 @@
         } else {
           stopGame();
           if (target) openApp("arcade");
-          document.title = "HBU Arcade67";
+          document.title = "Clever";
           renderGames();
         }
         if (target) history.replaceState(null, "", location.pathname + location.search);
