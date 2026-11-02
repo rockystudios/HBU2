@@ -111,6 +111,31 @@
     }
     .hero-art::after { position: absolute; inset: 12px; border: 1px solid rgba(230,205,255,.13); border-radius: 28px; content: ""; }
 
+    .coin-pill { display: none; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid rgba(255,224,102,.4); border-radius: 999px; color: #ffe066; background: rgba(255,224,102,.08); box-shadow: 0 0 14px rgba(255,224,102,.15); font-size: 13px; font-weight: 800; }
+    .coin-pill.show { display: inline-flex; }
+    .rewards-view { padding-top: 40px; }
+    .rewards-grid { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .rewards-card { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.03); }
+    .rewards-card h3 { margin: 0 0 4px; font-size: 17px; }
+    .rewards-card > p { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+    .wheel-card { text-align: center; }
+    .wheel-wrap { position: relative; width: min(300px, 100%); aspect-ratio: 1; margin: 12px auto 18px; }
+    .wheel-pointer { position: absolute; z-index: 2; left: 50%; top: -14px; transform: translateX(-50%); color: #ffe066; font-size: 28px; line-height: 1; text-shadow: 0 0 12px rgba(255,224,102,.8); }
+    .wheel { position: relative; width: 100%; height: 100%; border: 4px solid #c084fc; border-radius: 50%; overflow: hidden; box-shadow: 0 0 34px rgba(168,85,247,.55), inset 0 0 24px rgba(0,0,0,.4); transition: transform 4.6s cubic-bezier(.12,.7,.1,1); }
+    .wheel span { position: absolute; left: 50%; top: 0; height: 50%; width: 60px; margin-left: -30px; padding-top: 12px; transform-origin: 50% 100%; text-align: center; font-size: 17px; font-weight: 900; color: white; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+    .wheel-hub { position: absolute; z-index: 1; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; display: grid; place-items: center; border-radius: 50%; background: #12091f; border: 3px solid #c084fc; font-size: 20px; }
+    .spin-note { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+    .plate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    .plate-card { padding: 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.025); }
+    .plate-card.equipped { border-color: rgba(124,255,169,.55); }
+    .plate-preview { padding: 9px 12px; border: 1px solid var(--line); border-radius: 12px 12px 12px 4px; font-size: 12px; }
+    .plate-preview b { display: block; font-size: 11px; font-weight: 800; }
+    .plate-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 750; }
+    .plate-meta span:last-child { color: #ffe066; }
+    .plate-card .button { min-height: 38px; }
+    .rewards-login { padding: 18px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; }
+    .rewards-login a { color: #d7b4ff; text-decoration: underline; }
+    @media (max-width: 800px) { .rewards-grid { grid-template-columns: 1fr; } }
     .section { padding-top: 48px; }
     .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
     .section-heading h2 { margin: 0; font-size: 22px; letter-spacing: -.7px; }
@@ -300,8 +325,10 @@
       <div class="nav-links">
         <a class="active" href="#games">Explore</a>
         <a href="#messages">Messages</a>
+        <a href="#rewards">Rewards</a>
       </div>
       <span class="nav-spacer"></span>
+      <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins">🪙 <span id="coin-count">0</span></a>
       <span class="status">ARCADE ONLINE</span>
     </nav>
   </header>
@@ -428,6 +455,35 @@
       </section>
     </div>
 
+    <section class="rewards-view" id="rewards-view" aria-labelledby="rewards-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="rewards-title">Rewards</h2>
+          <p>Spin the daily wheel for coins, then spend them on name plates for the chat.</p>
+        </div>
+        <span class="coin-pill show" id="rewards-coins" hidden>🪙 <span id="rewards-coin-count">0</span> coins</span>
+      </div>
+      <p class="rewards-login" id="rewards-login" hidden>Log in from <a href="#messages">Messages</a> to earn coins and buy name plates.</p>
+      <div class="rewards-grid">
+        <div class="rewards-card wheel-card">
+          <h3>Daily wheel</h3>
+          <p>One free spin every day (resets at midnight UTC).</p>
+          <div class="wheel-wrap">
+            <div class="wheel-pointer" aria-hidden="true">▼</div>
+            <div class="wheel" id="wheel" aria-hidden="true"></div>
+            <div class="wheel-hub" aria-hidden="true">🪙</div>
+          </div>
+          <button class="button button-primary" id="spin-button" type="button">Spin the wheel</button>
+          <p class="spin-note" id="spin-note" role="status" aria-live="polite"></p>
+        </div>
+        <div class="rewards-card">
+          <h3>Name plates</h3>
+          <p>Changes your name colour and message background in the chat.</p>
+          <div class="plate-grid" id="plate-grid"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
       <div class="player-bar">
         <button class="icon-button" id="back-button" type="button" aria-label="Back to all games">← All games</button>
@@ -533,6 +589,7 @@
     ];
     const homeView = document.querySelector("#home-view");
     const playerView = document.querySelector("#player-view");
+    const rewardsView = document.querySelector("#rewards-view");
     const grid = document.querySelector("#game-grid");
     const frame = document.querySelector("#game-frame");
     const frameWrap = document.querySelector("#game-frame-wrap");
@@ -1001,7 +1058,206 @@
       messageText.focus();
     }
 
+    const coinPill = document.querySelector("#coin-pill");
+    const coinCount = document.querySelector("#coin-count");
+    const rewardsCoins = document.querySelector("#rewards-coins");
+    const rewardsCoinCount = document.querySelector("#rewards-coin-count");
+    const rewardsLogin = document.querySelector("#rewards-login");
+    const spinButton = document.querySelector("#spin-button");
+    const spinNote = document.querySelector("#spin-note");
+    const wheelEl = document.querySelector("#wheel");
+    const plateGrid = document.querySelector("#plate-grid");
+    const wheelSegments = [10, 25, 50, 10, 75, 25, 100, 250];
+    const wheelColors = ["#6d28d9", "#9333ea", "#7c3aed", "#a855f7"];
+    let wallet = null;
+    let plateCatalog = [];
+    let plateByUser = {};
+    let platesLoadedAt = 0;
+    let wheelTurns = 0;
+    let spinning = false;
+    let spinCountdown;
+
+    wheelEl.style.background = `conic-gradient(${wheelSegments.map((_, i) => `${wheelColors[i % 4]} ${i * 45}deg ${(i + 1) * 45}deg`).join(", ")})`;
+    wheelSegments.forEach((value, i) => {
+      const label = document.createElement("span");
+      label.textContent = value;
+      label.style.transform = `rotate(${i * 45 + 22.5}deg)`;
+      wheelEl.append(label);
+    });
+
+    const plateById = id => plateCatalog.find(item => item.id === id);
+    const walletAuth = () => ({ p_username: account.username, p_password: account.password });
+
+    function applyPlate(entry, nameEl, plateId) {
+      const plate = plateById(plateId);
+      if (!plate) return;
+      entry.style.background = plate.bg;
+      if (nameEl) nameEl.style.color = plate.name_color;
+    }
+
+    async function loadPlates(force) {
+      if (!force && Date.now() - platesLoadedAt < 15000) return;
+      platesLoadedAt = Date.now();
+      try {
+        if (!plateCatalog.length) {
+          const response = await fetch(`${supabaseRestUrl}/plates?select=*&order=sort.asc`, { headers: { apikey: supabaseAnonKey } });
+          if (response.ok) plateCatalog = await response.json();
+        }
+        const rows = await rpc("hbu_plates", {});
+        const next = {};
+        for (const row of rows || []) next[row.username.toLowerCase()] = row.plate;
+        if (JSON.stringify(next) !== JSON.stringify(plateByUser)) {
+          plateByUser = next;
+          lastMessagesKey = "";
+          drawMessages();
+        }
+      } catch (error) {
+        console.warn("Name plates unavailable (has supabase/coins.sql been run?).", error);
+      }
+    }
+
+    function formatCountdown(ms) {
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const pad = n => String(n).padStart(2, "0");
+      return `${pad(Math.floor(total / 3600))}:${pad(Math.floor(total % 3600 / 60))}:${pad(total % 60)}`;
+    }
+
+    function renderWallet() {
+      const loggedIn = Boolean(account);
+      coinPill.classList.toggle("show", loggedIn && Boolean(wallet));
+      rewardsCoins.hidden = !(loggedIn && wallet);
+      rewardsLogin.hidden = loggedIn;
+      spinButton.disabled = !loggedIn || !wallet || !wallet.can_spin || spinning;
+      window.clearInterval(spinCountdown);
+      if (wallet) {
+        coinCount.textContent = rewardsCoinCount.textContent = wallet.coins;
+        if (!wallet.can_spin && !spinning) {
+          const tick = () => {
+            const left = new Date(wallet.next_spin).getTime() - Date.now();
+            if (left <= 0) { refreshWallet(); return; }
+            spinNote.textContent = `Next spin in ${formatCountdown(left)}`;
+          };
+          tick();
+          spinCountdown = window.setInterval(tick, 1000);
+        } else if (!spinning && !spinNote.dataset.result) {
+          spinNote.textContent = "Your daily spin is ready!";
+        }
+      } else if (!loggedIn) {
+        spinNote.textContent = "";
+      }
+      renderPlates();
+    }
+
+    function renderPlates() {
+      plateGrid.replaceChildren();
+      for (const plate of plateCatalog) {
+        const owned = Boolean(wallet && wallet.owned.includes(plate.id));
+        const equipped = Boolean(wallet && wallet.active === plate.id);
+        const card = document.createElement("div");
+        card.className = "plate-card" + (equipped ? " equipped" : "");
+        const preview = document.createElement("div");
+        preview.className = "plate-preview";
+        preview.style.background = plate.bg;
+        const who = document.createElement("b");
+        who.style.color = plate.name_color;
+        who.textContent = account ? account.username : "YourName";
+        preview.append(who, "Hey, check out my plate!");
+        const meta = document.createElement("div");
+        meta.className = "plate-meta";
+        const title = document.createElement("span");
+        title.textContent = plate.name;
+        const price = document.createElement("span");
+        price.textContent = owned ? "Owned" : `🪙 ${plate.price}`;
+        meta.append(title, price);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "button " + (owned ? "button-quiet" : "button-primary");
+        if (!account) {
+          button.textContent = "Log in to buy";
+          button.disabled = true;
+        } else if (owned) {
+          button.textContent = equipped ? "Equipped ✓ (remove)" : "Equip";
+          button.addEventListener("click", () => equipPlate(equipped ? "" : plate.id));
+        } else {
+          button.textContent = "Buy";
+          button.disabled = !wallet || wallet.coins < plate.price;
+          button.addEventListener("click", () => buyPlate(plate));
+        }
+        card.append(preview, meta, button);
+        plateGrid.append(card);
+      }
+    }
+
+    async function refreshWallet() {
+      if (!account) {
+        wallet = null;
+        renderWallet();
+        return;
+      }
+      const current = account;
+      try {
+        const result = await rpc("hbu_wallet", walletAuth());
+        if (account !== current) return;
+        wallet = result;
+        delete spinNote.dataset.result;
+      } catch (error) {
+        wallet = null;
+        spinNote.textContent = "Rewards are not set up yet (run supabase/coins.sql).";
+      }
+      renderWallet();
+      loadPlates(true);
+    }
+
+    async function buyPlate(plate) {
+      try {
+        await rpc("hbu_buy_plate", { ...walletAuth(), p_plate: plate.id });
+        showToast(`You bought the ${plate.name} plate!`);
+        await refreshWallet();
+      } catch (error) {
+        showToast(`Could not buy: ${error.message}`);
+      }
+    }
+
+    async function equipPlate(id) {
+      try {
+        await rpc("hbu_equip_plate", { ...walletAuth(), p_plate: id });
+        showToast(id ? "Name plate equipped!" : "Name plate removed.");
+        await refreshWallet();
+      } catch (error) {
+        showToast(`Could not equip: ${error.message}`);
+      }
+    }
+
+    spinButton.addEventListener("click", async () => {
+      if (!account || spinning || !wallet || !wallet.can_spin) return;
+      spinning = true;
+      spinButton.disabled = true;
+      spinNote.textContent = "Spinning…";
+      try {
+        const result = await rpc("hbu_spin", walletAuth());
+        const options = wheelSegments.map((value, i) => [value, i]).filter(([value]) => value === result.prize);
+        const index = options[Math.floor(Math.random() * options.length)][1];
+        wheelTurns += 5;
+        wheelEl.style.transform = `rotate(${wheelTurns * 360 - (index * 45 + 22.5)}deg)`;
+        await new Promise(resolve => window.setTimeout(resolve, 4800));
+        spinning = false;
+        spinNote.dataset.result = "1";
+        spinNote.textContent = `You won ${result.prize} coins! 🎉`;
+        showToast(`You won ${result.prize} coins! 🎉`);
+        wallet = { ...wallet, coins: result.coins, can_spin: false };
+        wallet.next_spin = (await rpc("hbu_wallet", walletAuth()).catch(() => wallet)).next_spin;
+        renderWallet();
+        spinNote.textContent = `You won ${result.prize} coins! 🎉`;
+      } catch (error) {
+        spinning = false;
+        spinNote.textContent = error.message;
+        showToast(error.message);
+        await refreshWallet();
+      }
+    });
+
     function showChat() {
+      refreshWallet();
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
@@ -1106,6 +1362,7 @@
           del.addEventListener("click", () => deleteMessage(message.id));
           header.append(del);
         }
+        if (message.user !== "mod-bot") applyPlate(entry, header.firstElementChild && !joined ? header.firstElementChild : null, plateByUser[message.user.toLowerCase()]);
         const text = document.createElement("p");
         text.textContent = message.message;
         entry.append(header, text);
@@ -1125,6 +1382,7 @@
 
     async function loadMessages(settle) {
       if (!account) return;
+      loadPlates();
       const convo = currentConvo;
       try {
         let messages;
@@ -1328,6 +1586,7 @@
         openGameButton.href = game.url;
         reportGameButton.href = reportIssueUrl(game);
         homeView.hidden = true;
+        rewardsView.hidden = true;
         playerView.hidden = false;
         document.title = `${game.name} — HBU Arcade`;
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
@@ -1349,8 +1608,15 @@
         window.clearTimeout(activeLoadTimer);
         frame.removeAttribute("src");
         playerView.hidden = true;
-        homeView.hidden = false;
-        document.title = "HBU Arcade — Welcome, Fellow Humans";
+        const onRewards = location.hash === "#rewards";
+        homeView.hidden = onRewards;
+        rewardsView.hidden = !onRewards;
+        document.title = onRewards ? "Rewards — HBU Arcade" : "HBU Arcade — Welcome, Fellow Humans";
+        if (onRewards) {
+          refreshWallet();
+          loadPlates(true);
+          window.scrollTo(0, 0);
+        }
         renderGames();
       }
     }
