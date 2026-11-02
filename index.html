@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#090711">
   <meta name="description" content="HBU Arcade is your neon-lit hub for quick, free browser games. Find your next favorite and jump straight into the fun.">
+  <link rel="icon" href="assets/logo.jpg">
+  <link rel="apple-touch-icon" href="assets/logo.jpg">
   <title>HBU Arcade — Welcome, Fellow Humans</title>
   <style>
     :root {
@@ -49,6 +51,9 @@
     }
     .nav { min-height: 74px; display: flex; align-items: center; gap: 34px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 19px; font-weight: 850; letter-spacing: -.7px; }
+    .brand-mark { position: relative; overflow: hidden; }
+    .brand-mark img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+    .brand-mark b { font-weight: inherit; }
     .brand-mark {
       width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px;
       color: white; background: linear-gradient(145deg, #c084fc, #7c3aed 70%);
@@ -284,7 +289,7 @@
 <body>
   <header class="topbar">
     <nav class="nav shell" aria-label="Main navigation">
-      <a class="brand" href="#games" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true">✦</span><span>HBU <em>ARCADE</em></span></a>
+      <a class="brand" href="#games" aria-label="HBU Arcade home"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE</em></span></a>
       <div class="nav-links">
         <a class="active" href="#games">Explore</a>
         <a href="#messages">Messages</a>
