@@ -157,6 +157,10 @@
     .admin-ban-form { display: grid; gap: 8px; }
     .admin-ban-form input, .admin-ban-form select { width: 100%; min-height: 38px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); font-size: 13px; }
     .banned-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+    #mod-add-form { margin: 0 0 8px; }
+    #mod-add-form input { width: 100%; min-height: 36px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); font-size: 12px; }
+    .message-delete { margin-left: 8px; padding: 0 6px; border: 0; border-radius: 6px; background: none; color: #ff8a9b; cursor: pointer; font-size: 12px; opacity: .65; }
+    .message-delete:hover, .message-delete:focus-visible { opacity: 1; background: rgba(255,138,155,.12); }
     .banned-item { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); font-size: 12px; }
     .banned-item strong { color: #e9c9ff; overflow-wrap: anywhere; }
     .banned-item small { display: block; margin: 2px 0 7px; color: var(--muted); overflow-wrap: anywhere; }
@@ -357,7 +361,7 @@
                 </form>
               </div>
               <aside class="admin-panel" id="admin-panel" aria-label="Admin tools" hidden>
-                <h3>🛡 Admin</h3>
+                <h3 id="admin-title">🛡 Admin</h3>
                 <form class="admin-ban-form" id="admin-ban-form">
                   <label class="sr-only" for="admin-target">Username to ban</label>
                   <input id="admin-target" type="text" maxlength="20" placeholder="Username to ban" autocomplete="off" required>
@@ -375,6 +379,15 @@
                 </form>
                 <h4>Banned users</h4>
                 <ul class="banned-list" id="banned-list"></ul>
+                <section id="admin-mods-section" hidden>
+                  <h4>Moderators</h4>
+                  <form class="dm-new" id="mod-add-form">
+                    <label class="sr-only" for="mod-add-name">Username to make moderator</label>
+                    <input id="mod-add-name" type="text" maxlength="20" placeholder="Add moderator" autocomplete="off" required>
+                    <button class="icon-button" type="submit">Add</button>
+                  </form>
+                  <ul class="banned-list" id="mod-list"></ul>
+                </section>
                 <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
               </aside>
             </div>
@@ -533,6 +546,11 @@
     const adminReason = document.querySelector("#admin-reason");
     const bannedList = document.querySelector("#banned-list");
     const adminStatus = document.querySelector("#admin-status");
+    const adminTitle = document.querySelector("#admin-title");
+    const modsSection = document.querySelector("#admin-mods-section");
+    const modList = document.querySelector("#mod-list");
+    const modAddForm = document.querySelector("#mod-add-form");
+    const modAddName = document.querySelector("#mod-add-name");
     const adminRefreshMs = 15000;
     const memoryStorage = new Map();
     let activeLoadTimer;
@@ -701,7 +719,8 @@
       }
     }
 
-    const isAdminAccount = () => Boolean(account) && account.username.toLowerCase() === "rocky";
+    let staffRole = "user";
+    const isStaff = () => staffRole === "admin" || staffRole === "mod";
 
     async function adminCall(action, extra = {}) {
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
@@ -754,19 +773,108 @@
             unban.disabled = false;
           }
         });
-        item.append(name, info, unban);
+        item.append(name, info);
+        if (staffRole === "admin") item.append(unban);
         bannedList.append(item);
       }
     }
 
+    function renderMods(mods) {
+      modList.replaceChildren();
+      for (const username of mods) {
+        const item = document.createElement("li");
+        item.className = "banned-item";
+        const name = document.createElement("strong");
+        name.textContent = username;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "icon-button";
+        remove.textContent = "Remove";
+        remove.addEventListener("click", async () => {
+          remove.disabled = true;
+          try {
+            await adminCall("admin_remove_mod", { target: username });
+            adminStatus.textContent = `${username} is no longer a moderator.`;
+            await loadBanned();
+          } catch (error) {
+            adminStatus.textContent = error.message;
+            remove.disabled = false;
+          }
+        });
+        item.append(name, document.createElement("br"), remove);
+        modList.append(item);
+      }
+      if (!mods.length) {
+        const none = document.createElement("li");
+        none.className = "admin-status";
+        none.textContent = "No moderators yet.";
+        modList.append(none);
+      }
+    }
+
     async function loadBanned() {
-      if (!isAdminAccount()) return;
+      if (!isStaff()) return;
       try {
         const result = await adminCall("admin_list");
         renderBanned(Array.isArray(result.banned) ? result.banned : []);
+        if (staffRole === "admin") renderMods(Array.isArray(result.mods) ? result.mods : []);
       } catch (error) {
         adminStatus.textContent = error.message;
       }
+    }
+
+    modAddForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const target = modAddName.value.trim();
+      if (!target) return;
+      try {
+        await adminCall("admin_add_mod", { target });
+        adminStatus.textContent = `${target} is now a moderator.`;
+        modAddForm.reset();
+        await loadBanned();
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    });
+
+    async function deleteMessage(id) {
+      if (!window.confirm("Delete this message for everyone?")) return;
+      try {
+        await adminCall("admin_delete", { id });
+        serverMessages = serverMessages.filter(item => item.id !== id);
+        lastMessagesKey = "";
+        drawMessages();
+        await loadMessages();
+      } catch (error) {
+        messageStatus.textContent = `Could not delete: ${error.message}`;
+      }
+    }
+
+    async function setupStaff() {
+      staffRole = "user";
+      adminPanel.hidden = true;
+      chatLayout.classList.remove("has-admin");
+      window.clearInterval(adminTimer);
+      if (!account) return;
+      const current = account;
+      try {
+        const result = await adminCall("admin_role");
+        if (account !== current || !["admin", "mod"].includes(result.role)) return;
+        staffRole = result.role;
+      } catch (error) {
+        return;
+      }
+      adminTitle.textContent = staffRole === "admin" ? "🛡 Admin" : "🛡 Moderator";
+      modsSection.hidden = staffRole !== "admin";
+      adminPanel.hidden = false;
+      chatLayout.classList.add("has-admin");
+      adminStatus.textContent = "";
+      lastMessagesKey = "";
+      drawMessages();
+      loadBanned();
+      adminTimer = window.setInterval(() => {
+        if (!document.hidden && !homeView.hidden) loadBanned();
+      }, adminRefreshMs);
     }
 
     adminBanForm.addEventListener("submit", async event => {
@@ -839,19 +947,14 @@
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
       window.clearInterval(adminTimer);
+      if (!account) {
+        staffRole = "user";
+        adminPanel.hidden = true;
+        chatLayout.classList.remove("has-admin");
+      }
       if (account) {
         chatUser.textContent = account.username;
-        const admin = isAdminAccount();
-        adminPanel.hidden = !admin;
-        chatLayout.classList.toggle("has-admin", admin);
-        adminStatus.textContent = "";
-        window.clearInterval(adminTimer);
-        if (admin) {
-          loadBanned();
-          adminTimer = window.setInterval(() => {
-            if (!document.hidden && !homeView.hidden) loadBanned();
-          }, adminRefreshMs);
-        }
+        setupStaff();
         currentConvo = "everyone";
         dmPartners = [];
         serverMessages = [];
@@ -909,6 +1012,15 @@
           time.textContent = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
           header.append(time);
         }
+        if (isStaff() && currentConvo === "everyone" && message.id && !message.pending) {
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "message-delete";
+          del.textContent = "🗑 Delete";
+          del.setAttribute("aria-label", `Delete message from ${message.user}`);
+          del.addEventListener("click", () => deleteMessage(message.id));
+          header.append(del);
+        }
         const text = document.createElement("p");
         text.textContent = message.message;
         entry.append(header, text);
@@ -932,7 +1044,7 @@
       try {
         let messages;
         if (convo === "everyone") {
-          const response = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
+          const response = await fetch(`${supabaseMessagesUrl}?select=id,user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
             headers: { apikey: supabaseAnonKey }
           });
           if (!response.ok) throw new Error(`Could not load messages (${response.status}).`);
