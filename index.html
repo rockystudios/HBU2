@@ -186,6 +186,12 @@
     .message-list { height: 380px; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     .message-form { padding: 12px; display: flex; gap: 10px; align-items: flex-end; border-top: 1px solid var(--line); }
     .message-form textarea { min-height: 44px; max-height: 120px; resize: none; }
+    .message-status, .admin-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
+    .toast-stack { position: fixed; z-index: 100; top: 84px; right: 16px; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+    .toast { padding: 13px 16px; border: 1px solid rgba(190, 160, 255, .35); border-radius: 14px; background: rgba(24, 14, 42, .96); color: #f3eaff; font-size: 14px; font-weight: 600; box-shadow: 0 0 24px rgba(168, 85, 247, .35), 0 12px 30px rgba(0, 0, 0, .4); animation: toast-in .3s ease-out; transition: opacity .35s, transform .35s; }
+    .toast.toast-error { border-color: rgba(255, 120, 140, .6); box-shadow: 0 0 24px rgba(255, 80, 110, .3), 0 12px 30px rgba(0, 0, 0, .4); }
+    .toast.toast-out { opacity: 0; transform: translateX(24px); }
+    @keyframes toast-in { from { opacity: 0; transform: translateX(24px); } }
     .message-status { min-height: 20px; margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; }
     .chat-empty { margin: auto; color: var(--muted); font-size: 13px; }
     .message-entry { max-width: min(80%, 520px); padding: 9px 13px; align-self: flex-start; border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.04); }
@@ -404,6 +410,7 @@
               </aside>
             </div>
           </div>
+          <div class="toast-stack" id="toast-stack"></div>
           <p class="message-status" id="message-status" role="status" aria-live="polite"></p>
         </div>
       </section>
@@ -567,6 +574,23 @@
     const adminReason = document.querySelector("#admin-reason");
     const bannedList = document.querySelector("#banned-list");
     const adminStatus = document.querySelector("#admin-status");
+
+    const toastStack = document.querySelector("#toast-stack");
+    function showToast(text) {
+      const toast = document.createElement("div");
+      toast.className = "toast" + (/could not|cannot|wrong|failed|error|missing|only|must|already|not /i.test(text) ? " toast-error" : "");
+      toast.textContent = text;
+      toastStack.append(toast);
+      while (toastStack.children.length > 4) toastStack.firstChild.remove();
+      window.setTimeout(() => toast.classList.add("toast-out"), 5000);
+      window.setTimeout(() => toast.remove(), 5400);
+    }
+    [messageStatus, adminStatus].forEach(node => {
+      new MutationObserver(() => {
+        const text = node.textContent.trim();
+        if (text) showToast(text);
+      }).observe(node, { childList: true, characterData: true, subtree: true });
+    });
     const adminTitle = document.querySelector("#admin-title");
     const modsSection = document.querySelector("#admin-mods-section");
     const modList = document.querySelector("#mod-list");
