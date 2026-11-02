@@ -167,7 +167,7 @@ type Role = "admin" | "mod" | "user";
 
 async function roleOf(name: string, ignoreBan = false): Promise<Role> {
   if (isAdmin(name)) return "admin";
-  const [row] = await db(`accounts?select=is_mod,banned_until&username=eq.${enc(name)}`) ?? [];
+  const [row] = await db(`accounts?select=is_mod,banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
   if (row?.is_mod === true && (ignoreBan || !(row.banned_until && new Date(row.banned_until) > new Date()))) return "mod";
   return "user";
 }
@@ -183,7 +183,7 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
   if (action === "admin_list") {
     const now = enc(new Date().toISOString());
     const banned = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? [];
-    const mods = role === "admin" ? await db("accounts?select=username&is_mod=eq.true&order=username.asc") ?? [] : [];
+    const mods = role === "admin" ? await db("accounts?select=username&is_mod=eq.true&order=username.asc").catch(() => []) ?? [] : [];
     return json({ role, banned, mods: mods.map((row: { username: string }) => row.username) });
   }
   if (action === "admin_delete") {
