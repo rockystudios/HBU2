@@ -188,7 +188,14 @@
     .chat-bar { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
     .chat-bar strong { color: #e9c9ff; }
     .chat input, .chat textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface-2); }
-    .message-list { height: 380px; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message-list { height: 380px; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 0; }
+    .message-list > * { margin-top: 10px; }
+    .message-list > .message-entry.joined { margin-top: 2px; }
+    .message-list > .message-entry.gap-long { margin-top: 28px; }
+    .message-list > :first-child { margin-top: 0; }
+    .day-divider { display: flex; align-items: center; gap: 12px; margin-top: 28px; color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .day-divider::before, .day-divider::after { flex: 1; height: 1px; background: var(--line); content: ""; }
+    .message-entry.joined .message-entry-header { justify-content: flex-end; }
     .message-form { padding: 12px; display: flex; gap: 10px; align-items: flex-end; border-top: 1px solid var(--line); }
     .message-form textarea { min-height: 44px; max-height: 120px; resize: none; }
     .message-status, .admin-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
@@ -1041,18 +1048,44 @@
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
       messageList.replaceChildren();
+      const HOUR = 3600000;
+      const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const dayLabel = d => {
+        const now = new Date();
+        if (dayKey(d) === dayKey(now)) return "Today";
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        if (dayKey(d) === dayKey(yesterday)) return "Yesterday";
+        return d.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: d.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+      };
+      let prev = null;
       for (const message of messages) {
         if (typeof message.user !== "string" || typeof message.message !== "string") continue;
+        let when = message.created_at ? new Date(message.created_at) : new Date();
+        if (Number.isNaN(when.getTime())) when = new Date();
+        const newDay = !prev || dayKey(prev.when) !== dayKey(when);
+        if (newDay) {
+          const divider = document.createElement("div");
+          divider.className = "day-divider";
+          divider.textContent = dayLabel(when);
+          messageList.append(divider);
+        }
         const entry = document.createElement("article");
         entry.className = "message-entry";
+        const longGap = !!prev && when - prev.when >= HOUR;
+        const joined = !newDay && !longGap && prev.user === message.user;
+        if (joined) entry.classList.add("joined");
+        else if (longGap) entry.classList.add("gap-long");
+        prev = { user: message.user, when };
         if (account && message.user === account.username) entry.classList.add("own");
         if (message.pending) entry.classList.add("pending");
         if (message.user === "mod-bot") entry.classList.add("bot");
         const header = document.createElement("div");
         header.className = "message-entry-header";
-        const name = document.createElement("span");
-        name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
-        header.append(name);
+        if (!joined) {
+          const name = document.createElement("span");
+          name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
+          header.append(name);
+        }
         const date = new Date(message.created_at);
         if (message.pending) {
           const sendingLabel = document.createElement("time");
