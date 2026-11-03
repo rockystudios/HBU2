@@ -166,13 +166,62 @@ async function findAccount(name: string): Promise<{ username: string } | undefin
   return rows.find((row: { username: string }) => row.username.toLowerCase() === name.toLowerCase());
 }
 
-type Role = "admin" | "mod" | "vip" | "user";
+// "admin" and "user" are built in; every other role comes from the custom_roles table.
+type Role = string;
+
+interface RoleDef {
+  name: string;
+  label: string;
+  badge: string;
+  staff: boolean;
+  commands: string[];
+}
+
+const ROLE_NAME = /^[a-z0-9_-]{2,20}$/;
+let rolesCache: { at: number; defs: Map<string, RoleDef> } = { at: 0, defs: new Map() };
+
+// Before supabase/role-editor.sql is run, the roles come from each command's default list.
+function defaultRoles(): RoleDef[] {
+  const names = (role: string) => Object.entries(COMMANDS).filter(([, cmd]) => cmd.roles.includes(role)).map(([name]) => name);
+  return [
+    { name: "mod", label: "Moderator", badge: "✔", staff: true, commands: names("mod") },
+    { name: "vip", label: "VIP", badge: "★", staff: false, commands: names("vip") },
+  ];
+}
+
+async function roleDefs(force = false): Promise<Map<string, RoleDef>> {
+  if (!force && Date.now() - rolesCache.at < 5000) return rolesCache.defs;
+  const rows = await db("custom_roles?select=name,label,badge,staff,commands&order=name.asc").catch(() => null);
+  const list: RoleDef[] = Array.isArray(rows)
+    ? rows.map((row: { name: string; label: string; badge: string; staff: boolean; commands: string[] }) => ({
+      name: row.name, label: row.label || row.name, badge: row.badge || "★", staff: row.staff === true,
+      commands: Array.isArray(row.commands) ? row.commands : [],
+    }))
+    : defaultRoles();
+  rolesCache = { at: Date.now(), defs: new Map(list.map((def) => [def.name, def])) };
+  return rolesCache.defs;
+}
+
+async function isStaffRole(role: Role) {
+  return role === "admin" || (await roleDefs()).get(role)?.staff === true;
+}
+
+async function roleLabel(role: Role) {
+  return role === "admin" ? "Admin" : role === "user" ? "Member" : (await roleDefs()).get(role)?.label ?? role;
+}
+
+async function canUse(role: Role, name: string) {
+  const cmd = COMMANDS[name];
+  if (!cmd) return false;
+  if (role === "admin" || cmd.roles.includes("user")) return true;
+  return (await roleDefs()).get(role)?.commands.includes(name) === true;
+}
 
 async function roleOf(name: string, ignoreBan = false): Promise<Role> {
   if (isAdmin(name)) return "admin";
   const [row] = await db(`accounts?select=role,banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
   const banned = row?.banned_until && new Date(row.banned_until) > new Date();
-  if ((row?.role === "mod" || row?.role === "vip") && (ignoreBan || !banned)) return row.role;
+  if (row?.role && (ignoreBan || !banned) && (await roleDefs()).has(row.role)) return row.role;
   return "user";
 }
 
@@ -232,7 +281,7 @@ async function chatGate(name: string, role: Role, cooldownMs = 0) {
     if (row?.muted_until && new Date(row.muted_until) > new Date()) {
       throw new UserError(`You are muted from the main chat until ${new Date(row.muted_until).toUTCString()}.`, 403);
     }
-    if (role !== "mod" && (await chatSettings()).locked) throw new UserError("The chat is locked right now.", 403);
+    if (!(await isStaffRole(role)) && (await chatSettings()).locked) throw new UserError("The chat is locked right now.", 403);
   }
   if (cooldownMs) {
     if (lastFun.size > 500) lastFun.clear();
@@ -312,10 +361,10 @@ const COMMANDS: Record<string, Cmd> = {
     roles: ANYONE,
     usage: "/help",
     help: "Show the commands you can use (only you see it)",
-    run: ({ role }) => {
-      const mine = Object.values(COMMANDS).filter((cmd) => cmd.roles.includes(role));
-      const title = role === "admin" ? "Admin" : role === "mod" ? "Moderator" : role === "vip" ? "VIP" : "Member";
-      return Promise.resolve(showLines([`📖 ${title} commands (only you can see this):`, ...mine.map((cmd) => `${cmd.usage} - ${cmd.help}`)]));
+    run: async ({ role }) => {
+      const mine: Cmd[] = [];
+      for (const [name, cmd] of Object.entries(COMMANDS)) if (await canUse(role, name)) mine.push(cmd);
+      return showLines([`📖 ${await roleLabel(role)} commands (only you can see this):`, ...mine.map((cmd) => `${cmd.usage} - ${cmd.help}`)]);
     },
   },
   rules: { roles: ANYONE, usage: "/rules", help: "Show the chat rules (only you see it)", run: () => Promise.resolve(showLines(RULES)) },
@@ -564,11 +613,15 @@ const COMMANDS: Record<string, Cmd> = {
     },
   },
   staff: {
-    roles: PERK, usage: "/staff", help: "Show the moderators and VIPs (only you see it)",
+    roles: PERK, usage: "/staff", help: "Show who has a role (only you see it)",
     run: async () => {
       const rows = await db("accounts?select=username,role&role=not.is.null&order=username.asc") ?? [];
-      const names = (role: string) => rows.filter((r: { role: string }) => r.role === role).map((r: { username: string }) => r.username).join(", ") || "none";
-      return showLines(["🛡 Staff:", `Admin: ${ADMINS.join(", ")}`, `Moderators: ${names("mod")}`, `VIPs: ${names("vip")}`]);
+      const lines = ["🛡 Staff:", `Admin: ${ADMINS.join(", ")}`];
+      for (const def of (await roleDefs()).values()) {
+        const names = rows.filter((r: { role: string }) => r.role === def.name).map((r: { username: string }) => r.username).join(", ") || "none";
+        lines.push(`${def.label}: ${names}`);
+      }
+      return showLines(lines);
     },
   },
 
@@ -660,7 +713,7 @@ async function handleCommand(staff: string, text: string) {
   const name = head.slice(1).toLowerCase();
   const cmd = COMMANDS[name];
   const role = await roleOf(staff);
-  if (!cmd.roles.includes(role)) throw new UserError(`You don't have permission to use /${name}.`, 403);
+  if (!(await canUse(role, name))) throw new UserError(`You don't have permission to use /${name}.`, 403);
 
   let target: string | undefined;
   let rest = args;
@@ -674,7 +727,7 @@ async function handleCommand(staff: string, text: string) {
     if (cmd.target === "guard") {
       if (isAdmin(target)) throw new UserError("You cannot do that to the admin.");
       if (target === staff) throw new UserError("You cannot do that to yourself.");
-      if (role !== "admin" && (await roleOf(target, true)) === "mod") throw new UserError("Only the admin can do that to a moderator.", 403);
+      if (role !== "admin" && (await isStaffRole(await roleOf(target, true)))) throw new UserError("Only the admin can do that to a moderator.", 403);
     }
   }
   return await cmd.run({ staff, role, rest, target });
@@ -682,8 +735,11 @@ async function handleCommand(staff: string, text: string) {
 
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
   const role = await roleOf(staff);
-  if (action === "admin_role") return json({ role });
-  if (role !== "admin" && role !== "mod") throw new UserError("Moderators only.", 403);
+  if (action === "admin_role") {
+    const def = (await roleDefs()).get(role);
+    return json({ role, staff: await isStaffRole(role), label: await roleLabel(role), commands: def?.commands ?? [] });
+  }
+  if (!(await isStaffRole(role))) throw new UserError("Moderators only.", 403);
   const adminOnly = () => {
     if (role !== "admin") throw new UserError("Only the admin can do that.", 403);
   };
@@ -693,8 +749,10 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
     const banned = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? [];
     const roles = role === "admin" ? await db("accounts?select=username,role&role=not.is.null&order=username.asc").catch(() => []) ?? [] : [];
     const botBlocked = await db("accounts?select=username&bot_banned=eq.true&order=username.asc").catch(() => []) ?? [];
+    const defs = [...(await roleDefs()).values()].map(({ name, label, badge }) => ({ name, label, badge }));
     return json({
       role,
+      role_defs: defs,
       banned,
       roles,
       bot_blocked: botBlocked.map((row: { username: string }) => row.username),
@@ -742,13 +800,49 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
     return json({ ok: true });
   }
 
+  if (action.startsWith("admin_owner_")) {
+    adminOnly();
+    const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") }));
+    if (action === "admin_owner_roles") {
+      return json({ roles: [...(await roleDefs(true)).values()], commands: all });
+    }
+    if (action === "admin_owner_role_save") {
+      const name = String(body.name ?? "").trim().toLowerCase();
+      if (!ROLE_NAME.test(name) || ["admin", "user", "none"].includes(name)) {
+        throw new UserError("Role names are 2-20 letters, numbers, - or _ (not admin, user or none).");
+      }
+      const label = String(body.label ?? "").trim().slice(0, 24) || name;
+      const badge = String(body.badge ?? "").trim().slice(0, 4) || "★";
+      const known = new Set(all.filter((cmd) => !cmd.open).map((cmd) => cmd.name));
+      const commands = Array.isArray(body.commands) ? [...new Set(body.commands.map(String).filter((c) => known.has(c)))] : [];
+      await db("custom_roles?on_conflict=name", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ name, label, badge, staff: body.staff === true, commands }),
+      });
+      rolesCache.at = 0;
+      await log({ username: staff, action: `saved role ${name} (${commands.length} commands)` });
+      return json({ ok: true });
+    }
+    if (action === "admin_owner_role_delete") {
+      const name = String(body.name ?? "").trim().toLowerCase();
+      if (!ROLE_NAME.test(name)) throw new UserError("Unknown role.");
+      await db(`accounts?role=eq.${enc(name)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ role: null }) });
+      await db(`custom_roles?name=eq.${enc(name)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+      rolesCache.at = 0;
+      await log({ username: staff, action: `deleted role ${name}` });
+      return json({ ok: true });
+    }
+    throw new UserError("Unknown action.");
+  }
+
   const target = typeof body.target === "string" && body.target.trim() ? await findAccount(body.target.trim()) : undefined;
   if (!target) throw new UserError("That user does not exist.");
 
   if (action === "admin_set_role") {
     adminOnly();
     if (isAdmin(target.username)) throw new UserError("The admin is already all-powerful.");
-    const next = body.role === "mod" || body.role === "vip" ? body.role : null;
+    const next = typeof body.role === "string" && (await roleDefs(true)).has(body.role) ? body.role : null;
     await db(`accounts?username=eq.${enc(target.username)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
@@ -851,7 +945,7 @@ export async function handle(req: Request): Promise<Response> {
     let waitMs = COOLDOWN_MS;
     if (target === "everyone" && (settings.locked || settings.slow > 0) && !isAdmin(realName)) {
       const senderRole = await roleOf(realName);
-      if (senderRole !== "mod") {
+      if (!(await isStaffRole(senderRole))) {
         if (settings.locked) throw new UserError("The chat is locked right now. Only moderators can talk.", 403);
         waitMs = Math.max(waitMs, settings.slow * 1000);
       }
@@ -863,7 +957,7 @@ export async function handle(req: Request): Promise<Response> {
 
     const asksBot = target === "everyone" && /@mod-bot\b/i.test(text);
     let botBlocked = false;
-    if (target === "everyone" && /@everyone\b/i.test(text) && !["admin", "mod"].includes(await roleOf(realName))) {
+    if (target === "everyone" && /@everyone\b/i.test(text) && !(await isStaffRole(await roleOf(realName)))) {
       throw new UserError("Only moderators can use @everyone.", 403);
     }
     if (asksBot && !isAdmin(realName)) {

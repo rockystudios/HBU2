@@ -432,6 +432,14 @@
     .app-icon-owner { background: linear-gradient(150deg, #ffe066, #b45309); --glow: rgba(255,214,102,.55); }
     .owner-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
     .owner-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.03); }
+    .role-editor { display: grid; gap: 8px; }
+    .role-card { border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.03); padding: 8px 12px; }
+    .role-card summary { cursor: pointer; font-weight: 700; }
+    .role-card-body { display: grid; gap: 8px; margin-top: 10px; }
+    .role-fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .role-cmds { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; }
+    .role-cmds label, .role-fields label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    .role-actions { display: flex; gap: 8px; }
     .owner-list li small { margin-left: auto; color: var(--muted); }
     .app-icon-themes { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(232,121,249,.5); }
     .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
@@ -750,8 +758,8 @@
                     <input id="mod-add-name" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
                     <label class="sr-only" for="role-select">Role</label>
                     <select id="role-select">
-                      <option value="mod">Moderator (/ban /warn /mute)</option>
-                      <option value="vip">VIP (/warn /sugban)</option>
+                      <option value="mod">Moderator</option>
+                      <option value="vip">VIP</option>
                     </select>
                     <button class="button button-primary" type="submit">Give role</button>
                   </form>
@@ -937,6 +945,15 @@
           </form>
           <p class="app-note" id="owner-status"></p>
           <ul class="owner-list" id="owner-list"></ul>
+          <h2>Roles</h2>
+          <p class="app-note">Make roles and pick which commands each one can use. Changes apply to everyone right away. "Staff" roles also get the admin panel and can talk while the chat is locked.</p>
+          <form class="friends-form" id="role-new-form">
+            <input id="role-new-name" type="text" maxlength="20" placeholder="New role name (e.g. helper)" autocomplete="off" required>
+            <input id="role-new-badge" type="text" maxlength="2" placeholder="★" autocomplete="off" aria-label="Badge" style="max-width:64px">
+            <button class="button button-primary" type="submit">Add role</button>
+          </form>
+          <p class="app-note" id="role-status"></p>
+          <div class="role-editor" id="role-editor"></div>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -1126,6 +1143,7 @@
     const replyBarText = document.querySelector("#reply-bar-text");
     let replyTarget = null;
     let roleByUser = { rocky: "admin" };
+    let roleDefs = { mod: { label: "Moderator", badge: "✔" }, vip: { label: "VIP", badge: "★" } };
     let modsLoadedAt = 0;
 
     async function loadMods() {
@@ -1137,6 +1155,12 @@
           rows = await rpc("hbu_roles", {});
         } catch (error) {
           rows = (await rpc("hbu_mod_names", {})).map(row => ({ username: row.username, role: "mod" }));
+        }
+        try {
+          const defs = await rpc("hbu_role_defs", {});
+          if (Array.isArray(defs) && defs.length) roleDefs = Object.fromEntries(defs.map(def => [def.name, { label: def.label, badge: def.badge }]));
+        } catch (error) {
+          // Custom roles aren't set up yet; the built-in mod and VIP badges stay.
         }
         if (Array.isArray(rows)) {
           roleByUser = { rocky: "admin" };
@@ -1394,7 +1418,8 @@
     }
 
     let staffRole = "user";
-    const isStaff = () => staffRole === "admin" || staffRole === "mod";
+    let staffAccess = false;
+    const isStaff = () => staffAccess;
 
     async function adminCall(action, extra = {}) {
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
@@ -1461,7 +1486,7 @@
         const name = document.createElement("strong");
         name.textContent = username;
         const info = document.createElement("small");
-        info.textContent = role === "vip" ? " · VIP" : " · Moderator";
+        info.textContent = ` · ${roleDefs[role] ? roleDefs[role].label : role}`;
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "icon-button";
@@ -1605,7 +1630,16 @@
         renderBanned(Array.isArray(result.banned) ? result.banned : []);
         renderBotBlocked(Array.isArray(result.bot_blocked) ? result.bot_blocked : []);
         if (!wordList.children.length || document.activeElement !== wordInput) loadWords();
-        if (staffRole === "admin") renderMods(Array.isArray(result.roles) ? result.roles : []);
+        if (staffRole === "admin") {
+          if (Array.isArray(result.role_defs) && result.role_defs.length) {
+            roleDefs = Object.fromEntries(result.role_defs.map(def => [def.name, { label: def.label, badge: def.badge }]));
+            const select = document.querySelector("#role-select");
+            const chosen = select.value;
+            select.replaceChildren(...result.role_defs.map(def => new Option(`${def.badge} ${def.label}`, def.name)));
+            if (roleDefs[chosen]) select.value = chosen;
+          }
+          renderMods(Array.isArray(result.roles) ? result.roles : []);
+        }
       } catch (error) {
         adminStatus.textContent = error.message;
       }
@@ -1618,7 +1652,7 @@
       try {
         const role = document.querySelector("#role-select").value;
         await adminCall("admin_set_role", { target, role });
-        adminStatus.textContent = `${target} is now a ${role === "vip" ? "VIP" : "moderator"}.`;
+        adminStatus.textContent = `${target} is now ${roleDefs[role] ? roleDefs[role].label : role}.`;
         modAddForm.reset();
         modsLoadedAt = 0;
         await loadBanned();
@@ -1642,19 +1676,22 @@
 
     async function setupStaff() {
       staffRole = "user";
+      staffAccess = false;
       applyAdminBoard();
       window.clearInterval(adminTimer);
       if (!account) return;
       const current = account;
       try {
         const result = await adminCall("admin_role");
-        if (account !== current || !["admin", "mod", "vip"].includes(result.role)) return;
+        if (account !== current || !result.role || result.role === "user") return;
         staffRole = result.role;
-        if (result.role === "vip") return;
+        if (result.role !== "admin" && !result.staff) return;
+        staffAccess = true;
       } catch (error) {
         // An outdated server can't report roles; Rocky still gets the panel (the server enforces real permissions).
         if (account !== current || account.username.toLowerCase() !== "rocky") return;
         staffRole = "admin";
+        staffAccess = true;
       }
       adminTitle.textContent = staffRole === "admin" ? "🛡 Admin" : "🛡 Moderator";
       modsSection.hidden = staffRole !== "admin";
@@ -2600,9 +2637,11 @@
           const userRole = roleOfName(message.user);
           if (userRole) {
             const check = document.createElement("span");
-            const label = userRole === "vip" ? "VIP" : userRole === "admin" ? "Admin" : "Moderator";
-            check.className = userRole === "vip" ? "mod-check vip-star" : "mod-check";
-            check.textContent = userRole === "vip" ? "★" : "✔";
+            const def = roleDefs[userRole];
+            const label = userRole === "admin" ? "Admin" : def ? def.label : userRole;
+            const badge = userRole === "admin" ? "✔" : def ? def.badge : "★";
+            check.className = badge === "✔" ? "mod-check" : "mod-check vip-star";
+            check.textContent = badge;
             check.title = label;
             check.setAttribute("aria-label", label);
             name.append(check);
@@ -2848,6 +2887,135 @@
         ownerStatus.textContent = /schema cache|function/i.test(error.message) ? "Password resets are not set up yet (run supabase/password-reset.sql)." : error.message;
       }
     }
+    const roleEditor = document.querySelector("#role-editor");
+    const roleStatus = document.querySelector("#role-status");
+    const openRoleCards = new Set();
+
+    async function loadOwnerRoles() {
+      if (!isOwner()) return;
+      try {
+        const data = await adminCall("admin_owner_roles");
+        const commands = (data.commands || []).filter(cmd => !cmd.open);
+        roleEditor.replaceChildren();
+        for (const role of data.roles || []) roleEditor.append(roleCard(role, commands));
+        if (!roleEditor.children.length) roleStatus.textContent = "No roles yet. Add one above.";
+        else if (roleStatus.textContent === "No roles yet. Add one above.") roleStatus.textContent = "";
+      } catch (error) {
+        roleStatus.textContent = /Unknown action/i.test(error.message)
+          ? "Roles aren't set up yet: run supabase/role-editor.sql and redeploy send-message."
+          : error.message;
+      }
+    }
+
+    function roleCard(role, commands) {
+      const card = document.createElement("details");
+      card.className = "role-card";
+      card.open = openRoleCards.has(role.name);
+      card.addEventListener("toggle", () => (card.open ? openRoleCards.add(role.name) : openRoleCards.delete(role.name)));
+      const summary = document.createElement("summary");
+      summary.textContent = `${role.badge} ${role.label} (${role.name}) · ${role.commands.length} command${role.commands.length === 1 ? "" : "s"}${role.staff ? " · staff" : ""}`;
+      const body = document.createElement("div");
+      body.className = "role-card-body";
+      const fields = document.createElement("div");
+      fields.className = "role-fields";
+      const label = document.createElement("input");
+      label.type = "text";
+      label.maxLength = 24;
+      label.value = role.label;
+      label.placeholder = "Display name";
+      label.setAttribute("aria-label", "Display name");
+      const badge = document.createElement("input");
+      badge.type = "text";
+      badge.maxLength = 2;
+      badge.value = role.badge;
+      badge.style.maxWidth = "64px";
+      badge.setAttribute("aria-label", "Badge");
+      const staffLabel = document.createElement("label");
+      const staff = document.createElement("input");
+      staff.type = "checkbox";
+      staff.checked = role.staff;
+      staffLabel.append(staff, " Staff");
+      fields.append(label, badge, staffLabel);
+      const grid = document.createElement("div");
+      grid.className = "role-cmds";
+      const boxes = [];
+      for (const cmd of commands) {
+        const row = document.createElement("label");
+        row.title = `${cmd.usage} - ${cmd.help}`;
+        const box = document.createElement("input");
+        box.type = "checkbox";
+        box.value = cmd.name;
+        box.checked = role.commands.includes(cmd.name);
+        boxes.push(box);
+        row.append(box, ` /${cmd.name}`);
+        grid.append(row);
+      }
+      const actions = document.createElement("div");
+      actions.className = "role-actions";
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "button button-primary";
+      save.textContent = "Save";
+      save.addEventListener("click", async () => {
+        save.disabled = true;
+        try {
+          await adminCall("admin_owner_role_save", {
+            name: role.name,
+            label: label.value,
+            badge: badge.value,
+            staff: staff.checked,
+            commands: boxes.filter(box => box.checked).map(box => box.value)
+          });
+          roleStatus.textContent = `Saved ${role.name}.`;
+          modsLoadedAt = 0;
+          await loadOwnerRoles();
+        } catch (error) {
+          roleStatus.textContent = error.message;
+        } finally {
+          save.disabled = false;
+        }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "button";
+      remove.textContent = "Delete role";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Delete the ${role.label} role? Everyone who has it will lose it.`)) return;
+        try {
+          await adminCall("admin_owner_role_delete", { name: role.name });
+          openRoleCards.delete(role.name);
+          roleStatus.textContent = `Deleted ${role.name}.`;
+          modsLoadedAt = 0;
+          await loadOwnerRoles();
+        } catch (error) {
+          roleStatus.textContent = error.message;
+        }
+      });
+      actions.append(save, remove);
+      body.append(fields, grid, actions);
+      card.append(summary, body);
+      return card;
+    }
+
+    document.querySelector("#role-new-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const nameInput = document.querySelector("#role-new-name");
+      const badgeInput = document.querySelector("#role-new-badge");
+      const name = nameInput.value.trim().toLowerCase();
+      if (!name || !isOwner()) return;
+      try {
+        await adminCall("admin_owner_role_save", { name, label: name.charAt(0).toUpperCase() + name.slice(1), badge: badgeInput.value.trim() || "★", staff: false, commands: [] });
+        nameInput.value = "";
+        badgeInput.value = "";
+        openRoleCards.add(name);
+        roleStatus.textContent = `Added ${name}. Tick the commands it should have, then Save.`;
+        modsLoadedAt = 0;
+        await loadOwnerRoles();
+      } catch (error) {
+        roleStatus.textContent = error.message;
+      }
+    });
+
     document.querySelector("#owner-form").addEventListener("submit", async event => {
       event.preventDefault();
       const input = document.querySelector("#owner-name");
@@ -3025,7 +3193,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], owner: [520, 560] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3055,7 +3223,7 @@
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
-      owner: { open: () => loadOwnerResets() }
+      owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); } }
     };
 
     function openApp(name) {
