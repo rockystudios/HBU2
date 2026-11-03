@@ -419,6 +419,14 @@
     .app-arcade { background: linear-gradient(150deg, #c084fc, #6d28d9); }
     .app-chat { --glow: rgba(61,217,255,.45); background: linear-gradient(150deg, #66e9ff, #3b5bdb); }
     .app-settings { --glow: rgba(180,180,200,.35); background: linear-gradient(150deg, #8f8aa8, #3a3552); }
+    .app-logo { width: 58px; height: 58px; filter: drop-shadow(0 3px 4px rgba(0,0,0,.28)); }
+    .app-logo { display: block; pointer-events: none; }
+    .app-icon-leaderboard { background: linear-gradient(150deg, #ffd23f, #ff8a1a); --glow: rgba(255,186,60,.55); }
+    .app-icon-friends { background: linear-gradient(150deg, #5eead4, #0ea5a4); --glow: rgba(45,212,191,.5); }
+    .app-icon-notes { background: linear-gradient(150deg, #fde68a, #d9a400); --glow: rgba(253,230,138,.45); }
+    .app-icon-calculator { background: linear-gradient(150deg, #64748b, #1e293b); --glow: rgba(148,163,184,.4); }
+    .app-icon-clock { background: linear-gradient(150deg, #fb7185, #be123c); --glow: rgba(251,113,133,.5); }
+    .app-icon-themes { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(232,121,249,.5); }
     .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
     .home-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; color: #817a8e; font-size: 11px; }
     .home-footer strong { color: #c7b1df; }
@@ -498,39 +506,39 @@
       </div>
       <nav class="app-grid" aria-label="Apps">
         <button class="app-icon" type="button" data-app="arcade">
-          <span class="app-glyph app-arcade" aria-hidden="true">🕹️<span class="app-badge" id="badge-arcade" hidden></span></span>
+          <span class="app-glyph app-arcade" aria-hidden="true"><span class="app-badge" id="badge-arcade" hidden></span></span>
           <span class="app-label">Arcade</span>
         </button>
         <button class="app-icon" type="button" data-app="chat">
-          <span class="app-glyph app-chat" aria-hidden="true">💬<span class="app-badge" id="badge-chat" hidden></span></span>
+          <span class="app-glyph app-chat" aria-hidden="true"><span class="app-badge" id="badge-chat" hidden></span></span>
           <span class="app-label">Chat</span>
         </button>
         <button class="app-icon" type="button" data-app="settings">
-          <span class="app-glyph app-settings" aria-hidden="true">⚙️<span class="app-badge" id="badge-settings" hidden></span></span>
+          <span class="app-glyph app-settings" aria-hidden="true"><span class="app-badge" id="badge-settings" hidden></span></span>
           <span class="app-label">Settings</span>
         </button>
         <button class="app-icon" type="button" data-app="leaderboard">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#ffd23f,#ff8a1a);--glow:rgba(255,255,255,.25)" aria-hidden="true">🏆</span>
+          <span class="app-glyph app-icon-leaderboard" aria-hidden="true"></span>
           <span class="app-label">Leaderboard</span>
         </button>
         <button class="app-icon" type="button" data-app="friends">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#5eead4,#0ea5a4);--glow:rgba(255,255,255,.25)" aria-hidden="true">👥</span>
+          <span class="app-glyph app-icon-friends" aria-hidden="true"></span>
           <span class="app-label">Friends</span>
         </button>
         <button class="app-icon" type="button" data-app="notes">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#fde68a,#d9a400);--glow:rgba(255,255,255,.25)" aria-hidden="true">📝</span>
+          <span class="app-glyph app-icon-notes" aria-hidden="true"></span>
           <span class="app-label">Notes</span>
         </button>
         <button class="app-icon" type="button" data-app="calculator">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#64748b,#1e293b);--glow:rgba(255,255,255,.25)" aria-hidden="true">🧮</span>
+          <span class="app-glyph app-icon-calculator" aria-hidden="true"></span>
           <span class="app-label">Calculator</span>
         </button>
         <button class="app-icon" type="button" data-app="clock">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#fb7185,#be123c);--glow:rgba(255,255,255,.25)" aria-hidden="true">⏱️</span>
+          <span class="app-glyph app-icon-clock" aria-hidden="true"></span>
           <span class="app-label">Clock</span>
         </button>
         <button class="app-icon" type="button" data-app="themes">
-          <span class="app-glyph" style="background:linear-gradient(150deg,#f472b6,#7c3aed);--glow:rgba(255,255,255,.25)" aria-hidden="true">🎨</span>
+          <span class="app-glyph app-icon-themes" aria-hidden="true"></span>
           <span class="app-label">Themes</span>
         </button>
       </nav>
@@ -2341,10 +2349,66 @@
       gg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="2" y="8" width="44" height="32" rx="10" fill="#7c3aed" stroke="#c084fc" stroke-width="2"/><text x="24" y="31" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" font-family="sans-serif">GG</text></svg>',
       sug: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="4" y="12" width="40" height="24" rx="12" fill="#ff7ad9" stroke="#c0398f" stroke-width="2"/><path d="M14 14l8 20M24 12l8 24M34 14l6 18" stroke="#fff" stroke-width="3" opacity=".7"/></svg>',
       star: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 3l6 14 15 1-11 10 4 15-14-8-14 8 4-15L3 18l15-1z" fill="#ffd23f" stroke="#c98a00" stroke-width="2" stroke-linejoin="round"/></svg>',
-      thumbsup: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M6 22h9v20H6zM18 22l8-16c4 0 6 3 5 7l-1 6h12c3 0 5 3 4 6l-3 14c-1 3-3 4-6 4H18z" fill="#ffcf3f" stroke="#c98a00" stroke-width="2" stroke-linejoin="round"/></svg>'
+      thumbsup: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M6 22h9v20H6zM18 22l8-16c4 0 6 3 5 7l-1 6h12c3 0 5 3 4 6l-3 14c-1 3-3 4-6 4H18z" fill="#ffcf3f" stroke="#c98a00" stroke-width="2" stroke-linejoin="round"/>',
+      blush: faceSvg("happy", "smile", '<circle cx="13" cy="29" r="3" fill="#ff7777"/><circle cx="35" cy="29" r="3" fill="#ff7777"/>'),
+      thinking: faceSvg("side", "flat", '<path d="M36 39q4-8-3-10-5-2-8 3" fill="none" stroke="#c98a00" stroke-width="4" stroke-linecap="round"/>'),
+      sweat: faceSvg("big", "frown", '<path d="M37 8q-8 9-5 13 3 3 6 0 4-4-1-13z" fill="#42baff"/>'),
+      sick: faceSvg("closed", "frown", '<path d="M15 28q-4 3 0 6M33 28q4 3 0 6" fill="none" stroke="#54b86a" stroke-width="3"/>', "#9be29b"),
+      nerd: faceSvg("open", "smile", '<circle cx="18" cy="22" r="7" fill="none" stroke="#26364a" stroke-width="2.5"/><circle cx="30" cy="22" r="7" fill="none" stroke="#26364a" stroke-width="2.5"/><path d="M25 22h-2" stroke="#26364a" stroke-width="2.5"/>'),
+      party: faceSvg("happy", "grin", '<path d="M13 13L9 3l18 7z" fill="#ff4d9d" stroke="#fff" stroke-width="1.5"/><circle cx="10" cy="19" r="2" fill="#ff4d9d"/><circle cx="38" cy="17" r="2" fill="#4dd8ff"/><path d="M37 30l3 2-3 2-2-2z" fill="#a855f7"/>'),
+      hug: faceSvg("closed", "smile", '<path d="M7 25q-2 12 9 15M41 25q2 12-9 15" fill="none" stroke="#ff8ab5" stroke-width="3" stroke-linecap="round"/>'),
+      angel: faceSvg("closed", "smile", '<ellipse cx="24" cy="5" rx="9" ry="3" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M8 17q-7-8-5 1 3 6 8 6M40 17q7-8 5 1-3 6-8 6" fill="#fff" stroke="#b8a4ff" stroke-width="1.5"/>'),
+      devil: faceSvg("angry", "smirk", '<path d="M10 15L7 3q8 3 13 10M38 15l3-12q-8 3-13 10" fill="#ee4c5c" stroke="#9e1931" stroke-width="2"/>', "#ff9c6e"),
+      ghost: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M7 43V23a17 17 0 0134 0v20l-7-5-6 5-7-5-7 5z" fill="#f3f5ff" stroke="#9ca9d8" stroke-width="2.5" stroke-linejoin="round"/><circle cx="18" cy="23" r="3" fill="#4b527a"/><circle cx="30" cy="23" r="3" fill="#4b527a"/><path d="M20 31q4 4 8 0" fill="none" stroke="#4b527a" stroke-width="2" stroke-linecap="round"/></svg>',
+      alien: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 4C11 4 7 15 10 29q3 14 14 14t14-14C41 15 37 4 24 4z" fill="#7be07b" stroke="#2f9447" stroke-width="2"/><ellipse cx="17" cy="24" rx="5" ry="8" fill="#253b56"/><ellipse cx="31" cy="24" rx="5" ry="8" fill="#253b56"/><path d="M18 35q6 4 12 0" fill="none" stroke="#327c43" stroke-width="2"/></svg>',
+      robot: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 7V3M21 3h6M8 16h32v24H8z" fill="#b9ddf5" stroke="#527c9b" stroke-width="2.5" stroke-linejoin="round"/><rect x="13" y="21" width="22" height="11" rx="4" fill="#263d5a"/><circle cx="19" cy="26" r="2" fill="#63eeff"/><circle cx="29" cy="26" r="2" fill="#63eeff"/><path d="M18 36h12M4 23h4M40 23h4" stroke="#527c9b" stroke-width="2.5" stroke-linecap="round"/></svg>',
+      cat: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M8 19L7 5l13 8q4-1 8 0l13-8-1 14q4 7 1 17-4 9-18 9T5 36q-3-10 3-17z" fill="#ffbf75" stroke="#a86139" stroke-width="2"/><path d="M14 25l7 2M34 25l-7 2M20 34q4 4 8 0" fill="none" stroke="#633c35" stroke-width="2" stroke-linecap="round"/><path d="M7 31L1 29M8 35l-6 2M41 31l6-2M40 35l6 2" stroke="#a86139" stroke-width="1.5"/></svg>',
+      dog: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M11 14L4 7l-1 20q1 7 6 8 2 9 15 9t15-9q5-1 6-8L44 7l-7 7q-10-6-26 0z" fill="#e7b66f" stroke="#946b39" stroke-width="2"/><path d="M11 15q-3 12 2 15M37 15q3 12-2 15" fill="#9b6540"/><circle cx="18" cy="25" r="2"/><circle cx="30" cy="25" r="2"/><ellipse cx="24" cy="32" rx="4" ry="3" fill="#533b32"/><path d="M24 35v3" stroke="#533b32" stroke-width="2"/></svg>',
+      rocket: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M25 5q13 5 15 19L25 39 10 26Q12 11 25 5z" fill="#dbeafe" stroke="#607da6" stroke-width="2"/><circle cx="27" cy="19" r="5" fill="#65d9ff" stroke="#607da6" stroke-width="2"/><path d="M12 25L5 29l2 9 10-7M28 37l4 7 9-2-3-11" fill="#ff637d" stroke="#a72c50" stroke-width="2"/><path d="M18 35l-2 9 7-5M22 39l2 8 5-7" fill="#ffd34e"/></svg>',
+      game: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M13 14h22q7 0 9 10l2 11q-1 7-7 5l-9-8h-12l-9 8q-6 2-7-5l2-11q2-10 9-10z" fill="#6d54d8" stroke="#34266f" stroke-width="2"/><path d="M13 22v12M7 28h12" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="34" cy="25" r="2" fill="#ffde55"/><circle cx="39" cy="30" r="2" fill="#62edcc"/></svg>',
+      trophy: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M13 7h22v12q0 12-11 15-11-3-11-15z" fill="#ffd34e" stroke="#a86e14" stroke-width="2.5"/><path d="M13 12H5v7q0 8 10 9M35 12h8v7q0 8-10 9M24 34v7M16 43h16" fill="none" stroke="#a86e14" stroke-width="3" stroke-linecap="round"/><path d="M24 12l2 5 5 .4-4 3.2 1.4 5L24 23l-4.4 2.6 1.4-5-4-3.2 5-.4z" fill="#fff5bb"/></svg>',
+      crown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M6 15l10 8 8-15 8 15 10-8-4 25H10z" fill="#ffd34e" stroke="#a86e14" stroke-width="2.5" stroke-linejoin="round"/><circle cx="6" cy="13" r="4" fill="#ff668c"/><circle cx="24" cy="7" r="4" fill="#65e4ff"/><circle cx="42" cy="13" r="4" fill="#ff668c"/><path d="M12 33h24" stroke="#fff2a1" stroke-width="3"/></svg>',
+      sparkle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 3l5.5 14.5L44 23l-14.5 5.5L24 43l-5.5-14.5L4 23l14.5-5.5z" fill="#ffe45e" stroke="#d89c22" stroke-width="2"/><path d="M39 3v10M34 8h10M8 35v9M3.5 39.5h9" stroke="#ff87d0" stroke-width="2.5" stroke-linecap="round"/></svg>',
+      wave: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M12 25l-4-3q-4-2-5 2t3 7l13 12q4 3 8-1l14-17q3-4-1-6-3-1-5 2l-5 5 5-11q2-5-2-6-4-1-6 4l-4 8 1-14q0-5-4-5-4 0-4 5l-1 15-2-6q-2-5-5-3-3 2-1 7z" fill="#ffd18a" stroke="#aa704b" stroke-width="2" stroke-linejoin="round"/></svg>',
+      clap: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M12 24l-4-4q-3-3-5 0-2 3 2 7l12 15q4 4 9 0l11-12q3-4-1-6-3-1-6 2l4-13q1-4-3-5-3-1-5 3l-4 11 2-15q0-4-4-4-3 0-4 4l-3 14-1-8q-1-4-4-3-4 1-2 6z" fill="#ffcb9c" stroke="#a86f4c" stroke-width="2"/></svg>',
+      hundred: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M4 12L15 7v34M22 14q0-7 9-7t9 7v20q0 7-9 7t-9-7z" fill="none" stroke="#ed334d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l34 18" stroke="#ed334d" stroke-width="3" opacity=".8"/></svg>',
+      eyes: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M3 24q9-15 21 0Q12 39 3 24zM24 24q9-15 21 0Q33 39 24 24z" fill="#fff" stroke="#55719c" stroke-width="2"/><circle cx="14" cy="24" r="5" fill="#45b9e8"/><circle cx="34" cy="24" r="5" fill="#45b9e8"/><circle cx="14" cy="24" r="2" fill="#182840"/><circle cx="34" cy="24" r="2" fill="#182840"/></svg>',
+      poop: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M8 39q-5-8 3-13-3-9 7-12-1-9 7-10 9 1 7 11 10 4 6 13 7 7 0 11z" fill="#9b6239" stroke="#633b28" stroke-width="2.5" stroke-linejoin="round"/><circle cx="18" cy="29" r="2.5" fill="#2d2225"/><circle cx="31" cy="29" r="2.5" fill="#2d2225"/><path d="M19 36q5 4 10 0" fill="none" stroke="#2d2225" stroke-width="2" stroke-linecap="round"/></svg>',
+      gift: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M6 20h36v24H6zM3 13h42v9H3z" fill="#f44e7d" stroke="#922650" stroke-width="2"/><path d="M20 13h8v31h-8z" fill="#ffe05e"/><path d="M24 13C9 15 9 5 15 5q6 0 9 8 3-9 9-8 6 0 0 7z" fill="#ffd84d" stroke="#a87918" stroke-width="2"/></svg>',
+      coffee: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M8 15h28v18q0 9-9 9H17q-9 0-9-9z" fill="#f6eee7" stroke="#896a58" stroke-width="2.5"/><path d="M36 20h4q7 0 4 8-2 5-8 5" fill="none" stroke="#896a58" stroke-width="3"/><path d="M15 6q-4 5 0 8M24 4q-4 5 0 9M33 6q-4 5 0 8" fill="none" stroke="#d8c6ba" stroke-width="2.5" stroke-linecap="round"/><path d="M11 19h22v6H11z" fill="#754b36"/></svg>',
+      pizza: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M5 8q20-10 38 0L25 43z" fill="#ffd469" stroke="#b77c28" stroke-width="2.5" stroke-linejoin="round"/><path d="M5 8q19-10 38 0l-4 7Q22 6 9 16z" fill="#ef5b4c"/><circle cx="19" cy="19" r="3" fill="#c33d36"/><circle cx="30" cy="15" r="3" fill="#c33d36"/><circle cx="22" cy="29" r="3" fill="#c33d36"/></svg>',
+      moon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M36 33A18 18 0 0115 7 19 19 0 1036 33z" fill="#ffe07b" stroke="#bc8a30" stroke-width="2"/><circle cx="35" cy="10" r="2" fill="#9b7ce0"/><path d="M41 19v6M38 22h6" stroke="#9b7ce0" stroke-width="2" stroke-linecap="round"/></svg>',
+      sun: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="10" fill="#ffd443" stroke="#d28a16" stroke-width="2"/><path d="M24 3v7M24 38v7M3 24h7M38 24h7M9 9l5 5M34 34l5 5M39 9l-5 5M14 34l-5 5" stroke="#ffad27" stroke-width="3" stroke-linecap="round"/></svg>',
+      shield: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 4l17 7v12q0 14-17 21Q7 37 7 23V11z" fill="#63d6ff" stroke="#237ca5" stroke-width="2.5"/><path d="M16 24l6 6 12-13" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      check: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#55d99b" stroke="#25865b" stroke-width="2.5"/><path d="M13 24l7 7 15-16" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      question: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="#b896ff" stroke="#7148bb" stroke-width="2"/><path d="M17 17q1-8 8-8 8 0 8 7 0 5-7 9-3 2-3 6M23 37h.1" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg>',
+      rainbow: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M4 39a20 20 0 0140 0M10 39a14 14 0 0128 0M16 39a8 8 0 0116 0" fill="none" stroke-width="5"/><path d="M4 39a20 20 0 0140 0" fill="none" stroke="#ff5c6c" stroke-width="5"/><path d="M8 27a20 20 0 0132 0" fill="none" stroke="#ffbd45" stroke-width="5"/><path d="M16 21a20 20 0 0116 0" fill="none" stroke="#54d989" stroke-width="5"/><path d="M20 39a4 4 0 018 0" fill="none" stroke="#6888ff" stroke-width="4"/></svg>',
+      music: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M29 8v25a7 7 0 11-4-6V14l17-4v18a7 7 0 11-4-6V6z" fill="#d48aff" stroke="#7139aa" stroke-width="2.5" stroke-linejoin="round"/><circle cx="18" cy="35" r="4" fill="#fff"/><circle cx="34" cy="29" r="4" fill="#fff"/></svg>',
+      lightning: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M28 3L8 27h13l-2 18 21-27H27z" fill="#ffe14d" stroke="#c58718" stroke-width="2.5" stroke-linejoin="round"/></svg>',
+      diamond: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M12 5h24l10 13-22 26L2 18z" fill="#65e5ff" stroke="#1788b5" stroke-width="2.5" stroke-linejoin="round"/><path d="M2 18h44M12 5l5 13 7 26 7-26 5-13" fill="none" stroke="#d9fbff" stroke-width="2"/></svg>'
     };
     const EMOJI_URL = {};
     for (const [name, svg] of Object.entries(EMOJI_SVG)) EMOJI_URL[name] = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+
+    const APP_LOGOS = {
+      arcade: '<rect x="9" y="13" width="46" height="38" rx="11" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><path d="M20 24v16M12 32h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="43" cy="27" r="3" fill="#ffe36e"/><circle cx="49" cy="37" r="3" fill="#73f5df"/><path d="M17 8h30" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      chat: '<path d="M11 13h42v29H31L19 52v-10h-8z" fill="#fff" fill-opacity=".17" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="22" cy="28" r="3" fill="#fff"/><circle cx="32" cy="28" r="3" fill="#fff"/><circle cx="42" cy="28" r="3" fill="#fff"/><path d="M19 36h26" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
+      settings: '<path d="M32 9l4 3 6-1 3 6 6 3v7l-4 5 1 6-6 4-7-1-4 5-6-3-6 1-3-6-6-3v-7l4-5-1-6 6-4 7 1z" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="29" r="9" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="29" r="3" fill="#fff"/>',
+      leaderboard: '<path d="M12 52h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="15" y="34" width="8" height="16" rx="2" fill="#fff" fill-opacity=".65"/><rect x="28" y="25" width="8" height="25" rx="2" fill="#fff" fill-opacity=".8"/><rect x="41" y="15" width="8" height="35" rx="2" fill="#fff"/><path d="M15 20l10-7 8 4 13-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 8h5v5" fill="none" stroke="#fff" stroke-width="3"/>',
+      friends: '<circle cx="22" cy="23" r="8" fill="#fff"/><circle cx="43" cy="25" r="6" fill="#fff" fill-opacity=".8"/><path d="M7 51q1-16 15-16t15 16z" fill="#fff" fill-opacity=".8"/><path d="M35 39q12-5 19 5l2 7H40" fill="#fff" fill-opacity=".55"/><path d="M31 17q7-9 14 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      notes: '<path d="M15 8h27l10 10v38H15z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M42 8v12h10M22 29h21M22 37h21M22 45h14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 15v39h32" fill="none" stroke="#fff" stroke-width="2" opacity=".65"/>',
+      calculator: '<rect x="14" y="7" width="36" height="50" rx="7" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><rect x="20" y="13" width="24" height="10" rx="2" fill="#fff" fill-opacity=".85"/><g fill="#fff"><circle cx="23" cy="31" r="2.5"/><circle cx="32" cy="31" r="2.5"/><circle cx="41" cy="31" r="2.5"/><circle cx="23" cy="40" r="2.5"/><circle cx="32" cy="40" r="2.5"/><circle cx="41" cy="40" r="2.5"/><circle cx="23" cy="49" r="2.5"/><circle cx="32" cy="49" r="2.5"/></g><rect x="38" y="45" width="6" height="8" rx="2" fill="#ffe47a"/>',
+      clock: '<circle cx="32" cy="32" r="22" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="16" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M32 18v15l11 7" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="3" fill="#fff"/>',
+      themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
+    };
+    for (const [name, artwork] of Object.entries(APP_LOGOS)) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${artwork}</svg>`;
+      const img = document.createElement("img");
+      img.className = "app-logo";
+      img.alt = "";
+      img.src = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+      document.querySelector(`[data-app="${name}"] .app-glyph`).prepend(img);
+    }
 
     function emojiImg(name) {
       const img = document.createElement("img");
