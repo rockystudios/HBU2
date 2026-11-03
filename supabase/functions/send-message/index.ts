@@ -290,10 +290,11 @@ async function chatGate(name: string, role: Role, cooldownMs = 0) {
   }
 }
 
-// Anti-spam: 2 messages (or commands) within 5s, or the same text 3 times within 20s, mutes for 5 min.
+// Anti-spam: 2 messages (or commands) within 5s, the same text 3 times within 20s, or the same text more than 5 times within 1 min, mutes for 5 min.
 // Tracked in memory per function instance, so it is best-effort. The admin is exempt.
 const SPAM_FAST_MS = 5000;
 const SPAM_REPEAT_MS = 20000;
+const SPAM_MINUTE_MS = 60000;
 const SPAM_MUTE_MIN = 5;
 const recentSends = new Map<string, { at: number; text: string }[]>();
 
@@ -301,13 +302,15 @@ async function spamCheck(name: string, text: string) {
   if (isAdmin(name)) return;
   const now = Date.now();
   const key = name.toLowerCase();
-  const list = (recentSends.get(key) ?? []).filter((entry) => now - entry.at < SPAM_REPEAT_MS);
+  const list = (recentSends.get(key) ?? []).filter((entry) => now - entry.at < SPAM_MINUTE_MS);
   list.push({ at: now, text: text.trim().toLowerCase() });
   recentSends.set(key, list);
   if (recentSends.size > 500) recentSends.clear();
 
   const fast = list.length >= 2 && now - list[list.length - 2].at < SPAM_FAST_MS;
-  const same = list.length >= 3 && list.slice(-3).every((entry) => entry.text === list[list.length - 1].text);
+  const latest = list[list.length - 1].text;
+  const recent = list.filter((entry) => now - entry.at < SPAM_REPEAT_MS && entry.text === latest);
+  const same = recent.length >= 3 || list.filter((entry) => entry.text === latest).length > 5;
   if (!fast && !same) return;
 
   recentSends.delete(key);
@@ -318,7 +321,7 @@ async function spamCheck(name: string, text: string) {
   });
   const why = same && !fast ? "repeating the same message" : "sending messages too fast";
   await log({ username: name, action: `auto-muted ${SPAM_MUTE_MIN}m for spam`, reason: why });
-  await botPost(`🔇 @${name} was muted for ${SPAM_MUTE_MIN} minutes for spamming.`).catch(() => {});
+  await botPost(`🔇 @${name} was muted for ${SPAM_MUTE_MIN} minutes for ${why}.`).catch(() => {});
   throw new UserError(`You were muted for ${SPAM_MUTE_MIN} minutes for ${why}.`, 429);
 }
 
