@@ -195,6 +195,13 @@
     .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
     .chat-main { min-width: 0; }
     .chat-layout.has-admin { grid-template-columns: 190px minmax(0, 1fr) 270px; }
+    .reply-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); background: rgba(168,85,247,.1); font-size: 12px; color: #d7b4ff; }
+    .reply-bar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reply-quote { margin: 0 0 6px; padding: 4px 8px; border-left: 3px solid #c084fc; border-radius: 4px; background: rgba(255,255,255,.06); color: #b9aed0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .reply-quote b { color: #e0c4ff; }
+    .message-reply { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; padding: 0; }
+    .message-reply:hover { color: #e0c4ff; }
+    .mod-check { margin-left: 4px; color: #66e9ff; text-shadow: 0 0 8px rgba(102,233,255,.8); font-size: 12px; }
     .mention { padding: 0 4px; border-radius: 5px; background: rgba(168,85,247,.22); color: #e0c4ff; font-weight: 700; }
     .mention-me { background: rgba(255,214,102,.28); color: #ffe9a8; box-shadow: 0 0 10px rgba(255,214,102,.35); }
     .mention-group { background: rgba(255,77,109,.22); color: #ffb3c0; }
@@ -564,6 +571,10 @@
               <div class="chat-main">
                 <div class="chat-convo-title" id="convo-title"># Main chat</div>
                 <div class="message-list" id="message-list" role="log" aria-live="polite" tabindex="0"></div>
+                <div class="reply-bar" id="reply-bar" hidden>
+                  <span class="reply-bar-text" id="reply-bar-text"></span>
+                  <button class="icon-button" id="reply-cancel" type="button" aria-label="Cancel reply">✕</button>
+                </div>
                 <form class="message-form" id="message-form">
                   <label class="sr-only" for="message-text">Message</label>
                   <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
@@ -816,6 +827,43 @@
     const chatPollMs = 3000;
     const messageForm = document.querySelector("#message-form");
     const messageText = document.querySelector("#message-text");
+    const replyBar = document.querySelector("#reply-bar");
+    const replyBarText = document.querySelector("#reply-bar-text");
+    let replyTarget = null;
+    let modNames = ["rocky"];
+    let modsLoadedAt = 0;
+
+    async function loadMods() {
+      if (Date.now() - modsLoadedAt < 60000) return;
+      modsLoadedAt = Date.now();
+      try {
+        const rows = await rpc("hbu_mod_names", {});
+        if (Array.isArray(rows)) modNames = ["rocky", ...rows.map(row => String(row.username).toLowerCase())];
+      } catch (error) {
+        console.warn("Could not load the moderator list.", error);
+      }
+    }
+    const isModName = name => modNames.includes(String(name).toLowerCase());
+
+    // A reply is stored inside the message text as "> user: snippet" on its own first line.
+    function parseReply(raw) {
+      const match = raw.match(/^> ([^:\n]{1,20}): ([^\n]*)\n([\s\S]*)$/);
+      return match ? { user: match[1], snippet: match[2], body: match[3] } : { body: raw };
+    }
+
+    function setReply(target) {
+      replyTarget = target;
+      replyBar.hidden = !target;
+      if (target) {
+        replyBarText.textContent = `Replying to ${target.user}: ${target.snippet}`;
+        messageText.maxLength = Math.max(50, 500 - replyPrefix().length);
+        messageText.focus();
+      } else {
+        messageText.maxLength = 500;
+      }
+    }
+    const replyPrefix = () => replyTarget ? `> ${replyTarget.user}: ${replyTarget.snippet}\n` : "";
+    document.querySelector("#reply-cancel").addEventListener("click", () => setReply(null));
     const messageStatus = document.querySelector("#message-status");
     const messageList = document.querySelector("#message-list");
     const sendMessageButton = document.querySelector("#send-message-button");
@@ -1343,6 +1391,7 @@
 
     function openConvo(convo) {
       currentConvo = convo;
+      setReply(null);
       markSeen(convo);
       serverMessages = [];
       lastMessagesKey = "";
@@ -1525,9 +1574,9 @@
             const convo = key === "everyone" ? "everyone" : dmPartners.find(name => convoKey(name) === key) || key;
             if (viewingConvo(convo)) continue;
             if (convo === "everyone") {
-              if (mentionsMe(info.text)) notify(`${info.user} mentioned you`, info.text.slice(0, 120), "everyone");
+              if (mentionsMe(info.text)) notify(`${info.user} mentioned you`, parseReply(info.text).body.slice(0, 120), "everyone");
             } else {
-              notify(`New message from ${info.user}`, info.text.slice(0, 120), convo);
+              notify(`New message from ${info.user}`, parseReply(info.text).body.slice(0, 120), convo);
             }
           }
         }
@@ -1848,6 +1897,8 @@
     function mentionsMe(content) {
       const lower = content.toLowerCase();
       const has = tag => new RegExp(`@${tag}(?![A-Za-z0-9_-])`).test(lower);
+      const replied = content.match(/^> ([^:\n]{1,20}): /);
+      if (replied && replied[1].toLowerCase() === account.username.toLowerCase()) return true;
       return has(account.username.toLowerCase().replace(/[^a-z0-9_-]/g, "")) || has("everyone") || (isStaff() && has("mods"));
     }
 
@@ -1861,7 +1912,7 @@
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, pending: true }));
       const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user));
-      const key = JSON.stringify(messages) + blockedUsers.join(",");
+      const key = JSON.stringify(messages) + blockedUsers.join(",") + modNames.join(",");
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -1903,6 +1954,14 @@
           const name = document.createElement("span");
           name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
           header.append(name);
+          if (isModName(message.user)) {
+            const check = document.createElement("span");
+            check.className = "mod-check";
+            check.textContent = "✔";
+            check.title = "Moderator";
+            check.setAttribute("aria-label", "Moderator");
+            name.append(check);
+          }
         }
         const date = new Date(message.created_at);
         if (message.pending) {
@@ -1915,6 +1974,16 @@
           time.textContent = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
           header.append(time);
         }
+        const parsed = parseReply(message.message);
+        if (!message.pending && message.user !== "mod-bot") {
+          const replyButton = document.createElement("button");
+          replyButton.type = "button";
+          replyButton.className = "message-reply";
+          replyButton.textContent = "↩ Reply";
+          replyButton.setAttribute("aria-label", `Reply to ${message.user}`);
+          replyButton.addEventListener("click", () => setReply({ user: message.user, snippet: parsed.body.replace(/\s+/g, " ").slice(0, 50) }));
+          header.append(replyButton);
+        }
         if (isStaff() && currentConvo === "everyone" && message.id && !message.pending) {
           const del = document.createElement("button");
           del.type = "button";
@@ -1926,8 +1995,17 @@
         }
         if (message.user !== "mod-bot") applyPlate(entry, header.firstElementChild && !joined ? header.firstElementChild : null, plateByUser[message.user.toLowerCase()]);
         const text = document.createElement("p");
-        appendWithMentions(text, message.message);
-        entry.append(header, text);
+        appendWithMentions(text, parsed.body);
+        if (parsed.user) {
+          const quote = document.createElement("div");
+          quote.className = "reply-quote";
+          const who = document.createElement("b");
+          who.textContent = `↩ ${parsed.user}`;
+          quote.append(who, ` ${parsed.snippet}`);
+          entry.append(header, quote, text);
+        } else {
+          entry.append(header, text);
+        }
         messageList.append(entry);
       }
       if (!messageList.children.length) {
@@ -1944,6 +2022,7 @@
 
     async function loadMessages(settle) {
       if (!account) return;
+      loadMods().then(() => drawMessages());
       loadPlates();
       const convo = currentConvo;
       try {
@@ -2076,7 +2155,8 @@
       event.preventDefault();
       const message = messageText.value.trim();
       if (!account || !message) return;
-      pendingMessages.push({ text: message, convo: currentConvo });
+      pendingMessages.push({ text: replyPrefix() + message, convo: currentConvo });
+      setReply(null);
       messageStatus.textContent = "";
       messageText.value = "";
       delete messageList.dataset.scrolled;
