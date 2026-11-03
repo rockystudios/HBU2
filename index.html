@@ -221,7 +221,16 @@
     .banned-item small { display: block; margin: 2px 0 7px; color: var(--muted); overflow-wrap: anywhere; }
     .banned-item .icon-button { min-height: 32px; height: auto; padding: 5px 10px; }
     .admin-status { min-height: 18px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
-    .chat-bar-actions { display: flex; gap: 8px; }
+    .view-menu { position: relative; }
+    .view-popup { position: absolute; z-index: 20; right: 0; top: calc(100% + 6px); width: 230px; padding: 12px; border: 1px solid rgba(190,160,255,.35); border-radius: 12px; background: #17102a; box-shadow: 0 14px 40px rgba(0,0,0,.55); font-size: 12px; color: #e9ddff; }
+    .view-popup label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+    .admin-fold { margin-top: 16px; }
+    .admin-fold > summary { cursor: pointer; list-style: none; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .admin-fold > summary::-webkit-details-marker { display: none; }
+    .admin-fold > summary::before { content: "▾ "; }
+    .admin-fold:not([open]) > summary::before { content: "▸ "; }
+    .admin-fold > ul, .admin-fold > form { margin-top: 8px; }
+    .chat-bar-actions { flex-wrap: wrap; justify-content: flex-end; display: flex; gap: 8px; }
     .chat-main { display: flex; flex-direction: column; }
     .chat.chat-full { position: fixed; z-index: 50; inset: 0; width: 100%; height: 100%; display: flex; flex-direction: column; border: 0; border-radius: 0; background: var(--bg); }
     .chat.chat-full #chat-room { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -552,6 +561,13 @@
             <div class="chat-bar">
               <span>Signed in as <strong id="chat-user"></strong></span>
               <span class="chat-bar-actions">
+                <button class="icon-button" id="admin-toggle" type="button" aria-pressed="true" hidden>🛡 Admin board ▾</button>
+                <span class="view-menu">
+                  <button class="icon-button" id="view-button" type="button" aria-haspopup="true" aria-expanded="false">View ▾</button>
+                  <div class="view-popup" id="view-popup" hidden>
+                    <label><input type="checkbox" id="hide-curses"> Hide curse words (hides messages with ***)</label>
+                  </div>
+                </span>
                 <button class="icon-button" id="notify-button" type="button" hidden>🔔 Notifications</button>
                 <button class="icon-button" id="chat-fullscreen-button" type="button" aria-pressed="false">⛶ Fullscreen</button>
                 <button class="icon-button" id="logout-button" type="button">Log out</button>
@@ -598,8 +614,10 @@
                   <input id="admin-reason" type="text" maxlength="100" placeholder="Reason (optional)" autocomplete="off">
                   <button class="button button-primary" type="submit">Ban user</button>
                 </form>
-                <h4>Banned users</h4>
-                <ul class="banned-list" id="banned-list"></ul>
+                <details class="admin-fold" open>
+                  <summary>Banned users</summary>
+                  <ul class="banned-list" id="banned-list"></ul>
+                </details>
                 <h4>Filtered words</h4>
                 <form class="dm-new" id="word-form">
                   <label class="sr-only" for="word-input">Word to filter</label>
@@ -615,13 +633,15 @@
                 </form>
                 <ul class="banned-list" id="botblock-list"></ul>
                 <section id="admin-mods-section" hidden>
-                  <h4>Moderators</h4>
+                  <details class="admin-fold" open>
+                  <summary>Moderators</summary>
                   <form class="dm-new" id="mod-add-form">
                     <label class="sr-only" for="mod-add-name">Username to make moderator</label>
                     <input id="mod-add-name" type="text" maxlength="20" placeholder="Add moderator" autocomplete="off" required>
                     <button class="icon-button" type="submit">Add</button>
                   </form>
                   <ul class="banned-list" id="mod-list"></ul>
+                  </details>
                 </section>
                 <p class="admin-status" id="admin-status" role="status" aria-live="polite"></p>
               </aside>
@@ -834,6 +854,42 @@
     const chatPollMs = 3000;
     const messageForm = document.querySelector("#message-form");
     const messageText = document.querySelector("#message-text");
+    const viewButton = document.querySelector("#view-button");
+    const viewPopup = document.querySelector("#view-popup");
+    const hideCurses = document.querySelector("#hide-curses");
+    const adminToggle = document.querySelector("#admin-toggle");
+    let hideCurseWords = readLocal("hbu-hide-curses", "off") === "on";
+    let adminBoardShown = readLocal("hbu-admin-board", "on") !== "off";
+    hideCurses.checked = hideCurseWords;
+    viewButton.addEventListener("click", event => {
+      event.stopPropagation();
+      viewPopup.hidden = !viewPopup.hidden;
+      viewButton.setAttribute("aria-expanded", String(!viewPopup.hidden));
+    });
+    document.addEventListener("click", event => {
+      if (!viewPopup.hidden && !event.target.closest(".view-menu")) {
+        viewPopup.hidden = true;
+        viewButton.setAttribute("aria-expanded", "false");
+      }
+    });
+    hideCurses.addEventListener("change", () => {
+      hideCurseWords = hideCurses.checked;
+      writeLocal("hbu-hide-curses", hideCurseWords ? "on" : "off");
+      drawMessages();
+    });
+    function applyAdminBoard() {
+      const staff = isStaff();
+      adminToggle.hidden = !staff;
+      adminPanel.hidden = !staff || !adminBoardShown;
+      chatLayout.classList.toggle("has-admin", staff && adminBoardShown);
+      adminToggle.setAttribute("aria-pressed", String(adminBoardShown));
+      adminToggle.textContent = adminBoardShown ? "🛡 Admin board ▾" : "🛡 Admin board ▸";
+    }
+    adminToggle.addEventListener("click", () => {
+      adminBoardShown = !adminBoardShown;
+      writeLocal("hbu-admin-board", adminBoardShown ? "on" : "off");
+      applyAdminBoard();
+    });
     const replyBar = document.querySelector("#reply-bar");
     const replyBarText = document.querySelector("#reply-bar-text");
     let replyTarget = null;
@@ -1341,8 +1397,7 @@
 
     async function setupStaff() {
       staffRole = "user";
-      adminPanel.hidden = true;
-      chatLayout.classList.remove("has-admin");
+      applyAdminBoard();
       window.clearInterval(adminTimer);
       if (!account) return;
       const current = account;
@@ -1357,8 +1412,7 @@
       }
       adminTitle.textContent = staffRole === "admin" ? "🛡 Admin" : "🛡 Moderator";
       modsSection.hidden = staffRole !== "admin";
-      adminPanel.hidden = false;
-      chatLayout.classList.add("has-admin");
+      applyAdminBoard();
       adminStatus.textContent = "";
       lastMessagesKey = "";
       drawMessages();
@@ -1919,8 +1973,7 @@
       if (!account) {
         blockedUsers = [];
         staffRole = "user";
-        adminPanel.hidden = true;
-        chatLayout.classList.remove("has-admin");
+        applyAdminBoard();
       }
       if (account) {
         chatUser.textContent = account.username;
@@ -1983,8 +2036,8 @@
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, pending: true }));
-      const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user));
-      const key = JSON.stringify(messages) + blockedUsers.join(",") + modNames.join(",");
+      const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
+      const key = JSON.stringify(messages) + blockedUsers.join(",") + hideCurseWords + modNames.join(",");
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
