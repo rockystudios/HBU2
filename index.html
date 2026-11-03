@@ -261,7 +261,6 @@
     .chat-empty { margin: auto; color: var(--muted); font-size: 13px; }
     .message-entry { max-width: min(80%, 520px); padding: 9px 13px; align-self: flex-start; border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; background: rgba(255,255,255,.04); }
     .message-entry.own { align-self: flex-end; border-color: rgba(192,132,252,.45); border-radius: 14px 14px 4px 14px; background: linear-gradient(105deg, rgba(168,85,247,.5), rgba(124,58,237,.4)); }
-    .message-entry.pending { opacity: .6; }
     .message-entry.bot { border-color: rgba(102,233,255,.5); background: rgba(102,233,255,.08); }
     .message-entry-header { display: flex; justify-content: space-between; gap: 14px; color: #d7b4ff; font-size: 11px; font-weight: 750; }
     .message-entry time { color: var(--muted); font-weight: 500; }
@@ -2035,7 +2034,7 @@
     function drawMessages() {
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
-        .map(item => ({ user: account.username, message: item.text, pending: true }));
+        .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
       const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
       const key = JSON.stringify(messages) + blockedUsers.join(",") + hideCurseWords + modNames.join(",");
       if (key === lastMessagesKey) return;
@@ -2071,7 +2070,6 @@
         else if (longGap) entry.classList.add("gap-long");
         prev = { user: message.user, when };
         if (account && message.user === account.username) entry.classList.add("own");
-        if (message.pending) entry.classList.add("pending");
         if (message.user === "mod-bot") entry.classList.add("bot");
         const header = document.createElement("div");
         header.className = "message-entry-header";
@@ -2089,11 +2087,7 @@
           }
         }
         const date = new Date(message.created_at);
-        if (message.pending) {
-          const sendingLabel = document.createElement("time");
-          sendingLabel.textContent = "sending…";
-          header.append(sendingLabel);
-        } else if (message.created_at && !Number.isNaN(date.getTime())) {
+        if (message.created_at && !Number.isNaN(date.getTime())) {
           const time = document.createElement("time");
           time.dateTime = date.toISOString();
           time.textContent = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -2286,7 +2280,7 @@
       event.preventDefault();
       const message = messageText.value.trim();
       if (!account || !message) return;
-      pendingMessages.push({ text: replyPrefix() + message, convo: currentConvo });
+      pendingMessages.push({ text: replyPrefix() + message, convo: currentConvo, at: new Date().toISOString() });
       setReply(null);
       messageStatus.textContent = "";
       messageText.value = "";
