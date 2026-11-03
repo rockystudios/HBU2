@@ -600,6 +600,13 @@
                 </form>
                 <h4>Banned users</h4>
                 <ul class="banned-list" id="banned-list"></ul>
+                <h4>Filtered words</h4>
+                <form class="dm-new" id="word-form">
+                  <label class="sr-only" for="word-input">Word to filter</label>
+                  <input id="word-input" type="text" maxlength="40" placeholder="Add a word" autocomplete="off" required>
+                  <button class="icon-button" type="submit">Add</button>
+                </form>
+                <ul class="banned-list" id="word-list"></ul>
                 <h4>mod-bot access</h4>
                 <form class="dm-new" id="botblock-form">
                   <label class="sr-only" for="botblock-name">Username to block from mod-bot</label>
@@ -1228,12 +1235,76 @@
       }
     });
 
+    const wordForm = document.querySelector("#word-form");
+    const wordInput = document.querySelector("#word-input");
+    const wordList = document.querySelector("#word-list");
+
+    async function wordAction(action, extra) {
+      try {
+        await adminCall(action, extra);
+        await loadWords();
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    }
+
+    function renderWords(words) {
+      wordList.replaceChildren();
+      if (!words.length) {
+        const none = document.createElement("li");
+        none.className = "admin-status";
+        none.textContent = "No filtered words yet.";
+        wordList.append(none);
+        return;
+      }
+      for (const row of words) {
+        const item = document.createElement("li");
+        item.className = "banned-item";
+        const name = document.createElement("strong");
+        name.textContent = row.word;
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "icon-button";
+        edit.textContent = "Edit";
+        edit.addEventListener("click", () => {
+          const next = window.prompt("Change this word:", row.word);
+          if (next && next.trim() && next.trim() !== row.word) wordAction("admin_word_edit", { id: row.id, word: next.trim() });
+        });
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "icon-button";
+        del.textContent = "Delete";
+        del.addEventListener("click", () => wordAction("admin_word_delete", { id: row.id }));
+        item.append(name, document.createElement("br"), edit, " ", del);
+        wordList.append(item);
+      }
+    }
+
+    async function loadWords() {
+      if (!isStaff()) return;
+      try {
+        const result = await adminCall("admin_words_list");
+        renderWords(Array.isArray(result.words) ? result.words : []);
+      } catch (error) {
+        adminStatus.textContent = error.message;
+      }
+    }
+
+    wordForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const word = wordInput.value.trim();
+      if (!word) return;
+      wordInput.value = "";
+      await wordAction("admin_word_add", { word });
+    });
+
     async function loadBanned() {
       if (!isStaff()) return;
       try {
         const result = await adminCall("admin_list");
         renderBanned(Array.isArray(result.banned) ? result.banned : []);
         renderBotBlocked(Array.isArray(result.bot_blocked) ? result.bot_blocked : []);
+        if (!wordList.children.length || document.activeElement !== wordInput) loadWords();
         if (staffRole === "admin") renderMods(Array.isArray(result.mods) ? result.mods : []);
       } catch (error) {
         adminStatus.textContent = error.message;
