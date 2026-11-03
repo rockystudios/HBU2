@@ -308,21 +308,28 @@ export async function handle(req: Request): Promise<Response> {
     const realName: string = await loginRes.json();
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
-    const [account] = await db(`accounts?select=banned_until,ban_reason&username=eq.${enc(realName)}`) ?? [];
+    // Run the independent checks at the same time so sending stays fast.
+    const wantsDm = typeof receiver === "string" && receiver.toLowerCase() !== "everyone";
+    const [accountRows, found, lastRows] = await Promise.all([
+      db(`accounts?select=banned_until,ban_reason&username=eq.${enc(realName)}`),
+      wantsDm ? findAccount(receiver) : Promise.resolve(undefined),
+      db(`messages?select=created_at&user=eq.${enc(realName)}&order=created_at.desc&limit=1`),
+      wordFilter(),
+    ]);
+    const [account] = accountRows ?? [];
     if (!isAdmin(realName) && account?.banned_until && new Date(account.banned_until) > new Date()) {
       const reason = account.ban_reason ? ` Reason: ${account.ban_reason}` : "";
       throw new UserError(`You are banned from chatting until ${new Date(account.banned_until).toUTCString()}.${reason}`, 403);
     }
 
     let target = "everyone";
-    if (typeof receiver === "string" && receiver.toLowerCase() !== "everyone") {
-      const found = await findAccount(receiver);
+    if (wantsDm) {
       if (!found) throw new UserError("That user does not exist.");
       if (found.username === realName) throw new UserError("You cannot DM yourself.");
       target = found.username;
     }
 
-    const [last] = await db(`messages?select=created_at&user=eq.${enc(realName)}&order=created_at.desc&limit=1`) ?? [];
+    const [last] = lastRows ?? [];
     if (last && Date.now() - new Date(last.created_at).getTime() < COOLDOWN_MS) {
       throw new UserError("Slow down a little before sending another message.", 429);
     }
@@ -375,6 +382,7 @@ export async function handle(req: Request): Promise<Response> {
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ user: realName, receiver: target, message: clean }),
     });
+    const sentAt = new Date().toISOString();
     if (target === "everyone" && /@mod-bot\b/i.test(clean)) {
       // Answer in the background so sending stays instant.
       const work = botBlocked
@@ -384,7 +392,7 @@ export async function handle(req: Request): Promise<Response> {
       const runtime = (globalThis as any).EdgeRuntime;
       if (runtime?.waitUntil) runtime.waitUntil(work); else void work;
     }
-    return json({ ok: true, edited: clean !== text });
+    return json({ ok: true, edited: clean !== text, message: clean, user: realName, created_at: sentAt });
   } catch (error) {
     if (error instanceof UserError) return json({ error: error.message }, error.status);
     console.error("send-message failed", error);

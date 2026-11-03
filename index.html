@@ -1094,6 +1094,7 @@
         error.status = response.status;
         throw error;
       }
+      return body;
     }
 
     let staffRole = "user";
@@ -2197,20 +2198,26 @@
         const item = pendingMessages[0];
         const settle = () => { pendingMessages = pendingMessages.filter(other => other !== item); };
         try {
+          let sent = null;
           for (let attempt = 0; ; attempt++) {
             try {
-              await sendMessage(item.text, item.convo);
+              sent = await sendMessage(item.text, item.convo);
               break;
             } catch (error) {
               if (error.status === 429 && attempt < 3) await wait(2200);
               else throw error;
             }
           }
-          if (item.convo === currentConvo) {
-            await loadMessages(settle);
-          }
           settle();
-          drawMessages();
+          if (item.convo === currentConvo) {
+            if (sent && typeof sent.message === "string") {
+              serverMessages = [...serverMessages, { user: sent.user || account.username, message: sent.message, created_at: sent.created_at }];
+            }
+            drawMessages();
+            loadMessages();
+          } else {
+            drawMessages();
+          }
         } catch (error) {
           console.error("Could not post message.", error);
           settle();
