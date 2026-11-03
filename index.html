@@ -210,6 +210,7 @@
     .reply-quote b { color: #e0c4ff; }
     .message-reply { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; padding: 0; }
     .message-reply:hover { color: #e0c4ff; }
+    .vip-star { color: #ffd166; text-shadow: 0 0 8px rgba(255,209,102,.8); }
     .mod-check { margin-left: 4px; color: #66e9ff; text-shadow: 0 0 8px rgba(102,233,255,.8); font-size: 12px; }
     .mention { padding: 0 4px; border-radius: 5px; background: rgba(168,85,247,.22); color: #e0c4ff; font-weight: 700; }
     .mention-me { background: rgba(255,214,102,.28); color: #ffe9a8; box-shadow: 0 0 10px rgba(255,214,102,.35); }
@@ -646,11 +647,16 @@
                 </details>
                 <section id="admin-mods-section" hidden>
                   <details class="admin-fold">
-                  <summary>Moderators</summary>
-                  <form class="dm-new" id="mod-add-form">
-                    <label class="sr-only" for="mod-add-name">Username to make moderator</label>
-                    <input id="mod-add-name" type="text" maxlength="20" placeholder="Add moderator" autocomplete="off" required>
-                    <button class="icon-button" type="submit">Add</button>
+                  <summary>Roles</summary>
+                  <form class="admin-ban-form" id="mod-add-form">
+                    <label class="sr-only" for="mod-add-name">Username to give a role</label>
+                    <input id="mod-add-name" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
+                    <label class="sr-only" for="role-select">Role</label>
+                    <select id="role-select">
+                      <option value="mod">Moderator (/ban /warn /mute)</option>
+                      <option value="vip">VIP (/warn /sugban)</option>
+                    </select>
+                    <button class="button button-primary" type="submit">Give role</button>
                   </form>
                   <ul class="banned-list" id="mod-list"></ul>
                   </details>
@@ -918,20 +924,28 @@
     const replyBar = document.querySelector("#reply-bar");
     const replyBarText = document.querySelector("#reply-bar-text");
     let replyTarget = null;
-    let modNames = ["rocky"];
+    let roleByUser = { rocky: "admin" };
     let modsLoadedAt = 0;
 
     async function loadMods() {
       if (Date.now() - modsLoadedAt < 60000) return;
       modsLoadedAt = Date.now();
       try {
-        const rows = await rpc("hbu_mod_names", {});
-        if (Array.isArray(rows)) modNames = ["rocky", ...rows.map(row => String(row.username).toLowerCase())];
+        let rows;
+        try {
+          rows = await rpc("hbu_roles", {});
+        } catch (error) {
+          rows = (await rpc("hbu_mod_names", {})).map(row => ({ username: row.username, role: "mod" }));
+        }
+        if (Array.isArray(rows)) {
+          roleByUser = { rocky: "admin" };
+          for (const row of rows) roleByUser[String(row.username).toLowerCase()] = row.role;
+        }
       } catch (error) {
-        console.warn("Could not load the moderator list.", error);
+        console.warn("Could not load roles.", error);
       }
     }
-    const isModName = name => modNames.includes(String(name).toLowerCase());
+    const roleOfName = name => roleByUser[String(name).toLowerCase()];
 
     // A reply is stored inside the message text as "> user: snippet" on its own first line.
     function parseReply(raw) {
@@ -1238,35 +1252,38 @@
       }
     }
 
-    function renderMods(mods) {
+    function renderMods(roles) {
       modList.replaceChildren();
-      for (const username of mods) {
+      for (const { username, role } of roles) {
         const item = document.createElement("li");
         item.className = "banned-item";
         const name = document.createElement("strong");
         name.textContent = username;
+        const info = document.createElement("small");
+        info.textContent = role === "vip" ? " · VIP" : " · Moderator";
         const remove = document.createElement("button");
         remove.type = "button";
         remove.className = "icon-button";
-        remove.textContent = "Remove";
+        remove.textContent = "Remove role";
         remove.addEventListener("click", async () => {
           remove.disabled = true;
           try {
-            await adminCall("admin_remove_mod", { target: username });
-            adminStatus.textContent = `${username} is no longer a moderator.`;
+            await adminCall("admin_set_role", { target: username, role: "none" });
+            adminStatus.textContent = `${username} no longer has a role.`;
+            modsLoadedAt = 0;
             await loadBanned();
           } catch (error) {
             adminStatus.textContent = error.message;
             remove.disabled = false;
           }
         });
-        item.append(name, document.createElement("br"), remove);
+        item.append(name, info, document.createElement("br"), remove);
         modList.append(item);
       }
-      if (!mods.length) {
+      if (!roles.length) {
         const none = document.createElement("li");
         none.className = "admin-status";
-        none.textContent = "No moderators yet.";
+        none.textContent = "Nobody has a role yet.";
         modList.append(none);
       }
     }
@@ -1387,7 +1404,7 @@
         renderBanned(Array.isArray(result.banned) ? result.banned : []);
         renderBotBlocked(Array.isArray(result.bot_blocked) ? result.bot_blocked : []);
         if (!wordList.children.length || document.activeElement !== wordInput) loadWords();
-        if (staffRole === "admin") renderMods(Array.isArray(result.mods) ? result.mods : []);
+        if (staffRole === "admin") renderMods(Array.isArray(result.roles) ? result.roles : []);
       } catch (error) {
         adminStatus.textContent = error.message;
       }
@@ -1398,9 +1415,11 @@
       const target = modAddName.value.trim();
       if (!target) return;
       try {
-        await adminCall("admin_add_mod", { target });
-        adminStatus.textContent = `${target} is now a moderator.`;
+        const role = document.querySelector("#role-select").value;
+        await adminCall("admin_set_role", { target, role });
+        adminStatus.textContent = `${target} is now a ${role === "vip" ? "VIP" : "moderator"}.`;
         modAddForm.reset();
+        modsLoadedAt = 0;
         await loadBanned();
       } catch (error) {
         adminStatus.textContent = error.message;
@@ -1428,8 +1447,9 @@
       const current = account;
       try {
         const result = await adminCall("admin_role");
-        if (account !== current || !["admin", "mod"].includes(result.role)) return;
+        if (account !== current || !["admin", "mod", "vip"].includes(result.role)) return;
         staffRole = result.role;
+        if (result.role === "vip") return;
       } catch (error) {
         // An outdated server can't report roles; Rocky still gets the panel (the server enforces real permissions).
         if (account !== current || account.username.toLowerCase() !== "rocky") return;
@@ -2163,7 +2183,7 @@
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
       const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
-      const key = JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + modNames.join(",");
+      const key = JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -2205,12 +2225,14 @@
           name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
           if (message.user !== "mod-bot") name.prepend(avatarNode(avatarByUser[message.user.toLowerCase()]));
           header.append(name);
-          if (isModName(message.user)) {
+          const userRole = roleOfName(message.user);
+          if (userRole) {
             const check = document.createElement("span");
-            check.className = "mod-check";
-            check.textContent = "✔";
-            check.title = "Moderator";
-            check.setAttribute("aria-label", "Moderator");
+            const label = userRole === "vip" ? "VIP" : userRole === "admin" ? "Admin" : "Moderator";
+            check.className = userRole === "vip" ? "mod-check vip-star" : "mod-check";
+            check.textContent = userRole === "vip" ? "★" : "✔";
+            check.title = label;
+            check.setAttribute("aria-label", label);
             name.append(check);
           }
         }
@@ -2405,10 +2427,29 @@
       queueRunning = false;
     }
 
+    async function runCommand(text) {
+      if (currentConvo !== "everyone") {
+        showToast("Commands only work in the main chat.");
+        return;
+      }
+      try {
+        const result = await sendMessage(text, "everyone");
+        showToast((result && result.notice) || "Done.");
+        loadMessages();
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
     messageForm.addEventListener("submit", event => {
       event.preventDefault();
       const message = messageText.value.trim();
       if (!account || !message) return;
+      if (/^\/(ban|warn|mute|unmute|sugban)(\s|$)/i.test(message)) {
+        messageText.value = "";
+        runCommand(message);
+        return;
+      }
       pendingMessages.push({ text: replyPrefix() + message, convo: currentConvo, at: new Date().toISOString() });
       setReply(null);
       messageStatus.textContent = "";
