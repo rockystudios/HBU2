@@ -209,6 +209,7 @@
     .chat-main { min-width: 0; }
     .chat-layout.has-admin { grid-template-columns: 190px minmax(0, 1fr) 270px; }
     .poll-box { margin: 8px 10px 0; padding: 10px 14px; border: 1px solid rgba(192,132,252,.6); border-radius: 14px; background: rgba(168,85,247,.14); box-shadow: 0 0 18px rgba(168,85,247,.35); display: grid; gap: 6px; }
+    .poll-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
     .poll-box h4 { margin: 0; font-size: 14px; }
     .poll-box small { color: var(--muted); }
     .poll-option { position: relative; overflow: hidden; display: flex; justify-content: space-between; gap: 10px; text-align: left; padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.04); color: inherit; font: inherit; cursor: pointer; }
@@ -2833,16 +2834,43 @@
 
     const pollBox = document.querySelector("#poll-box");
     let activePoll = null;
+    let hiddenPollId = null;
     let pollSeen = 0;
 
     function drawPoll() {
       pollBox.replaceChildren();
-      pollBox.hidden = !activePoll;
-      if (!activePoll) return;
+      pollBox.hidden = !activePoll || activePoll.id === hiddenPollId;
+      if (pollBox.hidden) return;
       const total = activePoll.votes.reduce((sum, n) => sum + n, 0);
+      const head = document.createElement("div");
+      head.className = "poll-head";
       const title = document.createElement("h4");
       title.textContent = `📊 ${activePoll.question}`;
-      pollBox.append(title);
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "icon-button";
+      close.textContent = "✕";
+      const staff = isStaff();
+      close.title = staff ? "End this poll for everyone" : "Hide this poll";
+      close.setAttribute("aria-label", close.title);
+      close.addEventListener("click", async () => {
+        if (!staff) {
+          hiddenPollId = activePoll.id;
+          drawPoll();
+          return;
+        }
+        if (!window.confirm("End this poll for everyone?")) return;
+        try {
+          await sendMessage("/endpoll", "everyone");
+          activePoll = null;
+          drawPoll();
+          loadMessages();
+        } catch (error) {
+          messageStatus.textContent = error.message;
+        }
+      });
+      head.append(title, close);
+      pollBox.append(head);
       activePoll.options.forEach((option, index) => {
         const button = document.createElement("button");
         button.type = "button";
