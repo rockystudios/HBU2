@@ -302,6 +302,15 @@
     .paint-tools input[type=color] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; }
     .paint-canvas { flex: 1; min-height: 200px; width: 100%; border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
     .typing-line { min-height: 18px; padding: 0 16px 4px; font-size: 12px; color: var(--muted); font-style: italic; }
+    .app-icon-casino { background: linear-gradient(150deg, #facc15, #dc2626); --glow: rgba(250,204,21,.5); }
+    .casino-pane { display: flex; flex-direction: column; gap: 12px; }
+    .casino-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .casino-row input[type=number] { width: 110px; }
+    .casino-tabs .button[aria-pressed="true"] { border-color: #d7b4ff; box-shadow: 0 0 16px rgba(168,85,247,.55); }
+    .casino-stage { min-height: 110px; display: grid; place-items: center; gap: 6px; padding: 14px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); font-size: 44px; }
+    .casino-stage small { font-size: 15px; color: var(--muted); }
+    .casino-stage.win { box-shadow: 0 0 28px rgba(74,222,128,.5); }
+    .casino-stage.lose { box-shadow: 0 0 28px rgba(248,113,113,.35); }
     .notes-pane { display: flex; flex-direction: column; gap: 8px; }
     .notes-pane textarea { flex: 1; width: 100%; resize: none; }
     .calc-pane { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto; }
@@ -584,6 +593,10 @@
         <button class="app-icon" type="button" data-app="paint">
           <span class="app-glyph app-icon-paint" aria-hidden="true"></span>
           <span class="app-label">Paint</span>
+        </button>
+        <button class="app-icon" type="button" data-app="casino">
+          <span class="app-glyph app-icon-casino" aria-hidden="true"></span>
+          <span class="app-label">Casino</span>
         </button>
         <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
@@ -989,6 +1002,37 @@
             <button class="button button-primary" type="button" id="paint-save">Save PNG</button>
           </div>
           <canvas class="paint-canvas" id="paint-canvas" width="900" height="600"></canvas>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-casino" data-app="casino" role="dialog" aria-label="Casino" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🎰</span> Casino</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Casino" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane casino-pane">
+          <div class="casino-row"><b>🪙 <span id="casino-coins">0</span> coins</b></div>
+          <p class="rewards-login" id="casino-login" hidden>Log in from <a href="#messages">Messages</a> to gamble your coins.</p>
+          <div class="casino-row casino-tabs">
+            <button class="button" type="button" data-casino="flip" aria-pressed="true">Coin flip</button>
+            <button class="button" type="button" data-casino="dice" aria-pressed="false">Dice</button>
+            <button class="button" type="button" data-casino="slots" aria-pressed="false">Slots</button>
+          </div>
+          <p class="muted" id="casino-rules"></p>
+          <div class="casino-row">
+            <label for="casino-bet">Bet</label>
+            <input type="number" id="casino-bet" min="1" max="1000" value="10">
+            <button class="button" type="button" id="casino-half">½</button>
+            <button class="button" type="button" id="casino-double">2×</button>
+          </div>
+          <div class="casino-row" id="casino-actions"></div>
+          <div class="casino-stage" id="casino-stage" aria-live="polite">🎰</div>
+          <p class="muted">Play for fun. Coins are only good for HBU name plates.</p>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -2596,6 +2640,7 @@
       owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       browser: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="9" ry="21" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 32h42M15 21h34M15 43h34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       paint: '<path d="M14 50l5-14 24-24a6 6 0 019 9L28 45z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M19 36l9 9" stroke="#fff" stroke-width="3"/><path d="M12 54q6 2 10-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>',
+      casino: '<rect x="12" y="14" width="40" height="36" rx="8" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><path d="M24 14v36M40 14v36" stroke="#fff" stroke-width="3"/><circle cx="18" cy="32" r="3" fill="#fff"/><path d="M32 26l4 6-4 6-4-6z" fill="#fff"/><circle cx="46" cy="32" r="3" fill="#fff"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
     for (const [name, artwork] of Object.entries(APP_LOGOS)) {
@@ -3497,7 +3542,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3527,6 +3572,7 @@
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
+      casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
       owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
@@ -3797,6 +3843,62 @@
       });
     }
 
+    const CASINO_GAMES = {
+      flip: { rules: "Pick a side. 48% to win, pays 2×.", picks: [["heads", "Heads 🪙"], ["tails", "Tails 🪙"]] },
+      dice: { rules: "Roll 1-100. Low is 1-48, high is 53-100. Pays 2×.", picks: [["low", "Low ⬇️"], ["high", "High ⬆️"]] },
+      slots: { rules: "Two matching = 1.5×, three = 8×, three 7s = 20×.", picks: [["", "Spin 🎰"]] }
+    };
+    let casinoGame = "flip";
+    let casinoBusy = false;
+    const casinoStage = document.querySelector("#casino-stage");
+    const casinoBet = document.querySelector("#casino-bet");
+    function renderCasino() {
+      const game = CASINO_GAMES[casinoGame];
+      document.querySelectorAll("[data-casino]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.casino === casinoGame)));
+      document.querySelector("#casino-rules").textContent = game.rules;
+      const actions = document.querySelector("#casino-actions");
+      actions.replaceChildren();
+      for (const [pick, label] of game.picks) {
+        const button = document.createElement("button");
+        button.className = "button button-primary";
+        button.type = "button";
+        button.textContent = label;
+        button.disabled = !account;
+        button.addEventListener("click", () => playCasino(pick));
+        actions.append(button);
+      }
+      document.querySelector("#casino-login").hidden = Boolean(account);
+      document.querySelector("#casino-coins").textContent = wallet ? wallet.coins : 0;
+    }
+    async function playCasino(pick) {
+      if (!account || casinoBusy) return;
+      const bet = Math.floor(Number(casinoBet.value));
+      if (!(bet >= 1 && bet <= 1000)) { casinoStage.textContent = "Bet 1 to 1000 coins."; return; }
+      casinoBusy = true;
+      casinoStage.className = "casino-stage";
+      casinoStage.textContent = "…";
+      try {
+        const r = await rpc("hbu_gamble", { ...walletAuth(), p_game: casinoGame, p_bet: bet, p_pick: pick || null });
+        const shown = casinoGame === "slots" ? r.reels.join(" ") : casinoGame === "dice" ? `🎲 ${r.roll}` : (r.side === "heads" ? "🪙 Heads" : "🪙 Tails");
+        const net = r.payout - r.bet;
+        casinoStage.className = "casino-stage " + (r.won ? "win" : r.payout === 0 ? "lose" : "");
+        casinoStage.replaceChildren(shown);
+        const small = document.createElement("small");
+        small.textContent = r.payout === 0 ? `You lost ${r.bet} coins.` : net > 0 ? `You won ${net} coins! 🎉` : "Push, you got your bet back.";
+        casinoStage.append(small);
+        wallet = { ...(wallet || {}), coins: r.coins };
+        renderWallet();
+        document.querySelector("#casino-coins").textContent = r.coins;
+      } catch (error) {
+        casinoStage.textContent = /coins|Bet|Pick/i.test(error.message) ? error.message : "Casino isn't set up yet (run supabase/gambling.sql).";
+      } finally {
+        casinoBusy = false;
+      }
+    }
+    document.querySelectorAll("[data-casino]").forEach(b => b.addEventListener("click", () => { casinoGame = b.dataset.casino; renderCasino(); }));
+    document.querySelector("#casino-half").addEventListener("click", () => { casinoBet.value = Math.max(1, Math.floor(casinoBet.value / 2)); });
+    document.querySelector("#casino-double").addEventListener("click", () => { casinoBet.value = Math.min(1000, casinoBet.value * 2); });
+
     // Extra apps: leaderboard, friends, notes, calculator, clock, themes
     const lbList = document.querySelector("#lb-list");
     const lbNote = document.querySelector("#lb-note");
@@ -4004,7 +4106,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
