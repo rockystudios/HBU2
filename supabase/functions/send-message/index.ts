@@ -241,6 +241,38 @@ async function chatGate(name: string, role: Role, cooldownMs = 0) {
   }
 }
 
+// Anti-spam: 2 messages (or commands) within 5s, or the same text 3 times within 20s, mutes for 5 min.
+// Tracked in memory per function instance, so it is best-effort. The admin is exempt.
+const SPAM_FAST_MS = 5000;
+const SPAM_REPEAT_MS = 20000;
+const SPAM_MUTE_MIN = 5;
+const recentSends = new Map<string, { at: number; text: string }[]>();
+
+async function spamCheck(name: string, text: string) {
+  if (isAdmin(name)) return;
+  const now = Date.now();
+  const key = name.toLowerCase();
+  const list = (recentSends.get(key) ?? []).filter((entry) => now - entry.at < SPAM_REPEAT_MS);
+  list.push({ at: now, text: text.trim().toLowerCase() });
+  recentSends.set(key, list);
+  if (recentSends.size > 500) recentSends.clear();
+
+  const fast = list.length >= 2 && now - list[list.length - 2].at < SPAM_FAST_MS;
+  const same = list.length >= 3 && list.slice(-3).every((entry) => entry.text === list[list.length - 1].text);
+  if (!fast && !same) return;
+
+  recentSends.delete(key);
+  await db(`accounts?username=eq.${enc(name)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ muted_until: new Date(now + SPAM_MUTE_MIN * 60000).toISOString() }),
+  });
+  const why = same && !fast ? "repeating the same message" : "sending messages too fast";
+  await log({ username: name, action: `auto-muted ${SPAM_MUTE_MIN}m for spam`, reason: why });
+  await botPost(`🔇 @${name} was muted for ${SPAM_MUTE_MIN} minutes for spamming.`).catch(() => {});
+  throw new UserError(`You were muted for ${SPAM_MUTE_MIN} minutes for ${why}.`, 429);
+}
+
 const likeEscape = (text: string) => text.replace(/[_%\\]/g, "\\$&");
 const done = (notice: string) => json({ ok: true, command: true, notice });
 const quiet = () => json({ ok: true, command: true, silent: true });
@@ -781,7 +813,10 @@ export async function handle(req: Request): Promise<Response> {
     const realName: string = await loginRes.json();
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
-    if (COMMAND.test(text)) return await handleCommand(realName, text);
+    if (COMMAND.test(text)) {
+      await spamCheck(realName, text);
+      return await handleCommand(realName, text);
+    }
 
     // Run the independent checks at the same time so sending stays fast.
     const wantsDm = typeof receiver === "string" && receiver.toLowerCase() !== "everyone";
@@ -810,6 +845,8 @@ export async function handle(req: Request): Promise<Response> {
     if (target === "everyone" && !isAdmin(realName) && mutedUntil && new Date(mutedUntil) > new Date()) {
       throw new UserError(`You are muted from the main chat until ${new Date(mutedUntil).toUTCString()}. You can still send DMs.`, 403);
     }
+
+    if (target === "everyone") await spamCheck(realName, text);
 
     let waitMs = COOLDOWN_MS;
     if (target === "everyone" && (settings.locked || settings.slow > 0) && !isAdmin(realName)) {
