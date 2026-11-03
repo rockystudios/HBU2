@@ -736,6 +736,41 @@ async function handleCommand(staff: string, text: string) {
   return await cmd.run({ staff, role, rest, target });
 }
 
+async function handleOwner(action: string, staff: string, body: Record<string, unknown>) {
+  const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") }));
+  if (action === "admin_owner_roles") {
+    return json({ roles: [...(await roleDefs(true)).values()], commands: all });
+  }
+  if (action === "admin_owner_role_save") {
+    const name = String(body.name ?? "").trim().toLowerCase();
+    if (!ROLE_NAME.test(name) || ["admin", "user", "none"].includes(name)) {
+      throw new UserError("Role names are 2-20 letters, numbers, - or _ (not admin, user or none).");
+    }
+    const label = String(body.label ?? "").trim().slice(0, 24) || name;
+    const badge = String(body.badge ?? "").trim().slice(0, 4) || "★";
+    const known = new Set(all.filter((cmd) => !cmd.open).map((cmd) => cmd.name));
+    const commands = Array.isArray(body.commands) ? [...new Set(body.commands.map(String).filter((c) => known.has(c)))] : [];
+    await db("custom_roles?on_conflict=name", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ name, label, badge, staff: body.staff === true, commands }),
+    });
+    rolesCache.at = 0;
+    await log({ username: staff, action: `saved role ${name} (${commands.length} commands)` });
+    return json({ ok: true });
+  }
+  if (action === "admin_owner_role_delete") {
+    const name = String(body.name ?? "").trim().toLowerCase();
+    if (!ROLE_NAME.test(name)) throw new UserError("Unknown role.");
+    await db(`accounts?role=eq.${enc(name)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ role: null }) });
+    await db(`custom_roles?name=eq.${enc(name)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    rolesCache.at = 0;
+    await log({ username: staff, action: `deleted role ${name}` });
+    return json({ ok: true });
+  }
+  throw new UserError("Unknown action.");
+}
+
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
   const role = await roleOf(staff);
   if (action === "admin_role") {
@@ -805,40 +840,18 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
 
   if (action.startsWith("admin_owner_")) {
     adminOnly();
-    const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") }));
-    if (action === "admin_owner_roles") {
-      return json({ roles: [...(await roleDefs(true)).values()], commands: all });
-    }
-    if (action === "admin_owner_role_save") {
-      const name = String(body.name ?? "").trim().toLowerCase();
-      if (!ROLE_NAME.test(name) || ["admin", "user", "none"].includes(name)) {
-        throw new UserError("Role names are 2-20 letters, numbers, - or _ (not admin, user or none).");
+    try {
+      return await handleOwner(action, staff, body);
+    } catch (error) {
+      if (error instanceof UserError) throw error;
+      console.error("owner action failed", error);
+      const text = String((error as Error).message ?? error);
+      if (/custom_roles|schema cache|42P01|PGRST205/i.test(text)) {
+        throw new UserError("The roles table doesn't exist yet. Run supabase/role-editor.sql in the Supabase SQL editor, then try again.", 500);
       }
-      const label = String(body.label ?? "").trim().slice(0, 24) || name;
-      const badge = String(body.badge ?? "").trim().slice(0, 4) || "★";
-      const known = new Set(all.filter((cmd) => !cmd.open).map((cmd) => cmd.name));
-      const commands = Array.isArray(body.commands) ? [...new Set(body.commands.map(String).filter((c) => known.has(c)))] : [];
-      await db("custom_roles?on_conflict=name", {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ name, label, badge, staff: body.staff === true, commands }),
-      });
-      rolesCache.at = 0;
-      await log({ username: staff, action: `saved role ${name} (${commands.length} commands)` });
-      return json({ ok: true });
+      throw new UserError(`Could not save: ${text.slice(0, 200)}`, 500);
     }
-    if (action === "admin_owner_role_delete") {
-      const name = String(body.name ?? "").trim().toLowerCase();
-      if (!ROLE_NAME.test(name)) throw new UserError("Unknown role.");
-      await db(`accounts?role=eq.${enc(name)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ role: null }) });
-      await db(`custom_roles?name=eq.${enc(name)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
-      rolesCache.at = 0;
-      await log({ username: staff, action: `deleted role ${name}` });
-      return json({ ok: true });
-    }
-    throw new UserError("Unknown action.");
   }
-
   const target = typeof body.target === "string" && body.target.trim() ? await findAccount(body.target.trim()) : undefined;
   if (!target) throw new UserError("That user does not exist.");
 
