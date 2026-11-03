@@ -260,6 +260,9 @@
     .day-divider::before, .day-divider::after { flex: 1; height: 1px; background: var(--line); content: ""; }
     .message-entry.joined .message-entry-header { justify-content: flex-end; }
     .message-form { padding: 12px; display: flex; gap: 10px; align-items: flex-end; border-top: 1px solid var(--line); }
+    .local-note { margin: 10px 8px; padding: 12px 14px; border: 1px dashed rgba(192,132,252,.55); border-radius: 12px; background: rgba(168,85,247,.1); font-size: 13px; display: grid; gap: 3px; }
+    .local-note-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .local-note small { margin-top: 4px; color: var(--muted); }
     .emoji-wrap { position: relative; }
     .emoji-popup { position: absolute; right: 0; bottom: 52px; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 252px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #120d20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
     .emoji-popup button { padding: 4px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
@@ -2537,12 +2540,22 @@
       drawMessages();
     }
 
+    // Command help and lists stay on this device only; they are never sent to Supabase.
+    let localNotes = [];
+
+    function addLocalNote(lines) {
+      localNotes.push({ id: Date.now() + Math.random(), convo: currentConvo, lines });
+      lastMessagesKey = "";
+      delete messageList.dataset.scrolled;
+      drawMessages();
+    }
+
     function drawMessages() {
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
       const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
-      const key = JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
+      const key = JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -2635,6 +2648,36 @@
           entry.append(header, text);
         }
         messageList.append(entry);
+      }
+      for (const note of localNotes.filter(item => item.convo === currentConvo)) {
+        const card = document.createElement("div");
+        card.className = "local-note";
+        const [title, ...rows] = note.lines;
+        const head = document.createElement("div");
+        head.className = "local-note-head";
+        const strong = document.createElement("strong");
+        strong.textContent = title;
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "icon-button";
+        close.textContent = "✕";
+        close.setAttribute("aria-label", "Dismiss");
+        close.addEventListener("click", () => {
+          localNotes = localNotes.filter(item => item.id !== note.id);
+          lastMessagesKey = "";
+          drawMessages();
+        });
+        head.append(strong, close);
+        card.append(head);
+        for (const row of rows) {
+          const line = document.createElement("div");
+          line.textContent = row;
+          card.append(line);
+        }
+        const hint = document.createElement("small");
+        hint.textContent = "Only you can see this. It isn't saved.";
+        card.append(hint);
+        messageList.append(card);
       }
       if (!messageList.children.length) {
         const empty = document.createElement("p");
@@ -2826,6 +2869,7 @@
       setChatFull(false);
       account = null;
       closeApp("owner");
+      localNotes = [];
       saveSession();
       showChat();
     });
@@ -2898,7 +2942,8 @@
       }
       try {
         const result = await sendMessage(text, "everyone");
-        showToast((result && result.notice) || "Done.");
+        if (result && Array.isArray(result.lines)) addLocalNote(result.lines);
+        else if (!(result && result.silent)) showToast((result && result.notice) || "Done.");
         loadMessages();
       } catch (error) {
         showToast(error.message);
@@ -2909,7 +2954,7 @@
       event.preventDefault();
       const message = messageText.value.trim();
       if (!account || !message) return;
-      if (/^\/(ban|warn|mute|unmute|sugban)(\s|$)/i.test(message)) {
+      if (/^\/(help|rules|warn|sugban|ban|unban|mute|unmute|kick|clear|purge|announce|lock|unlock|slowmode|botban|botunban|banlist|mutelist|whois|warns|addword|delword|words|staff|me|shrug|tableflip|unflip|roll|flip|8ball|hug|highfive)(\s|$)/i.test(message)) {
         messageText.value = "";
         runCommand(message);
         return;
