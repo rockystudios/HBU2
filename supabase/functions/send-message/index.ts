@@ -190,82 +190,462 @@ function describeMinutes(minutes: number) {
   return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
-const COMMAND = /^\/(ban|warn|mute|unmute|sugban)(?:\s|$)/i;
+// Chat settings (slow mode and lock) live in the chat_settings table and are cached briefly.
+let settingsCache = { at: 0, locked: false, slow: 0 };
 
-// Slash commands: mods get /ban /warn /mute /unmute, VIPs get /warn and /sugban.
+async function chatSettings() {
+  if (Date.now() - settingsCache.at < 5000) return settingsCache;
+  const rows = await db("chat_settings?select=key,value").catch(() => null);
+  if (Array.isArray(rows)) {
+    const get = (key: string) => rows.find((row: { key: string }) => row.key === key)?.value;
+    settingsCache = { at: Date.now(), locked: get("locked") === "true", slow: Math.max(0, Number(get("slow")) || 0) };
+  } else {
+    settingsCache.at = Date.now();
+  }
+  return settingsCache;
+}
+
+async function setSetting(key: string, value: string) {
+  await db("chat_settings?on_conflict=key", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ key, value }),
+  });
+  settingsCache.at = 0;
+}
+
+async function postAs(user: string, message: string) {
+  const clean = (await censor(message)).slice(0, MAX_LENGTH);
+  await db("messages", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ user, receiver: "everyone", message: clean }),
+  });
+}
+
+const lastFun = new Map<string, number>();
+
+// Commands that talk in the main chat must respect mutes and the chat lock, and are rate limited.
+async function chatGate(name: string, role: Role, cooldownMs = 0) {
+  if (!isAdmin(name)) {
+    const [row] = await db(`accounts?select=muted_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
+    if (row?.muted_until && new Date(row.muted_until) > new Date()) {
+      throw new UserError(`You are muted from the main chat until ${new Date(row.muted_until).toUTCString()}.`, 403);
+    }
+    if (role !== "mod" && (await chatSettings()).locked) throw new UserError("The chat is locked right now.", 403);
+  }
+  if (cooldownMs) {
+    if (lastFun.size > 500) lastFun.clear();
+    if (Date.now() - (lastFun.get(name) ?? 0) < cooldownMs) throw new UserError("Easy there! Wait a few seconds.", 429);
+    lastFun.set(name, Date.now());
+  }
+}
+
+const likeEscape = (text: string) => text.replace(/[_%\\]/g, "\\$&");
+const done = (notice: string) => json({ ok: true, command: true, notice });
+const quiet = () => json({ ok: true, command: true, silent: true });
+// Lines are shown only to the sender and are never saved.
+const showLines = (lines: string[]) => json({ ok: true, command: true, lines });
+
+interface Ctx {
+  staff: string;
+  role: Role;
+  rest: string[];
+  target?: string;
+}
+interface Cmd {
+  roles: Role[];
+  usage: string;
+  help: string;
+  target?: "guard" | "open";
+  run: (ctx: Ctx) => Promise<Response>;
+}
+
+const ANYONE: Role[] = ["admin", "mod", "vip", "user"];
+const MOD: Role[] = ["admin", "mod"];
+const VIP: Role[] = ["admin", "vip"];
+const PERK: Role[] = ["admin", "mod", "vip"];
+const EIGHT_BALL = ["It is certain.", "Without a doubt.", "Yes, definitely.", "Most likely.", "Ask again later.", "Cannot predict now.", "Don't count on it.", "My sources say no.", "Very doubtful.", "Signs point to yes."];
+const RULES = [
+  "📜 HBU chat rules (only you can see this)",
+  "1. Be kind. No bullying, hate or harassment.",
+  "2. No spam, flooding or advertising.",
+  "3. Keep it school-friendly. Filtered words become ***.",
+  "4. Don't ask mod-bot too often. It's for HBU questions.",
+  "5. Moderators have the final say.",
+];
+
+const COMMANDS: Record<string, Cmd> = {
+  help: {
+    roles: ANYONE,
+    usage: "/help",
+    help: "Show the commands you can use (only you see it)",
+    run: ({ role }) => {
+      const mine = Object.values(COMMANDS).filter((cmd) => cmd.roles.includes(role));
+      const title = role === "admin" ? "Admin" : role === "mod" ? "Moderator" : role === "vip" ? "VIP" : "Member";
+      return Promise.resolve(showLines([`📖 ${title} commands (only you can see this):`, ...mine.map((cmd) => `${cmd.usage} - ${cmd.help}`)]));
+    },
+  },
+  rules: { roles: ANYONE, usage: "/rules", help: "Show the chat rules (only you see it)", run: () => Promise.resolve(showLines(RULES)) },
+
+  warn: {
+    roles: PERK, usage: "/warn @user reason", help: "Warn someone publicly", target: "guard",
+    run: async ({ staff, rest, target }) => {
+      const reason = rest.join(" ").trim().slice(0, 200);
+      if (!reason) throw new UserError("Usage: /warn @user reason");
+      await log({ username: target, action: `warned by ${staff}`, reason });
+      await botPost(`⚠️ @${target} you were warned by @${staff}: ${reason}`);
+      return done(`Warned ${target}.`);
+    },
+  },
+  sugban: {
+    roles: VIP, usage: "/sugban @user", help: "Sug ban someone (just for fun)", target: "open",
+    run: async ({ staff, role, target }) => {
+      if (isAdmin(target!)) throw new UserError("You cannot do that to the admin.");
+      await chatGate(staff, role);
+      const [recent] = await db(
+        `messages?select=created_at&user=eq.${BOT}&message=ilike.${enc(`*@${staff} sug banned*`)}&created_at=gt.${enc(new Date(Date.now() - 30000).toISOString())}&limit=1`,
+      ).catch(() => []) ?? [];
+      if (recent) throw new UserError("Easy on the sug bans! Wait a few seconds.", 429);
+      await botPost(`🍬 @${staff} sug banned @${target}`);
+      return done(`You sug banned ${target}.`);
+    },
+  },
+
+  ban: {
+    roles: MOD, usage: "/ban @user 30m|2h|1d [reason]", help: "Ban someone from chat", target: "guard",
+    run: async ({ staff, rest, target }) => {
+      const minutes = parseMinutes(rest[0]);
+      if (!minutes) throw new UserError("Add a time, like 30m, 2h or 1d. Usage: /ban @user 30m|2h|1d [reason]");
+      const length = describeMinutes(minutes);
+      const reason = rest.slice(1).join(" ").trim().slice(0, 200) || "Broke the chat rules";
+      await applyBan(target!, minutes / 60, reason);
+      await log({ username: target, action: `ban ${length} by ${staff}`, reason });
+      await botPost(`@${target} was banned for ${length} by @${staff}. Reason: ${tidyReason(reason)}.`);
+      return done(`Banned ${target} for ${length}.`);
+    },
+  },
+  unban: {
+    roles: MOD, usage: "/unban @user", help: "Lift a ban", target: "guard",
+    run: async ({ staff, target }) => {
+      await db(`accounts?username=eq.${enc(target!)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ banned_until: null, ban_reason: null }),
+      });
+      await log({ username: target, action: `unbanned by ${staff}` });
+      await botPost(`✅ @${target} was unbanned by @${staff}.`);
+      return done(`Unbanned ${target}.`);
+    },
+  },
+  mute: {
+    roles: MOD, usage: "/mute @user 30m|2h|1d", help: "Mute someone from the main chat", target: "guard",
+    run: async ({ staff, rest, target }) => {
+      const minutes = parseMinutes(rest[0]);
+      if (!minutes) throw new UserError("Add a time, like 30m, 2h or 1d. Usage: /mute @user 30m|2h|1d");
+      const length = describeMinutes(minutes);
+      await db(`accounts?username=eq.${enc(target!)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ muted_until: new Date(Date.now() + minutes * 60000).toISOString() }),
+      });
+      await log({ username: target, action: `mute ${length} by ${staff}` });
+      await botPost(`🔇 @${target} was muted from the main chat for ${length} by @${staff}.`);
+      return done(`Muted ${target} for ${length}.`);
+    },
+  },
+  unmute: {
+    roles: MOD, usage: "/unmute @user", help: "Unmute someone", target: "guard",
+    run: async ({ staff, target }) => {
+      await db(`accounts?username=eq.${enc(target!)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ muted_until: null }),
+      });
+      await log({ username: target, action: `unmuted by ${staff}` });
+      await botPost(`@${target} was unmuted by @${staff}.`);
+      return done(`Unmuted ${target}.`);
+    },
+  },
+  kick: {
+    roles: MOD, usage: "/kick @user", help: "Mute someone for 5 minutes to cool off", target: "guard",
+    run: async ({ staff, target }) => {
+      await db(`accounts?username=eq.${enc(target!)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ muted_until: new Date(Date.now() + 5 * 60000).toISOString() }),
+      });
+      await log({ username: target, action: `kicked (5 min mute) by ${staff}` });
+      await botPost(`👢 @${target} was kicked from the main chat for 5 minutes by @${staff}.`);
+      return done(`Kicked ${target} for 5 minutes.`);
+    },
+  },
+  clear: {
+    roles: MOD, usage: "/clear @user [count]", help: "Delete someone's recent messages (default 10, max 50)", target: "guard",
+    run: async ({ staff, rest, target }) => {
+      const count = Math.min(50, Math.max(1, Number(rest[0]) || 10));
+      const rows = await db(`messages?select=id&receiver=eq.everyone&user=eq.${enc(target!)}&order=created_at.desc&limit=${count}`) ?? [];
+      if (rows.length) {
+        await db(`messages?id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+      }
+      await log({ username: target, action: `${rows.length} messages cleared by ${staff}` });
+      return done(`Deleted ${rows.length} message${rows.length === 1 ? "" : "s"} from ${target}.`);
+    },
+  },
+  purge: {
+    roles: MOD, usage: "/purge [count]", help: "Delete the latest messages in the main chat (default 20, max 100)",
+    run: async ({ staff, rest }) => {
+      const count = Math.min(100, Math.max(1, Number(rest[0]) || 20));
+      const rows = await db(`messages?select=id&receiver=eq.everyone&order=created_at.desc&limit=${count}`) ?? [];
+      if (rows.length) {
+        await db(`messages?id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+      }
+      await log({ action: `${rows.length} messages purged by ${staff}` });
+      return done(`Deleted the last ${rows.length} message${rows.length === 1 ? "" : "s"}.`);
+    },
+  },
+  announce: {
+    roles: MOD, usage: "/announce message", help: "Post an announcement from mod-bot",
+    run: async ({ staff, rest }) => {
+      const text = rest.join(" ").trim().slice(0, 300);
+      if (!text) throw new UserError("Usage: /announce message");
+      await botPost(`📢 Announcement from @${staff}: ${await censor(text)}`);
+      return quiet();
+    },
+  },
+  lock: {
+    roles: MOD, usage: "/lock", help: "Lock the main chat so only moderators can talk",
+    run: async ({ staff }) => {
+      await setSetting("locked", "true");
+      await botPost(`🔒 The chat was locked by @${staff}. Only moderators can talk for now.`);
+      return quiet();
+    },
+  },
+  unlock: {
+    roles: MOD, usage: "/unlock", help: "Unlock the main chat",
+    run: async ({ staff }) => {
+      await setSetting("locked", "false");
+      await botPost(`🔓 The chat was unlocked by @${staff}.`);
+      return quiet();
+    },
+  },
+  slowmode: {
+    roles: MOD, usage: "/slowmode seconds|off", help: "Make people wait between messages (max 300s)",
+    run: async ({ staff, rest }) => {
+      const arg = (rest[0] ?? "").toLowerCase();
+      const seconds = arg === "off" ? 0 : Math.round(Number(arg));
+      if (!Number.isFinite(seconds) || seconds < 0 || seconds > 300 || (arg !== "off" && !arg)) throw new UserError("Usage: /slowmode seconds|off (0-300)");
+      await setSetting("slow", String(seconds));
+      await botPost(seconds ? `🐢 Slow mode is on: one message every ${seconds} second${seconds === 1 ? "" : "s"} (set by @${staff}).` : `⚡ Slow mode was turned off by @${staff}.`);
+      return quiet();
+    },
+  },
+  botban: {
+    roles: MOD, usage: "/botban @user", help: "Stop someone from using mod-bot", target: "guard",
+    run: async ({ staff, target }) => {
+      await db(`accounts?username=eq.${enc(target!)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ bot_banned: true, bot_strikes: 0 }) });
+      await log({ username: target, action: `blocked from mod-bot by ${staff}` });
+      return done(`${target} can no longer use mod-bot.`);
+    },
+  },
+  botunban: {
+    roles: MOD, usage: "/botunban @user", help: "Let someone use mod-bot again", target: "guard",
+    run: async ({ staff, target }) => {
+      await db(`accounts?username=eq.${enc(target!)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ bot_banned: false, bot_strikes: 0 }) });
+      await log({ username: target, action: `restored to mod-bot by ${staff}` });
+      return done(`${target} can use mod-bot again.`);
+    },
+  },
+  banlist: {
+    roles: MOD, usage: "/banlist", help: "Show who is banned (only you see it)",
+    run: async () => {
+      const rows = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${enc(new Date().toISOString())}&order=banned_until.desc&limit=30`) ?? [];
+      return showLines(rows.length
+        ? ["🚫 Banned users:", ...rows.map((r: { username: string; banned_until: string; ban_reason: string | null }) => `${r.username} until ${new Date(r.banned_until).toUTCString()}${r.ban_reason ? ` - ${r.ban_reason}` : ""}`)]
+        : ["🚫 Nobody is banned."]);
+    },
+  },
+  mutelist: {
+    roles: MOD, usage: "/mutelist", help: "Show who is muted (only you see it)",
+    run: async () => {
+      const rows = await db(`accounts?select=username,muted_until&muted_until=gt.${enc(new Date().toISOString())}&order=muted_until.desc&limit=30`) ?? [];
+      return showLines(rows.length
+        ? ["🔇 Muted users:", ...rows.map((r: { username: string; muted_until: string }) => `${r.username} until ${new Date(r.muted_until).toUTCString()}`)]
+        : ["🔇 Nobody is muted."]);
+    },
+  },
+  whois: {
+    roles: MOD, usage: "/whois @user", help: "Show someone's role and status (only you see it)", target: "open",
+    run: async ({ target }) => {
+      const [row] = await db(`accounts?select=username,role,banned_until,ban_reason,muted_until,bot_banned&username=eq.${enc(target!)}`) ?? [];
+      const now = new Date();
+      const active = (value: string | null) => value && new Date(value) > now ? `until ${new Date(value).toUTCString()}` : "no";
+      return showLines([
+        `🔎 ${row.username}`,
+        `Role: ${isAdmin(row.username) ? "admin" : row.role ?? "none"}`,
+        `Banned: ${active(row.banned_until)}${row.ban_reason && active(row.banned_until) !== "no" ? ` (${row.ban_reason})` : ""}`,
+        `Muted: ${active(row.muted_until)}`,
+        `Blocked from mod-bot: ${row.bot_banned ? "yes" : "no"}`,
+      ]);
+    },
+  },
+  warns: {
+    roles: MOD, usage: "/warns @user", help: "Show someone's recent warnings (only you see it)", target: "open",
+    run: async ({ target }) => {
+      const rows = await db(`mod_log?select=created_at,action,reason&username=eq.${enc(target!)}&action=like.${enc("warned by*")}&order=created_at.desc&limit=8`) ?? [];
+      return showLines(rows.length
+        ? [`⚠️ Recent warnings for ${target}:`, ...rows.map((r: { created_at: string; action: string; reason: string | null }) => `${new Date(r.created_at).toUTCString()} - ${r.action.replace("warned ", "")}: ${r.reason ?? ""}`)]
+        : [`${target} has no warnings.`]);
+    },
+  },
+  addword: {
+    roles: MOD, usage: "/addword word", help: "Add a word to the filter (becomes ***)",
+    run: async ({ staff, rest }) => {
+      const word = rest.join(" ").trim().slice(0, 40);
+      if (!word) throw new UserError("Usage: /addword word");
+      try {
+        await db("banned_words", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ word, created_by: staff }) });
+      } catch (error) {
+        if (String(error).includes("23505")) throw new UserError("That word is already on the list.");
+        throw error;
+      }
+      await wordFilter(true);
+      return done(`Added "${word}" to the filter.`);
+    },
+  },
+  delword: {
+    roles: MOD, usage: "/delword word", help: "Remove a word from the filter",
+    run: async ({ rest }) => {
+      const word = rest.join(" ").trim();
+      if (!word) throw new UserError("Usage: /delword word");
+      const rows = await db(`banned_words?word=ilike.${enc(likeEscape(word))}`, { method: "DELETE", headers: { Prefer: "return=representation" } }) ?? [];
+      await wordFilter(true);
+      if (!rows.length) throw new UserError("That word is not on the list.");
+      return done(`Removed "${word}" from the filter.`);
+    },
+  },
+  words: {
+    roles: MOD, usage: "/words", help: "List the filtered words (only you see it)",
+    run: async () => {
+      const rows = await db("banned_words?select=word&order=word.asc") ?? [];
+      return showLines([`🧹 Filtered words (${rows.length}):`, rows.map((r: { word: string }) => r.word).join(", ") || "none"]);
+    },
+  },
+  staff: {
+    roles: PERK, usage: "/staff", help: "Show the moderators and VIPs (only you see it)",
+    run: async () => {
+      const rows = await db("accounts?select=username,role&role=not.is.null&order=username.asc") ?? [];
+      const names = (role: string) => rows.filter((r: { role: string }) => r.role === role).map((r: { username: string }) => r.username).join(", ") || "none";
+      return showLines(["🛡 Staff:", `Admin: ${ADMINS.join(", ")}`, `Moderators: ${names("mod")}`, `VIPs: ${names("vip")}`]);
+    },
+  },
+
+  me: {
+    roles: PERK, usage: "/me action", help: "Post an action, like *rocky waves*",
+    run: async ({ staff, role, rest }) => {
+      const action = rest.join(" ").trim().slice(0, 200);
+      if (!action) throw new UserError("Usage: /me action");
+      await chatGate(staff, role, 2000);
+      await postAs(staff, `*${staff} ${action}*`);
+      return quiet();
+    },
+  },
+  shrug: {
+    roles: PERK, usage: "/shrug [message]", help: "Add ¯\\_(ツ)_/¯ to your message",
+    run: async ({ staff, role, rest }) => {
+      await chatGate(staff, role, 2000);
+      await postAs(staff, `${rest.join(" ").trim().slice(0, 300)} ¯\\_(ツ)_/¯`.trim());
+      return quiet();
+    },
+  },
+  tableflip: {
+    roles: PERK, usage: "/tableflip [message]", help: "Flip a table",
+    run: async ({ staff, role, rest }) => {
+      await chatGate(staff, role, 2000);
+      await postAs(staff, `${rest.join(" ").trim().slice(0, 300)} (╯°□°)╯︵ ┻━┻`.trim());
+      return quiet();
+    },
+  },
+  unflip: {
+    roles: PERK, usage: "/unflip [message]", help: "Put the table back",
+    run: async ({ staff, role, rest }) => {
+      await chatGate(staff, role, 2000);
+      await postAs(staff, `${rest.join(" ").trim().slice(0, 300)} ┬─┬ ノ( ゜-゜ノ)`.trim());
+      return quiet();
+    },
+  },
+  roll: {
+    roles: PERK, usage: "/roll [sides]", help: "Roll a dice (default 6 sides)",
+    run: async ({ staff, role, rest }) => {
+      const sides = Math.min(1000, Math.max(2, Math.round(Number(rest[0])) || 6));
+      await chatGate(staff, role, 3000);
+      await botPost(`🎲 @${staff} rolled a ${1 + Math.floor(Math.random() * sides)} (d${sides})`);
+      return quiet();
+    },
+  },
+  flip: {
+    roles: PERK, usage: "/flip", help: "Flip a coin",
+    run: async ({ staff, role }) => {
+      await chatGate(staff, role, 3000);
+      await botPost(`🪙 @${staff} flipped a coin: ${Math.random() < 0.5 ? "heads" : "tails"}!`);
+      return quiet();
+    },
+  },
+  "8ball": {
+    roles: PERK, usage: "/8ball question", help: "Ask the magic 8-ball",
+    run: async ({ staff, role, rest }) => {
+      const question = rest.join(" ").trim().slice(0, 150);
+      if (!question) throw new UserError("Usage: /8ball question");
+      await chatGate(staff, role, 3000);
+      await botPost(`🎱 @${staff} asked "${await censor(question)}" - ${EIGHT_BALL[Math.floor(Math.random() * EIGHT_BALL.length)]}`);
+      return quiet();
+    },
+  },
+  hug: {
+    roles: PERK, usage: "/hug @user", help: "Give someone a hug", target: "open",
+    run: async ({ staff, role, target }) => {
+      await chatGate(staff, role, 3000);
+      await botPost(`🤗 @${staff} hugged @${target}`);
+      return quiet();
+    },
+  },
+  highfive: {
+    roles: PERK, usage: "/highfive @user", help: "Give someone a high five", target: "open",
+    run: async ({ staff, role, target }) => {
+      await chatGate(staff, role, 3000);
+      await botPost(`🙌 @${staff} high-fived @${target}`);
+      return quiet();
+    },
+  },
+};
+
+const COMMAND = new RegExp(`^/(${Object.keys(COMMANDS).join("|")})(?:\\s|$)`, "i");
+
+// Slash commands: the table above says who can use what. /help and any list output come back only
+// to the sender and are never written to the messages table.
 async function handleCommand(staff: string, text: string) {
   const [head, ...args] = text.trim().split(/\s+/);
-  const cmd = head.slice(1).toLowerCase();
+  const name = head.slice(1).toLowerCase();
+  const cmd = COMMANDS[name];
   const role = await roleOf(staff);
-  const allowed: Record<string, Role[]> = {
-    ban: ["admin", "mod"],
-    mute: ["admin", "mod"],
-    unmute: ["admin", "mod"],
-    warn: ["admin", "mod", "vip"],
-    sugban: ["admin", "vip"],
-  };
-  if (!allowed[cmd].includes(role)) throw new UserError(`You don't have permission to use /${cmd}.`, 403);
+  if (!cmd.roles.includes(role)) throw new UserError(`You don't have permission to use /${name}.`, 403);
 
-  const usage: Record<string, string> = {
-    ban: "/ban @user 30m|2h|1d [reason]",
-    mute: "/mute @user 30m|2h|1d",
-    unmute: "/unmute @user",
-    warn: "/warn @user reason",
-    sugban: "/sugban @user",
-  };
-  const name = (args[0] ?? "").replace(/^@/, "");
-  if (!name) throw new UserError(`Usage: ${usage[cmd]}`);
-  const target = await findAccount(name);
-  if (!target) throw new UserError("That user does not exist.");
-  if (isAdmin(target.username)) throw new UserError("You cannot do that to the admin.");
-  if (target.username === staff && cmd !== "sugban") throw new UserError("You cannot do that to yourself.");
-  const targetRole = await roleOf(target.username, true);
-  if (role !== "admin" && targetRole === "mod" && cmd !== "sugban") throw new UserError("Only the admin can do that to a moderator.", 403);
-
-  if (cmd === "warn") {
-    const reason = args.slice(1).join(" ").trim().slice(0, 200);
-    if (!reason) throw new UserError(`Usage: ${usage.warn}`);
-    await log({ username: target.username, action: `warned by ${staff}`, reason });
-    await botPost(`⚠️ @${target.username} you were warned by @${staff}: ${reason}`);
-    return json({ ok: true, command: true, notice: `Warned ${target.username}.` });
+  let target: string | undefined;
+  let rest = args;
+  if (cmd.target) {
+    const given = (args[0] ?? "").replace(/^@/, "");
+    if (!given) throw new UserError(`Usage: ${cmd.usage}`);
+    const found = await findAccount(given);
+    if (!found) throw new UserError("That user does not exist.");
+    target = found.username;
+    rest = args.slice(1);
+    if (cmd.target === "guard") {
+      if (isAdmin(target)) throw new UserError("You cannot do that to the admin.");
+      if (target === staff) throw new UserError("You cannot do that to yourself.");
+      if (role !== "admin" && (await roleOf(target, true)) === "mod") throw new UserError("Only the admin can do that to a moderator.", 403);
+    }
   }
-  if (cmd === "sugban") {
-    const [recent] = await db(
-      `messages?select=created_at&user=eq.${BOT}&message=ilike.${enc(`*@${staff} sug banned*`)}&created_at=gt.${enc(new Date(Date.now() - 30000).toISOString())}&limit=1`,
-    ).catch(() => []) ?? [];
-    if (recent) throw new UserError("Easy on the sug bans! Wait a few seconds.", 429);
-    await botPost(`🍬 @${staff} sug banned @${target.username}`);
-    return json({ ok: true, command: true, notice: `You sug banned ${target.username}.` });
-  }
-  if (cmd === "unmute") {
-    await db(`accounts?username=eq.${enc(target.username)}`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ muted_until: null }),
-    });
-    await log({ username: target.username, action: `unmuted by ${staff}` });
-    await botPost(`@${target.username} was unmuted by @${staff}.`);
-    return json({ ok: true, command: true, notice: `Unmuted ${target.username}.` });
-  }
-  const minutes = parseMinutes(args[1]);
-  if (!minutes) throw new UserError(`Add a time, like 30m, 2h or 1d. Usage: ${usage[cmd]}`);
-  const length = describeMinutes(minutes);
-  if (cmd === "mute") {
-    const until = new Date(Date.now() + minutes * 60000).toISOString();
-    await db(`accounts?username=eq.${enc(target.username)}`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ muted_until: until }),
-    });
-    await log({ username: target.username, action: `mute ${length} by ${staff}` });
-    await botPost(`🔇 @${target.username} was muted from the main chat for ${length} by @${staff}.`);
-    return json({ ok: true, command: true, notice: `Muted ${target.username} for ${length}.` });
-  }
-  const reason = args.slice(2).join(" ").trim().slice(0, 200) || "Broke the chat rules";
-  await applyBan(target.username, minutes / 60, reason);
-  await log({ username: target.username, action: `ban ${length} by ${staff}`, reason });
-  await botPost(`@${target.username} was banned for ${length} by @${staff}. Reason: ${tidyReason(reason)}.`);
-  return json({ ok: true, command: true, notice: `Banned ${target.username} for ${length}.` });
+  return await cmd.run({ staff, role, rest, target });
 }
 
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
@@ -405,11 +785,12 @@ export async function handle(req: Request): Promise<Response> {
 
     // Run the independent checks at the same time so sending stays fast.
     const wantsDm = typeof receiver === "string" && receiver.toLowerCase() !== "everyone";
-    const [accountRows, found, lastRows, muteRows] = await Promise.all([
+    const [accountRows, found, lastRows, muteRows, settings] = await Promise.all([
       db(`accounts?select=banned_until,ban_reason&username=eq.${enc(realName)}`),
       wantsDm ? findAccount(receiver) : Promise.resolve(undefined),
       db(`messages?select=created_at&user=eq.${enc(realName)}&order=created_at.desc&limit=1`),
       db(`accounts?select=muted_until&username=eq.${enc(realName)}`).catch(() => []),
+      chatSettings(),
       wordFilter(),
     ]);
     const [account] = accountRows ?? [];
@@ -430,9 +811,17 @@ export async function handle(req: Request): Promise<Response> {
       throw new UserError(`You are muted from the main chat until ${new Date(mutedUntil).toUTCString()}. You can still send DMs.`, 403);
     }
 
+    let waitMs = COOLDOWN_MS;
+    if (target === "everyone" && (settings.locked || settings.slow > 0) && !isAdmin(realName)) {
+      const senderRole = await roleOf(realName);
+      if (senderRole !== "mod") {
+        if (settings.locked) throw new UserError("The chat is locked right now. Only moderators can talk.", 403);
+        waitMs = Math.max(waitMs, settings.slow * 1000);
+      }
+    }
     const [last] = lastRows ?? [];
-    if (last && Date.now() - new Date(last.created_at).getTime() < COOLDOWN_MS) {
-      throw new UserError("Slow down a little before sending another message.", 429);
+    if (last && Date.now() - new Date(last.created_at).getTime() < waitMs) {
+      throw new UserError(waitMs > COOLDOWN_MS ? `Slow mode is on. Wait ${Math.ceil(waitMs / 1000)} seconds between messages.` : "Slow down a little before sending another message.", 429);
     }
 
     const asksBot = target === "everyone" && /@mod-bot\b/i.test(text);
