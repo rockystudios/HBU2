@@ -784,6 +784,94 @@ async function handleCommand(staff: string, text: string) {
   return await cmd.run({ staff, role, rest, raw: text.trim().slice(head.length).trim(), target });
 }
 
+// Remember the last IP each account used (shown to the owner only). Written at most every 10 minutes.
+const ipSeen = new Map<string, { ip: string; at: number }>();
+
+function recordIp(req: Request, name: string) {
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  if (!ip) return;
+  const key = name.toLowerCase();
+  const seen = ipSeen.get(key);
+  if (seen && seen.ip === ip && Date.now() - seen.at < 600000) return;
+  if (ipSeen.size > 2000) ipSeen.clear();
+  ipSeen.set(key, { ip, at: Date.now() });
+  void db(`accounts?username=eq.${enc(name)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ last_ip: ip, last_seen: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+// A trailing invisible mark means "edited"; the site turns it into "(edited)".
+const EDIT_MARK = "\u2063";
+
+async function editMessage(name: string, id: unknown, text: string) {
+  const num = Number(id);
+  if (!Number.isSafeInteger(num) || num <= 0) throw new UserError("Invalid message.");
+  const [row] = await db(`messages?select=id,user,message,receiver&id=eq.${num}`) ?? [];
+  if (!row) throw new UserError("That message no longer exists.");
+  if (row.user !== name) throw new UserError("You can only edit your own messages.", 403);
+  if (row.receiver !== "everyone") throw new UserError("Only main chat messages can be edited.", 403);
+  const [account] = await db(`accounts?select=banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
+  if (!isAdmin(name) && account?.banned_until && new Date(account.banned_until) > new Date()) {
+    throw new UserError("You are banned from chatting right now.", 403);
+  }
+  await chatGate(name, await roleOf(name), 1500);
+  const clean = (await censor(text.replaceAll(EDIT_MARK, ""))).slice(0, MAX_LENGTH);
+  if (clean.replace(/^> [^:\n]{1,20}: [^\n]*\n/, "").trim().length === 0) throw new UserError("A message can't be empty.");
+  await db(`messages?id=eq.${num}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ message: clean + EDIT_MARK }),
+  });
+  await log({ username: name, receiver: "everyone", original: row.message, edited: clean, action: "edited by author" });
+  return json({ ok: true, message: clean + EDIT_MARK });
+}
+
+async function handleOwner(action: string, staff: string, body: Record<string, unknown>) {
+  const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
+  if (action === "admin_owner_accounts") {
+    const rows = await db("accounts?select=username,role,last_ip,last_seen&order=username.asc&limit=1000").catch((error) => {
+      if (/last_ip|last_seen|42703/i.test(String(error?.message))) {
+        throw new UserError("IP tracking isn't set up yet. Run supabase/streaks-ips.sql in the Supabase SQL editor, then try again.", 500);
+      }
+      throw error;
+    });
+    return json({ accounts: rows ?? [] });
+  }
+  if (action === "admin_owner_roles") {
+    return json({ roles: [...(await roleDefs(true)).values()], commands: all });
+  }
+  if (action === "admin_owner_role_save") {
+    const name = String(body.name ?? "").trim().toLowerCase();
+    if (!ROLE_NAME.test(name) || ["admin", "user", "none"].includes(name)) {
+      throw new UserError("Role names are 2-20 letters, numbers, - or _ (not admin, user or none).");
+    }
+    const label = String(body.label ?? "").trim().slice(0, 24) || name;
+    const badge = String(body.badge ?? "").trim().slice(0, 4) || "★";
+    const known = new Set(all.filter((cmd) => !cmd.open).map((cmd) => cmd.name));
+    const commands = Array.isArray(body.commands) ? [...new Set(body.commands.map(String).filter((c) => known.has(c)))] : [];
+    await db("custom_roles?on_conflict=name", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ name, label, badge, staff: body.staff === true, commands }),
+    });
+    rolesCache.at = 0;
+    await log({ username: staff, action: `saved role ${name} (${commands.length} commands)` });
+    return json({ ok: true });
+  }
+  if (action === "admin_owner_role_delete") {
+    const name = String(body.name ?? "").trim().toLowerCase();
+    if (!ROLE_NAME.test(name)) throw new UserError("Unknown role.");
+    await db(`accounts?role=eq.${enc(name)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ role: null }) });
+    await db(`custom_roles?name=eq.${enc(name)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    rolesCache.at = 0;
+    await log({ username: staff, action: `deleted role ${name}` });
+    return json({ ok: true });
+  }
+  throw new UserError("Unknown action.");
+}
+
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
   const role = await roleOf(staff);
   if (action === "admin_role") {
@@ -853,40 +941,18 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
 
   if (action.startsWith("admin_owner_")) {
     adminOnly();
-    const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
-    if (action === "admin_owner_roles") {
-      return json({ roles: [...(await roleDefs(true)).values()], commands: all });
-    }
-    if (action === "admin_owner_role_save") {
-      const name = String(body.name ?? "").trim().toLowerCase();
-      if (!ROLE_NAME.test(name) || ["admin", "user", "none"].includes(name)) {
-        throw new UserError("Role names are 2-20 letters, numbers, - or _ (not admin, user or none).");
+    try {
+      return await handleOwner(action, staff, body);
+    } catch (error) {
+      if (error instanceof UserError) throw error;
+      console.error("owner action failed", error);
+      const text = String((error as Error).message ?? error);
+      if (/custom_roles|schema cache|42P01|PGRST205/i.test(text)) {
+        throw new UserError("The roles table doesn't exist yet. Run supabase/role-editor.sql in the Supabase SQL editor, then try again.", 500);
       }
-      const label = String(body.label ?? "").trim().slice(0, 24) || name;
-      const badge = String(body.badge ?? "").trim().slice(0, 4) || "★";
-      const known = new Set(all.filter((cmd) => !cmd.open).map((cmd) => cmd.name));
-      const commands = Array.isArray(body.commands) ? [...new Set(body.commands.map(String).filter((c) => known.has(c)))] : [];
-      await db("custom_roles?on_conflict=name", {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({ name, label, badge, staff: body.staff === true, commands }),
-      });
-      rolesCache.at = 0;
-      await log({ username: staff, action: `saved role ${name} (${commands.length} commands)` });
-      return json({ ok: true });
+      throw new UserError(`Could not save: ${text.slice(0, 200)}`, 500);
     }
-    if (action === "admin_owner_role_delete") {
-      const name = String(body.name ?? "").trim().toLowerCase();
-      if (!ROLE_NAME.test(name)) throw new UserError("Unknown role.");
-      await db(`accounts?role=eq.${enc(name)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ role: null }) });
-      await db(`custom_roles?name=eq.${enc(name)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
-      rolesCache.at = 0;
-      await log({ username: staff, action: `deleted role ${name}` });
-      return json({ ok: true });
-    }
-    throw new UserError("Unknown action.");
   }
-
   const target = typeof body.target === "string" && body.target.trim() ? await findAccount(body.target.trim()) : undefined;
   if (!target) throw new UserError("That user does not exist.");
 
@@ -956,6 +1022,8 @@ export async function handle(req: Request): Promise<Response> {
     });
     if (!loginRes.ok) throw new UserError("Wrong username or password", 401);
     const realName: string = await loginRes.json();
+    recordIp(req, realName);
+    if (action === "edit_message") return await editMessage(realName, body.id, text);
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
     if (COMMAND.test(text)) {

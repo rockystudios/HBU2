@@ -119,6 +119,10 @@
     .wheel { position: relative; width: 100%; height: 100%; border: 4px solid #c084fc; border-radius: 50%; overflow: hidden; box-shadow: 0 0 34px rgba(168,85,247,.55), inset 0 0 24px rgba(0,0,0,.4); transition: transform 4.6s cubic-bezier(.12,.7,.1,1); }
     .wheel span { position: absolute; left: 50%; top: 0; height: 50%; width: 60px; margin-left: -30px; padding-top: 12px; transform-origin: 50% 100%; text-align: center; font-size: 17px; font-weight: 900; color: white; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
     .wheel-hub { position: absolute; z-index: 1; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; display: grid; place-items: center; border-radius: 50%; background: #12091f; border: 3px solid #c084fc; font-size: 20px; }
+    .edit-row { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+    .edit-row input { flex: 1; min-width: 0; }
+    .edited-mark { color: var(--muted); font-size: 11px; }
+    .streak-line { margin: 0 0 8px; font-weight: 700; color: #ffb347; }
     .spin-note { min-height: 20px; margin: 12px 0 0; color: var(--muted); font-size: 13px; }
     .plate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
     .plate-card { padding: 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.025); }
@@ -953,6 +957,13 @@
           </form>
           <p class="app-note" id="owner-status"></p>
           <ul class="owner-list" id="owner-list"></ul>
+          <h2>Accounts</h2>
+          <details class="admin-fold" id="owner-accounts">
+            <summary>All accounts and their IP addresses</summary>
+            <p class="app-note">The IP is the last one each account used while chatting. Accounts sharing an IP are flagged, which can mean one person with several accounts. Only you can see this.</p>
+            <p class="app-note" id="accounts-status"></p>
+            <ul class="owner-list" id="accounts-list"></ul>
+          </details>
           <h2>Roles</h2>
           <p class="app-note">Make roles and pick which commands each one can use. Changes apply to everyone right away. "Staff" roles also get the admin panel and can talk while the chat is locked.</p>
           <form class="friends-form" id="role-new-form">
@@ -987,7 +998,8 @@
       <div class="rewards-grid">
         <div class="rewards-card wheel-card">
           <h3>Daily wheel</h3>
-          <p>One free spin every day (resets at midnight UTC).</p>
+          <p>One free spin every day (resets at midnight UTC). Spin on back-to-back days for a streak bonus!</p>
+          <p class="streak-line" id="streak-line" hidden></p>
           <div class="wheel-wrap">
             <div class="wheel-pointer" aria-hidden="true">▼</div>
             <div class="wheel" id="wheel" aria-hidden="true"></div>
@@ -1179,6 +1191,26 @@
       }
     }
     const roleOfName = name => roleByUser[String(name).toLowerCase()];
+
+    const EDIT_MARK = "\u2063";
+    const stripEdit = raw => String(raw).replaceAll(EDIT_MARK, "");
+    let editing = null;
+
+    async function saveEdit() {
+      if (!editing) return;
+      const { id, prefix, value } = editing;
+      const body = value.trim();
+      if (!body) { messageStatus.textContent = "A message can't be empty."; return; }
+      try {
+        await adminCall("edit_message", { id, message: prefix + body });
+        editing = null;
+        messageStatus.textContent = "";
+        lastMessagesKey = "";
+        await loadMessages();
+      } catch (error) {
+        messageStatus.textContent = `Could not edit: ${error.message}`;
+      }
+    }
 
     // A reply is stored inside the message text as "> user: snippet" on its own first line.
     function parseReply(raw) {
@@ -1995,9 +2027,9 @@
             const convo = key === "everyone" ? "everyone" : dmPartners.find(name => convoKey(name) === key) || key;
             if (viewingConvo(convo)) continue;
             if (convo === "everyone") {
-              if (mentionsMe(info.text)) notify(`${info.user} mentioned you`, parseReply(info.text).body.slice(0, 120), "everyone");
+              if (mentionsMe(info.text)) notify(`${info.user} mentioned you`, parseReply(stripEdit(info.text)).body.slice(0, 120), "everyone");
             } else {
-              notify(`New message from ${info.user}`, parseReply(info.text).body.slice(0, 120), convo);
+              notify(`New message from ${info.user}`, parseReply(stripEdit(info.text)).body.slice(0, 120), convo);
             }
           }
         }
@@ -2244,6 +2276,15 @@
       } else if (!loggedIn) {
         spinNote.textContent = "";
       }
+      const streakLine = document.querySelector("#streak-line");
+      const streak = wallet && wallet.streak ? wallet.streak : 0;
+      streakLine.hidden = !(loggedIn && wallet);
+      if (!streakLine.hidden) {
+        const bonus = Math.min(streak, 10) * 5;
+        streakLine.textContent = streak
+          ? `🔥 ${streak}-day streak${wallet.can_spin ? ` · spin today for +${bonus} bonus coins` : ` · come back tomorrow for +${Math.min(streak + 1, 11) * 5 - 5} bonus`}${wallet.best_streak > streak ? ` · best ${wallet.best_streak}` : ""}`
+          : "🔥 No streak yet. Spin today to start one!";
+      }
       renderPlates();
     }
 
@@ -2341,12 +2382,13 @@
         await new Promise(resolve => window.setTimeout(resolve, 4800));
         spinning = false;
         spinNote.dataset.result = "1";
-        spinNote.textContent = `You won ${result.prize} coins! 🎉`;
-        showToast(`You won ${result.prize} coins! 🎉`);
-        wallet = { ...wallet, coins: result.coins, can_spin: false };
+        const won = `You won ${result.prize} coins${result.bonus ? ` + ${result.bonus} streak bonus` : ""}! 🎉`;
+        spinNote.textContent = won;
+        showToast(won);
+        wallet = { ...wallet, coins: result.coins, can_spin: false, streak: result.streak || wallet.streak, best_streak: Math.max(wallet.best_streak || 0, result.streak || 0) };
         wallet.next_spin = (await rpc("hbu_wallet", walletAuth()).catch(() => wallet)).next_spin;
         renderWallet();
-        spinNote.textContent = `You won ${result.prize} coins! 🎉`;
+        spinNote.textContent = won;
       } catch (error) {
         spinning = false;
         spinNote.textContent = error.message;
@@ -2600,7 +2642,7 @@
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
       const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
-      const key = JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
+      const key = JSON.stringify(editing ? editing.id : null) + JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -2662,7 +2704,8 @@
           time.textContent = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
           header.append(time);
         }
-        const parsed = parseReply(message.message);
+        const wasEdited = typeof message.message === "string" && message.message.includes(EDIT_MARK);
+        const parsed = parseReply(stripEdit(message.message));
         if (!message.pending && message.user !== "mod-bot") {
           const replyButton = document.createElement("button");
           replyButton.type = "button";
@@ -2671,6 +2714,20 @@
           replyButton.setAttribute("aria-label", `Reply to ${message.user}`);
           replyButton.addEventListener("click", () => setReply({ user: message.user, snippet: parsed.body.replace(/\s+/g, " ").slice(0, 50) }));
           header.append(replyButton);
+        }
+        if (account && message.user === account.username && currentConvo === "everyone" && message.id && !message.pending && !(editing && editing.id === message.id)) {
+          const edit = document.createElement("button");
+          edit.type = "button";
+          edit.className = "message-reply";
+          edit.textContent = "✎ Edit";
+          edit.setAttribute("aria-label", "Edit your message");
+          edit.addEventListener("click", () => {
+            const prefix = parsed.user ? `> ${parsed.user}: ${parsed.snippet}\n` : "";
+            editing = { id: message.id, prefix, value: parsed.body, focus: true };
+            lastMessagesKey = "";
+            drawMessages();
+          });
+          header.append(edit);
         }
         if (isStaff() && currentConvo === "everyone" && message.id && !message.pending) {
           const del = document.createElement("button");
@@ -2682,8 +2739,44 @@
           header.append(del);
         }
         if (message.user !== "mod-bot") applyPlate(entry, header.firstElementChild && !joined ? header.firstElementChild : null, plateByUser[message.user.toLowerCase()]);
-        const text = document.createElement("p");
-        appendWithMentions(text, parsed.body);
+        let text = document.createElement("p");
+        if (editing && editing.id === message.id) {
+          text = document.createElement("div");
+          text.className = "edit-row";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.maxLength = Math.max(1, 500 - editing.prefix.length);
+          input.value = editing.value;
+          input.setAttribute("aria-label", "Edit message");
+          input.addEventListener("input", () => { editing.value = input.value; });
+          input.addEventListener("keydown", event => {
+            if (event.key === "Enter") { event.preventDefault(); saveEdit(); }
+            if (event.key === "Escape") { editing = null; lastMessagesKey = ""; drawMessages(); }
+          });
+          const save = document.createElement("button");
+          save.type = "button";
+          save.className = "button button-primary";
+          save.textContent = "Save";
+          save.addEventListener("click", saveEdit);
+          const cancel = document.createElement("button");
+          cancel.type = "button";
+          cancel.className = "button";
+          cancel.textContent = "Cancel";
+          cancel.addEventListener("click", () => { editing = null; lastMessagesKey = ""; drawMessages(); });
+          text.append(input, save, cancel);
+          if (editing.focus) {
+            editing.focus = false;
+            window.setTimeout(() => { input.focus(); input.setSelectionRange(input.value.length, input.value.length); });
+          }
+        } else {
+          appendWithMentions(text, parsed.body);
+          if (wasEdited) {
+            const mark = document.createElement("small");
+            mark.className = "edited-mark";
+            mark.textContent = " (edited)";
+            text.append(mark);
+          }
+        }
         if (parsed.user) {
           const quote = document.createElement("div");
           quote.className = "reply-quote";
@@ -2955,6 +3048,36 @@
         ownerStatus.textContent = /schema cache|function/i.test(error.message) ? "Password resets are not set up yet (run supabase/password-reset.sql)." : error.message;
       }
     }
+    const accountsList = document.querySelector("#accounts-list");
+    const accountsStatus = document.querySelector("#accounts-status");
+    async function loadOwnerAccounts() {
+      if (!isOwner()) return;
+      try {
+        const data = await adminCall("admin_owner_accounts");
+        const rows = data.accounts || [];
+        const perIp = {};
+        for (const row of rows) if (row.last_ip) perIp[row.last_ip] = (perIp[row.last_ip] || 0) + 1;
+        accountsList.replaceChildren();
+        for (const row of rows) {
+          const li = document.createElement("li");
+          const name = document.createElement("strong");
+          name.textContent = row.username + (row.role ? ` (${row.role})` : "");
+          const ip = document.createElement("small");
+          const shared = row.last_ip && perIp[row.last_ip] > 1 ? ` ⚠ shared with ${perIp[row.last_ip] - 1}` : "";
+          const seen = row.last_seen ? ` · ${new Date(row.last_seen).toLocaleString()}` : "";
+          ip.textContent = row.last_ip ? `${row.last_ip}${shared}${seen}` : "no IP yet";
+          li.append(name, ip);
+          accountsList.append(li);
+        }
+        accountsStatus.textContent = `${rows.length} account${rows.length === 1 ? "" : "s"}.`;
+      } catch (error) {
+        accountsStatus.textContent = error.message;
+      }
+    }
+    document.querySelector("#owner-accounts").addEventListener("toggle", event => {
+      if (event.target.open) loadOwnerAccounts();
+    });
+
     const roleEditor = document.querySelector("#role-editor");
     const roleStatus = document.querySelector("#role-status");
     const openRoleCards = new Set();
@@ -3106,6 +3229,7 @@
       account = null;
       closeApp("owner");
       localNotes = [];
+      editing = null;
       activePoll = null;
       drawPoll();
       saveSession();
@@ -3293,7 +3417,7 @@
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
-      owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); } }
+      owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
     function openApp(name) {
