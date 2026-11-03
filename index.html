@@ -613,26 +613,30 @@
                   <input id="admin-reason" type="text" maxlength="100" placeholder="Reason (optional)" autocomplete="off">
                   <button class="button button-primary" type="submit">Ban user</button>
                 </form>
-                <details class="admin-fold" open>
+                <details class="admin-fold">
                   <summary>Banned users</summary>
                   <ul class="banned-list" id="banned-list"></ul>
                 </details>
-                <h4>Filtered words</h4>
+                <details class="admin-fold">
+                <summary>Filtered words</summary>
                 <form class="dm-new" id="word-form">
                   <label class="sr-only" for="word-input">Word to filter</label>
                   <input id="word-input" type="text" maxlength="40" placeholder="Add a word" autocomplete="off" required>
                   <button class="icon-button" type="submit">Add</button>
                 </form>
                 <ul class="banned-list" id="word-list"></ul>
-                <h4>mod-bot access</h4>
+                </details>
+                <details class="admin-fold">
+                <summary>mod-bot access</summary>
                 <form class="dm-new" id="botblock-form">
                   <label class="sr-only" for="botblock-name">Username to block from mod-bot</label>
                   <input id="botblock-name" type="text" maxlength="20" placeholder="Block from mod-bot" autocomplete="off" required>
                   <button class="icon-button" type="submit">Block</button>
                 </form>
                 <ul class="banned-list" id="botblock-list"></ul>
+                </details>
                 <section id="admin-mods-section" hidden>
-                  <details class="admin-fold" open>
+                  <details class="admin-fold">
                   <summary>Moderators</summary>
                   <form class="dm-new" id="mod-add-form">
                     <label class="sr-only" for="mod-add-name">Username to make moderator</label>
