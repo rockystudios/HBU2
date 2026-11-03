@@ -753,8 +753,61 @@ async function handleCommand(staff: string, text: string) {
   return await cmd.run({ staff, role, rest, target });
 }
 
+// Remember the last IP each account used (shown to the owner only). Written at most every 10 minutes.
+const ipSeen = new Map<string, { ip: string; at: number }>();
+
+function recordIp(req: Request, name: string) {
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  if (!ip) return;
+  const key = name.toLowerCase();
+  const seen = ipSeen.get(key);
+  if (seen && seen.ip === ip && Date.now() - seen.at < 600000) return;
+  if (ipSeen.size > 2000) ipSeen.clear();
+  ipSeen.set(key, { ip, at: Date.now() });
+  void db(`accounts?username=eq.${enc(name)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ last_ip: ip, last_seen: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
+// A trailing invisible mark means "edited"; the site turns it into "(edited)".
+const EDIT_MARK = "\u2063";
+
+async function editMessage(name: string, id: unknown, text: string) {
+  const num = Number(id);
+  if (!Number.isSafeInteger(num) || num <= 0) throw new UserError("Invalid message.");
+  const [row] = await db(`messages?select=id,user,message,receiver&id=eq.${num}`) ?? [];
+  if (!row) throw new UserError("That message no longer exists.");
+  if (row.user !== name) throw new UserError("You can only edit your own messages.", 403);
+  if (row.receiver !== "everyone") throw new UserError("Only main chat messages can be edited.", 403);
+  const [account] = await db(`accounts?select=banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
+  if (!isAdmin(name) && account?.banned_until && new Date(account.banned_until) > new Date()) {
+    throw new UserError("You are banned from chatting right now.", 403);
+  }
+  await chatGate(name, await roleOf(name), 1500);
+  const clean = (await censor(text.replaceAll(EDIT_MARK, ""))).slice(0, MAX_LENGTH);
+  if (clean.replace(/^> [^:\n]{1,20}: [^\n]*\n/, "").trim().length === 0) throw new UserError("A message can't be empty.");
+  await db(`messages?id=eq.${num}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ message: clean + EDIT_MARK }),
+  });
+  await log({ username: name, receiver: "everyone", original: row.message, edited: clean, action: "edited by author" });
+  return json({ ok: true, message: clean + EDIT_MARK });
+}
+
 async function handleOwner(action: string, staff: string, body: Record<string, unknown>) {
   const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
+  if (action === "admin_owner_accounts") {
+    const rows = await db("accounts?select=username,role,last_ip,last_seen&order=username.asc&limit=1000").catch((error) => {
+      if (/last_ip|last_seen|42703/i.test(String(error?.message))) {
+        throw new UserError("IP tracking isn't set up yet. Run supabase/streaks-ips.sql in the Supabase SQL editor, then try again.", 500);
+      }
+      throw error;
+    });
+    return json({ accounts: rows ?? [] });
+  }
   if (action === "admin_owner_roles") {
     return json({ roles: [...(await roleDefs(true)).values()], commands: all });
   }
@@ -938,6 +991,8 @@ export async function handle(req: Request): Promise<Response> {
     });
     if (!loginRes.ok) throw new UserError("Wrong username or password", 401);
     const realName: string = await loginRes.json();
+    recordIp(req, realName);
+    if (action === "edit_message") return await editMessage(realName, body.id, text);
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
     if (COMMAND.test(text)) {
