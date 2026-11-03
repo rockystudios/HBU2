@@ -357,6 +357,7 @@ const RULES = [
   "3. Keep it school-friendly. Filtered words become ***.",
   "4. Don't ask mod-bot too often. It's for HBU questions.",
   "5. Moderators have the final say.",
+  "6. Direct messages are private but the admin can review them for safety.",
 ];
 
 const COMMANDS: Record<string, Cmd> = {
@@ -615,6 +616,22 @@ const COMMANDS: Record<string, Cmd> = {
       return showLines([`🧹 Filtered words (${rows.length}):`, rows.map((r: { word: string }) => r.word).join(", ") || "none"]);
     },
   },
+  spy: {
+    roles: ["admin"], usage: "/spy @user1 @user2", help: "Read the whole DM between two people (admin only, only you see it)",
+    run: async ({ staff, rest }) => {
+      if (!isAdmin(staff)) throw new UserError("Only the admin can use /spy.", 403);
+      const [a, b] = await Promise.all(rest.slice(0, 2).map((n) => findAccount(n.replace(/^@/, ""))));
+      if (rest.length < 2 || !a || !b) throw new UserError("Usage: /spy @user1 @user2 (both users must exist)");
+      const pair = (x: string, y: string) => `and(user.eq.${x},receiver.eq.${y})`;
+      const rows = await db(`messages?select=user,message,created_at&or=(${enc(pair(a.username, b.username))},${enc(pair(b.username, a.username))})&order=created_at.desc&limit=100`) ?? [];
+      if (!rows.length) return showLines([`🕵 ${a.username} ↔ ${b.username}`, "No messages between them."]);
+      const lines = rows.reverse().map((m: { user: string; message: string; created_at: string }) => {
+        const d = new Date(m.created_at);
+        return `[${d.toISOString().slice(5, 16).replace("T", " ")}] ${m.user}: ${m.message}`;
+      });
+      return showLines([`🕵 ${a.username} ↔ ${b.username} (last ${rows.length}, only you can see this)`, ...lines]);
+    },
+  },
   staff: {
     roles: PERK, usage: "/staff", help: "Show who has a role (only you see it)",
     run: async () => {
@@ -805,7 +822,7 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
 
   if (action.startsWith("admin_owner_")) {
     adminOnly();
-    const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") }));
+    const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
     if (action === "admin_owner_roles") {
       return json({ roles: [...(await roleDefs(true)).values()], commands: all });
     }
