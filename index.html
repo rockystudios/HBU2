@@ -426,6 +426,10 @@
     .app-icon-notes { background: linear-gradient(150deg, #fde68a, #d9a400); --glow: rgba(253,230,138,.45); }
     .app-icon-calculator { background: linear-gradient(150deg, #64748b, #1e293b); --glow: rgba(148,163,184,.4); }
     .app-icon-clock { background: linear-gradient(150deg, #fb7185, #be123c); --glow: rgba(251,113,133,.5); }
+    .app-icon-owner { background: linear-gradient(150deg, #ffe066, #b45309); --glow: rgba(255,214,102,.55); }
+    .owner-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .owner-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.03); }
+    .owner-list li small { margin-left: auto; color: var(--muted); }
     .app-icon-themes { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(232,121,249,.5); }
     .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
     .home-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; color: #817a8e; font-size: 11px; }
@@ -541,6 +545,10 @@
           <span class="app-glyph app-icon-themes" aria-hidden="true"></span>
           <span class="app-label">Themes</span>
         </button>
+        <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
+          <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
+          <span class="app-label">Owner</span>
+        </button>
       </nav>
       <footer class="home-footer">
         <span><strong>Clever</strong> &nbsp;·&nbsp; Yw now your not bored</span>
@@ -635,6 +643,17 @@
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
+            </form>
+            <form class="chat-join-form" id="reset-form" hidden>
+              <p class="app-note" id="reset-note"></p>
+              <label for="reset-password">New password
+                <input id="reset-password" type="password" minlength="6" autocomplete="new-password" required>
+              </label>
+              <label for="reset-confirm">Confirm new password
+                <input id="reset-confirm" type="password" minlength="6" autocomplete="new-password" required>
+              </label>
+              <button class="button button-primary" id="reset-submit" type="submit">Set password and log in</button>
+              <button class="button" id="reset-cancel" type="button">Cancel</button>
             </form>
           </div>
           <div id="chat-room" hidden>
@@ -894,6 +913,28 @@
       </div>
       <div class="win-body">
         <div class="app-pane"><h2>Pick a theme</h2><p class="app-note">Changes the accent colors and background. Saved on this device.</p><div class="theme-grid" id="theme-grid"></div></div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-owner" data-app="owner" role="dialog" aria-label="Owner" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">👑</span> Owner</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Owner" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane">
+          <h2>Password resets</h2>
+          <p class="app-note">Type a username. The next time someone tries to log in as that account, they can choose a new password. It works once and expires after 48 hours.</p>
+          <form class="friends-form" id="owner-form">
+            <input id="owner-name" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
+            <button class="button button-primary" type="submit">Allow reset</button>
+          </form>
+          <p class="app-note" id="owner-status"></p>
+          <ul class="owner-list" id="owner-list"></ul>
+        </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
@@ -2266,7 +2307,16 @@
       }
     });
 
+    function isOwner() {
+      return Boolean(account) && account.username.toLowerCase() === "rocky";
+    }
+
+    function updateOwnerApp() {
+      document.querySelector("#owner-icon").hidden = !isOwner();
+    }
+
     function showChat() {
+      updateOwnerApp();
       refreshWallet();
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
@@ -2399,6 +2449,7 @@
       notes: '<path d="M15 8h27l10 10v38H15z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M42 8v12h10M22 29h21M22 37h21M22 45h14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 15v39h32" fill="none" stroke="#fff" stroke-width="2" opacity=".65"/>',
       calculator: '<rect x="14" y="7" width="36" height="50" rx="7" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><rect x="20" y="13" width="24" height="10" rx="2" fill="#fff" fill-opacity=".85"/><g fill="#fff"><circle cx="23" cy="31" r="2.5"/><circle cx="32" cy="31" r="2.5"/><circle cx="41" cy="31" r="2.5"/><circle cx="23" cy="40" r="2.5"/><circle cx="32" cy="40" r="2.5"/><circle cx="41" cy="40" r="2.5"/><circle cx="23" cy="49" r="2.5"/><circle cx="32" cy="49" r="2.5"/></g><rect x="38" y="45" width="6" height="8" rx="2" fill="#ffe47a"/>',
       clock: '<circle cx="32" cy="32" r="22" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="16" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M32 18v15l11 7" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="3" fill="#fff"/>',
+      owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
     for (const [name, artwork] of Object.entries(APP_LOGOS)) {
@@ -2649,6 +2700,10 @@
       authSubmit.disabled = true;
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       try {
+        if (!signupMode && await rpc("hbu_reset_pending", { p_username: username }).catch(() => false) === true) {
+          startPasswordReset(username);
+          return;
+        }
         if (signupMode) {
           await rpc("hbu_signup", { p_username: username, p_password: password, p_student_id: authStudentId.value.trim() });
         }
@@ -2666,10 +2721,111 @@
         authSubmit.disabled = false;
       }
     });
+    const resetForm = document.querySelector("#reset-form");
+    const resetPassword = document.querySelector("#reset-password");
+    const resetConfirm = document.querySelector("#reset-confirm");
+    const resetSubmit = document.querySelector("#reset-submit");
+    let resetUsername = "";
+
+    function startPasswordReset(username) {
+      resetUsername = username;
+      document.querySelector("#reset-note").textContent = `Rocky allowed a password reset for ${username}. Choose a new password to log in.`;
+      authForm.hidden = true;
+      document.querySelector(".auth-tabs").hidden = true;
+      resetForm.hidden = false;
+      messageStatus.textContent = "";
+      resetPassword.focus();
+    }
+
+    function endPasswordReset() {
+      resetForm.reset();
+      resetForm.hidden = true;
+      authForm.hidden = false;
+      document.querySelector(".auth-tabs").hidden = false;
+    }
+
+    document.querySelector("#reset-cancel").addEventListener("click", endPasswordReset);
+    resetForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (resetPassword.value !== resetConfirm.value) {
+        messageStatus.textContent = "The two passwords do not match.";
+        return;
+      }
+      resetSubmit.disabled = true;
+      messageStatus.textContent = "Setting your new password...";
+      try {
+        const realName = await rpc("hbu_reset_password", { p_username: resetUsername, p_new: resetPassword.value });
+        account = { username: realName, password: resetPassword.value };
+        saveSession();
+        askNotificationPermission();
+        authForm.reset();
+        endPasswordReset();
+        messageStatus.textContent = "";
+        showChat();
+        showToast("Password changed. You're logged in.");
+      } catch (error) {
+        messageStatus.textContent = error.message;
+      } finally {
+        resetSubmit.disabled = false;
+      }
+    });
+
+    const ownerList = document.querySelector("#owner-list");
+    const ownerStatus = document.querySelector("#owner-status");
+    async function loadOwnerResets() {
+      if (!isOwner()) return;
+      try {
+        const rows = await rpc("hbu_owner_resets", creds());
+        ownerList.replaceChildren();
+        for (const row of rows || []) {
+          const li = document.createElement("li");
+          const name = document.createElement("strong");
+          name.textContent = row.username;
+          const left = document.createElement("small");
+          const hours = Math.max(1, Math.ceil((new Date(row.expires_at) - Date.now()) / 3600000));
+          left.textContent = `expires in ~${hours}h`;
+          const cancel = document.createElement("button");
+          cancel.type = "button";
+          cancel.className = "button";
+          cancel.textContent = "Cancel";
+          cancel.addEventListener("click", async () => {
+            try {
+              await rpc("hbu_owner_cancel_reset", { ...creds(), p_target: row.username });
+              loadOwnerResets();
+            } catch (error) {
+              ownerStatus.textContent = error.message;
+            }
+          });
+          li.append(name, left, cancel);
+          ownerList.append(li);
+        }
+        if (!ownerList.children.length) ownerStatus.textContent = "No open resets.";
+        else if (ownerStatus.textContent === "No open resets.") ownerStatus.textContent = "";
+      } catch (error) {
+        ownerStatus.textContent = /schema cache|function/i.test(error.message) ? "Password resets are not set up yet (run supabase/password-reset.sql)." : error.message;
+      }
+    }
+    document.querySelector("#owner-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const input = document.querySelector("#owner-name");
+      const target = input.value.trim().replace(/^@/, "");
+      if (!target || !isOwner()) return;
+      ownerStatus.textContent = "Saving...";
+      try {
+        const name = await rpc("hbu_owner_allow_reset", { ...creds(), p_target: target });
+        input.value = "";
+        ownerStatus.textContent = `${name} can now choose a new password the next time they try to log in.`;
+        await loadOwnerResets();
+      } catch (error) {
+        ownerStatus.textContent = error.message;
+      }
+    });
+
     document.querySelector("#logout-button").addEventListener("click", () => {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setChatFull(false);
       account = null;
+      closeApp("owner");
       saveSession();
       showChat();
     });
@@ -2824,7 +2980,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], owner: [520, 560] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -2853,12 +3009,13 @@
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
-      clock: { open: () => tickBigClock() }
+      clock: { open: () => tickBigClock() },
+      owner: { open: () => loadOwnerResets() }
     };
 
     function openApp(name) {
       const win = windowEls[name];
-      if (!win) return;
+      if (!win || (name === "owner" && !isOwner())) return;
       const wasClosed = win.hidden;
       if (wasClosed) {
         if (!win.style.width) placeWindow(win, name);
@@ -3274,7 +3431,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
