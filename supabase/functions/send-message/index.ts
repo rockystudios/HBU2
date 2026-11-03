@@ -166,32 +166,125 @@ async function findAccount(name: string): Promise<{ username: string } | undefin
   return rows.find((row: { username: string }) => row.username.toLowerCase() === name.toLowerCase());
 }
 
-type Role = "admin" | "mod" | "user";
+type Role = "admin" | "mod" | "vip" | "user";
 
 async function roleOf(name: string, ignoreBan = false): Promise<Role> {
   if (isAdmin(name)) return "admin";
-  const [row] = await db(`accounts?select=is_mod,banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
-  if (row?.is_mod === true && (ignoreBan || !(row.banned_until && new Date(row.banned_until) > new Date()))) return "mod";
+  const [row] = await db(`accounts?select=role,banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
+  const banned = row?.banned_until && new Date(row.banned_until) > new Date();
+  if ((row?.role === "mod" || row?.role === "vip") && (ignoreBan || !banned)) return row.role;
   return "user";
+}
+
+function parseMinutes(token: string | undefined): number | null {
+  const m = (token ?? "").toLowerCase().match(/^(\d{1,5})(m|min|h|hr|d)?$/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const minutes = m[2] === "d" ? n * 1440 : m[2] === "h" || m[2] === "hr" ? n * 60 : n;
+  return minutes >= 1 ? Math.min(minutes, MAX_ADMIN_BAN_HOURS * 60) : null;
+}
+
+function describeMinutes(minutes: number) {
+  if (minutes % 1440 === 0) return `${minutes / 1440} day${minutes === 1440 ? "" : "s"}`;
+  if (minutes % 60 === 0) return `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
+
+const COMMAND = /^\/(ban|warn|mute|unmute|sugban)(?:\s|$)/i;
+
+// Slash commands: mods get /ban /warn /mute /unmute, VIPs get /warn and /sugban.
+async function handleCommand(staff: string, text: string) {
+  const [head, ...args] = text.trim().split(/\s+/);
+  const cmd = head.slice(1).toLowerCase();
+  const role = await roleOf(staff);
+  const allowed: Record<string, Role[]> = {
+    ban: ["admin", "mod"],
+    mute: ["admin", "mod"],
+    unmute: ["admin", "mod"],
+    warn: ["admin", "mod", "vip"],
+    sugban: ["admin", "vip"],
+  };
+  if (!allowed[cmd].includes(role)) throw new UserError(`You don't have permission to use /${cmd}.`, 403);
+
+  const usage: Record<string, string> = {
+    ban: "/ban @user 30m|2h|1d [reason]",
+    mute: "/mute @user 30m|2h|1d",
+    unmute: "/unmute @user",
+    warn: "/warn @user reason",
+    sugban: "/sugban @user",
+  };
+  const name = (args[0] ?? "").replace(/^@/, "");
+  if (!name) throw new UserError(`Usage: ${usage[cmd]}`);
+  const target = await findAccount(name);
+  if (!target) throw new UserError("That user does not exist.");
+  if (isAdmin(target.username)) throw new UserError("You cannot do that to the admin.");
+  if (target.username === staff && cmd !== "sugban") throw new UserError("You cannot do that to yourself.");
+  const targetRole = await roleOf(target.username, true);
+  if (role !== "admin" && targetRole === "mod" && cmd !== "sugban") throw new UserError("Only the admin can do that to a moderator.", 403);
+
+  if (cmd === "warn") {
+    const reason = args.slice(1).join(" ").trim().slice(0, 200);
+    if (!reason) throw new UserError(`Usage: ${usage.warn}`);
+    await log({ username: target.username, action: `warned by ${staff}`, reason });
+    await botPost(`⚠️ @${target.username} you were warned by @${staff}: ${reason}`);
+    return json({ ok: true, command: true, notice: `Warned ${target.username}.` });
+  }
+  if (cmd === "sugban") {
+    const [recent] = await db(
+      `messages?select=created_at&user=eq.${BOT}&message=ilike.${enc(`*@${staff} sug banned*`)}&created_at=gt.${enc(new Date(Date.now() - 30000).toISOString())}&limit=1`,
+    ).catch(() => []) ?? [];
+    if (recent) throw new UserError("Easy on the sug bans! Wait a few seconds.", 429);
+    await botPost(`🍬 @${staff} sug banned @${target.username}`);
+    return json({ ok: true, command: true, notice: `You sug banned ${target.username}.` });
+  }
+  if (cmd === "unmute") {
+    await db(`accounts?username=eq.${enc(target.username)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ muted_until: null }),
+    });
+    await log({ username: target.username, action: `unmuted by ${staff}` });
+    await botPost(`@${target.username} was unmuted by @${staff}.`);
+    return json({ ok: true, command: true, notice: `Unmuted ${target.username}.` });
+  }
+  const minutes = parseMinutes(args[1]);
+  if (!minutes) throw new UserError(`Add a time, like 30m, 2h or 1d. Usage: ${usage[cmd]}`);
+  const length = describeMinutes(minutes);
+  if (cmd === "mute") {
+    const until = new Date(Date.now() + minutes * 60000).toISOString();
+    await db(`accounts?username=eq.${enc(target.username)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ muted_until: until }),
+    });
+    await log({ username: target.username, action: `mute ${length} by ${staff}` });
+    await botPost(`🔇 @${target.username} was muted from the main chat for ${length} by @${staff}.`);
+    return json({ ok: true, command: true, notice: `Muted ${target.username} for ${length}.` });
+  }
+  const reason = args.slice(2).join(" ").trim().slice(0, 200) || "Broke the chat rules";
+  await applyBan(target.username, minutes / 60, reason);
+  await log({ username: target.username, action: `ban ${length} by ${staff}`, reason });
+  await botPost(`@${target.username} was banned for ${length} by @${staff}. Reason: ${tidyReason(reason)}.`);
+  return json({ ok: true, command: true, notice: `Banned ${target.username} for ${length}.` });
 }
 
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
   const role = await roleOf(staff);
-  if (role === "user") throw new UserError("Moderators only.", 403);
+  if (action === "admin_role") return json({ role });
+  if (role !== "admin" && role !== "mod") throw new UserError("Moderators only.", 403);
   const adminOnly = () => {
     if (role !== "admin") throw new UserError("Only the admin can do that.", 403);
   };
 
-  if (action === "admin_role") return json({ role });
   if (action === "admin_list") {
     const now = enc(new Date().toISOString());
     const banned = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? [];
-    const mods = role === "admin" ? await db("accounts?select=username&is_mod=eq.true&order=username.asc").catch(() => []) ?? [] : [];
+    const roles = role === "admin" ? await db("accounts?select=username,role&role=not.is.null&order=username.asc").catch(() => []) ?? [] : [];
     const botBlocked = await db("accounts?select=username&bot_banned=eq.true&order=username.asc").catch(() => []) ?? [];
     return json({
       role,
       banned,
-      mods: mods.map((row: { username: string }) => row.username),
+      roles,
       bot_blocked: botBlocked.map((row: { username: string }) => row.username),
     });
   }
@@ -240,16 +333,16 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
   const target = typeof body.target === "string" && body.target.trim() ? await findAccount(body.target.trim()) : undefined;
   if (!target) throw new UserError("That user does not exist.");
 
-  if (action === "admin_add_mod" || action === "admin_remove_mod") {
+  if (action === "admin_set_role") {
     adminOnly();
     if (isAdmin(target.username)) throw new UserError("The admin is already all-powerful.");
-    const makeMod = action === "admin_add_mod";
+    const next = body.role === "mod" || body.role === "vip" ? body.role : null;
     await db(`accounts?username=eq.${enc(target.username)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ is_mod: makeMod }),
+      body: JSON.stringify({ role: next }),
     });
-    await log({ username: target.username, action: `${makeMod ? "made moderator" : "removed as moderator"} by ${staff}` });
+    await log({ username: target.username, action: next ? `made ${next} by ${staff}` : `role removed by ${staff}` });
     return json({ ok: true });
   }
   if (action === "admin_bot_block" || action === "admin_bot_restore") {
@@ -308,12 +401,15 @@ export async function handle(req: Request): Promise<Response> {
     const realName: string = await loginRes.json();
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
+    if (COMMAND.test(text)) return await handleCommand(realName, text);
+
     // Run the independent checks at the same time so sending stays fast.
     const wantsDm = typeof receiver === "string" && receiver.toLowerCase() !== "everyone";
-    const [accountRows, found, lastRows] = await Promise.all([
+    const [accountRows, found, lastRows, muteRows] = await Promise.all([
       db(`accounts?select=banned_until,ban_reason&username=eq.${enc(realName)}`),
       wantsDm ? findAccount(receiver) : Promise.resolve(undefined),
       db(`messages?select=created_at&user=eq.${enc(realName)}&order=created_at.desc&limit=1`),
+      db(`accounts?select=muted_until&username=eq.${enc(realName)}`).catch(() => []),
       wordFilter(),
     ]);
     const [account] = accountRows ?? [];
@@ -322,11 +418,16 @@ export async function handle(req: Request): Promise<Response> {
       throw new UserError(`You are banned from chatting until ${new Date(account.banned_until).toUTCString()}.${reason}`, 403);
     }
 
+    const mutedUntil = muteRows?.[0]?.muted_until;
     let target = "everyone";
     if (wantsDm) {
       if (!found) throw new UserError("That user does not exist.");
       if (found.username === realName) throw new UserError("You cannot DM yourself.");
       target = found.username;
+    }
+
+    if (target === "everyone" && !isAdmin(realName) && mutedUntil && new Date(mutedUntil) > new Date()) {
+      throw new UserError(`You are muted from the main chat until ${new Date(mutedUntil).toUTCString()}. You can still send DMs.`, 403);
     }
 
     const [last] = lastRows ?? [];
@@ -336,7 +437,7 @@ export async function handle(req: Request): Promise<Response> {
 
     const asksBot = target === "everyone" && /@mod-bot\b/i.test(text);
     let botBlocked = false;
-    if (target === "everyone" && /@everyone\b/i.test(text) && (await roleOf(realName)) === "user") {
+    if (target === "everyone" && /@everyone\b/i.test(text) && !["admin", "mod"].includes(await roleOf(realName))) {
       throw new UserError("Only moderators can use @everyone.", 403);
     }
     if (asksBot && !isAdmin(realName)) {
