@@ -293,6 +293,15 @@
     .friends-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
     .friends-list button { width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.03); cursor: pointer; }
     .friends-list button:hover { background: rgba(168,85,247,.2); }
+    .app-icon-browser { background: linear-gradient(150deg, #38bdf8, #4f46e5); --glow: rgba(96,165,250,.55); }
+    .app-icon-paint { background: linear-gradient(150deg, #fb923c, #db2777); --glow: rgba(251,146,60,.5); }
+    .browser-body { padding: 0; height: 100%; }
+    .browser-frame { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+    .paint-pane { display: flex; flex-direction: column; gap: 10px; }
+    .paint-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .paint-tools input[type=color] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; }
+    .paint-canvas { flex: 1; min-height: 200px; width: 100%; border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
+    .typing-line { min-height: 18px; padding: 0 16px 4px; font-size: 12px; color: var(--muted); font-style: italic; }
     .notes-pane { display: flex; flex-direction: column; gap: 8px; }
     .notes-pane textarea { flex: 1; width: 100%; resize: none; }
     .calc-pane { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto; }
@@ -568,6 +577,14 @@
           <span class="app-glyph app-icon-themes" aria-hidden="true"></span>
           <span class="app-label">Themes</span>
         </button>
+        <button class="app-icon" type="button" data-app="browser">
+          <span class="app-glyph app-icon-browser" aria-hidden="true"></span>
+          <span class="app-label">Browser</span>
+        </button>
+        <button class="app-icon" type="button" data-app="paint">
+          <span class="app-glyph app-icon-paint" aria-hidden="true"></span>
+          <span class="app-label">Paint</span>
+        </button>
         <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
           <span class="app-label">Owner</span>
@@ -710,6 +727,7 @@
                 <div class="chat-convo-title" id="convo-title"># Main chat</div>
                 <div class="poll-box" id="poll-box" hidden></div>
                 <div class="message-list" id="message-list" role="log" aria-live="polite" tabindex="0"></div>
+                <div class="typing-line" id="typing-line" aria-live="polite"></div>
                 <div class="reply-bar" id="reply-bar" hidden>
                   <span class="reply-bar-text" id="reply-bar-text"></span>
                   <button class="icon-button" id="reply-cancel" type="button" aria-label="Cancel reply">✕</button>
@@ -937,6 +955,41 @@
       </div>
       <div class="win-body">
         <div class="app-pane"><h2>Pick a theme</h2><p class="app-note">Changes the accent colors and background. Saved on this device.</p><div class="theme-grid" id="theme-grid"></div></div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-browser" data-app="browser" role="dialog" aria-label="Browser" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🌐</span> Browser</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Browser" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <iframe class="browser-frame" id="browser-frame" title="Browser" allow="autoplay; fullscreen; gamepad; clipboard-write"></iframe>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-paint" data-app="paint" role="dialog" aria-label="Paint" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🖌️</span> Paint</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Paint" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane paint-pane">
+          <div class="paint-tools">
+            <input type="color" id="paint-color" value="#a855f7" aria-label="Color">
+            <input type="range" id="paint-size" min="1" max="40" value="6" aria-label="Brush size">
+            <button class="button" type="button" id="paint-eraser">Eraser</button>
+            <button class="button" type="button" id="paint-clear">Clear</button>
+            <button class="button button-primary" type="button" id="paint-save">Save PNG</button>
+          </div>
+          <canvas class="paint-canvas" id="paint-canvas" width="900" height="600"></canvas>
+        </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
@@ -2541,6 +2594,8 @@
       calculator: '<rect x="14" y="7" width="36" height="50" rx="7" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><rect x="20" y="13" width="24" height="10" rx="2" fill="#fff" fill-opacity=".85"/><g fill="#fff"><circle cx="23" cy="31" r="2.5"/><circle cx="32" cy="31" r="2.5"/><circle cx="41" cy="31" r="2.5"/><circle cx="23" cy="40" r="2.5"/><circle cx="32" cy="40" r="2.5"/><circle cx="41" cy="40" r="2.5"/><circle cx="23" cy="49" r="2.5"/><circle cx="32" cy="49" r="2.5"/></g><rect x="38" y="45" width="6" height="8" rx="2" fill="#ffe47a"/>',
       clock: '<circle cx="32" cy="32" r="22" fill="#fff" fill-opacity=".15" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="16" fill="none" stroke="#fff" stroke-width="2" opacity=".7"/><path d="M32 18v15l11 7" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="32" r="3" fill="#fff"/>',
       owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      browser: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="9" ry="21" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 32h42M15 21h34M15 43h34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      paint: '<path d="M14 50l5-14 24-24a6 6 0 019 9L28 45z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M19 36l9 9" stroke="#fff" stroke-width="3"/><path d="M12 54q6 2 10-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
     for (const [name, artwork] of Object.entries(APP_LOGOS)) {
@@ -3277,6 +3332,33 @@
       if (!existing) dmPartners = [...dmPartners, name].sort((a, b) => a.localeCompare(b));
       openConvo(existing || name);
     });
+    // Typing indicator (main chat only): ping while typing, poll for others.
+    const typingLine = document.querySelector("#typing-line");
+    let lastTypingPing = 0;
+    messageText.addEventListener("input", () => {
+      if (!account || currentConvo !== "everyone" || !messageText.value.trim() || messageText.value.startsWith("/")) return;
+      if (Date.now() - lastTypingPing < 2500) return;
+      lastTypingPing = Date.now();
+      rpc("hbu_typing_ping", creds()).catch(() => {});
+    });
+    async function pollTyping() {
+      if (!account || document.hidden || !appOpen("chat") || currentConvo !== "everyone") {
+        typingLine.textContent = "";
+        return;
+      }
+      try {
+        const rows = await rpc("hbu_typing_who", creds());
+        const names = (Array.isArray(rows) ? rows : []).map(row => row.username).filter(name => !isBlocked(name));
+        typingLine.textContent = names.length === 0 ? ""
+          : names.length === 1 ? `${names[0]} is typing…`
+          : names.length === 2 ? `${names[0]} and ${names[1]} are typing…`
+          : "Several people are typing…";
+      } catch (error) {
+        typingLine.textContent = "";
+      }
+    }
+    window.setInterval(pollTyping, 2000);
+
     messageText.addEventListener("keydown", event => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
@@ -3415,7 +3497,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3445,6 +3527,8 @@
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
+      browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
+      paint: { open: () => setupPaint() },
       owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
@@ -3659,6 +3743,60 @@
     })();
 
 
+    const BROWSER_URL = "https://ownerbysaugatryt.b-cdn.net/#goog_rewarded";
+
+    let paintReady = false;
+    function setupPaint() {
+      if (paintReady) return;
+      paintReady = true;
+      const canvas = document.querySelector("#paint-canvas");
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      const color = document.querySelector("#paint-color");
+      const size = document.querySelector("#paint-size");
+      let erasing = false;
+      let last = null;
+      const point = event => {
+        const rect = canvas.getBoundingClientRect();
+        return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height };
+      };
+      canvas.addEventListener("pointerdown", event => {
+        last = point(event);
+        canvas.setPointerCapture(event.pointerId);
+        ctx.strokeStyle = erasing ? "#fff" : color.value;
+        ctx.lineWidth = Number(size.value);
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.lineTo(last.x + 0.01, last.y);
+        ctx.stroke();
+      });
+      canvas.addEventListener("pointermove", event => {
+        if (!last) return;
+        const next = point(event);
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.lineTo(next.x, next.y);
+        ctx.stroke();
+        last = next;
+      });
+      for (const name of ["pointerup", "pointercancel"]) canvas.addEventListener(name, () => { last = null; });
+      color.addEventListener("input", () => { erasing = false; });
+      document.querySelector("#paint-eraser").addEventListener("click", () => { erasing = !erasing; });
+      document.querySelector("#paint-clear").addEventListener("click", () => {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      });
+      document.querySelector("#paint-save").addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.download = "hbu-drawing.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+    }
+
     // Extra apps: leaderboard, friends, notes, calculator, clock, themes
     const lbList = document.querySelector("#lb-list");
     const lbNote = document.querySelector("#lb-note");
@@ -3866,7 +4004,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
