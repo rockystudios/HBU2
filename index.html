@@ -260,6 +260,12 @@
     .day-divider::before, .day-divider::after { flex: 1; height: 1px; background: var(--line); content: ""; }
     .message-entry.joined .message-entry-header { justify-content: flex-end; }
     .message-form { padding: 12px; display: flex; gap: 10px; align-items: flex-end; border-top: 1px solid var(--line); }
+    .emoji-wrap { position: relative; }
+    .emoji-popup { position: absolute; right: 0; bottom: 52px; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 252px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #120d20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    .emoji-popup button { padding: 4px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+    .emoji-popup button:hover { background: rgba(168,85,247,.25); }
+    .emoji-popup img, .emoji { width: 28px; height: 28px; vertical-align: middle; }
+    .emoji { width: 1.5em; height: 1.5em; vertical-align: -.35em; }
     .message-form textarea { min-height: 44px; max-height: 120px; resize: none; }
     .message-status, .admin-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
     .toast-stack { position: fixed; z-index: 100; top: 84px; right: 16px; width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
@@ -443,7 +449,7 @@
 <body>
   <div id="desktop">
     <header class="statusbar">
-      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU <em>ARCADE67</em></span></span>
+      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU</span></span>
       <span class="nav-spacer"></span>
       <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
@@ -603,6 +609,10 @@
                 <form class="message-form" id="message-form">
                   <label class="sr-only" for="message-text">Message</label>
                   <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
+                  <span class="emoji-wrap">
+                    <button class="icon-button" id="emoji-button" type="button" aria-label="Emoji picker" aria-expanded="false">🙂</button>
+                    <div class="emoji-popup" id="emoji-popup" hidden></div>
+                  </span>
                   <button class="button button-primary" id="send-message-button" type="submit">Send</button>
                 </form>
               </div>
@@ -2147,12 +2157,107 @@
     let serverMessages = [];
     let pendingMessages = [];
 
+    const EMOJI_EYES = {
+      open: '<circle cx="19" cy="22" r="3"/><circle cx="29" cy="22" r="3"/>',
+      happy: '<path d="M15 24q4-6 8 0M25 24q4-6 8 0" fill="none" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      closed: '<path d="M15 22h8M25 22h8" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      wink: '<circle cx="19" cy="22" r="3"/><path d="M25 22h8" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      x: '<path d="M15 19l7 7M22 19l-7 7M26 19l7 7M33 19l-7 7" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      big: '<circle cx="19" cy="22" r="4.5" fill="#fff"/><circle cx="29" cy="22" r="4.5" fill="#fff"/><circle cx="19" cy="22" r="2"/><circle cx="29" cy="22" r="2"/>',
+      shades: '<rect x="12" y="18" width="11" height="8" rx="3"/><rect x="25" y="18" width="11" height="8" rx="3"/><path d="M23 21h2" stroke="#3b2200" stroke-width="2"/>',
+      hearts: '<path d="M19 27l-5-5a3 3 0 015-3 3 3 0 015 3zM29 27l-5-5a3 3 0 015-3 3 3 0 015 3z" fill="#ff2d6f"/>',
+      side: '<circle cx="21" cy="22" r="3"/><circle cx="31" cy="22" r="3"/>',
+      angry: '<circle cx="19" cy="24" r="2.8"/><circle cx="29" cy="24" r="2.8"/><path d="M13 17l10 4M35 17l-10 4" stroke="#3b2200" stroke-width="3" stroke-linecap="round"/>'
+    };
+    const EMOJI_MOUTH = {
+      grin: '<path d="M14 30q10 12 20 0z" fill="#3b2200"/>',
+      smile: '<path d="M16 31q8 7 16 0" fill="none" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      frown: '<path d="M16 36q8-7 16 0" fill="none" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      o: '<ellipse cx="24" cy="34" rx="4" ry="5" fill="#3b2200"/>',
+      flat: '<path d="M17 34h14" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      smirk: '<path d="M17 34q8 2 15-3" fill="none" stroke="#3b2200" stroke-width="2.5" stroke-linecap="round"/>',
+      tongue: '<path d="M15 31q9 8 18 0z" fill="#3b2200"/><path d="M20 35h8v4a4 4 0 01-8 0z" fill="#ff5d7a"/>'
+    };
+    function faceSvg(eyes, mouth, extra = "", fill = "#ffcf3f") {
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><radialGradient id="g" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff2a8"/><stop offset="1" stop-color="${fill}"/></radialGradient></defs><circle cx="24" cy="24" r="22" fill="url(#g)" stroke="#c98a00" stroke-width="2"/><g fill="#3b2200">${EMOJI_EYES[eyes]}</g>${EMOJI_MOUTH[mouth]}${extra}</svg>`;
+    }
+    const EMOJI_SVG = {
+      laugh: faceSvg("happy", "grin", '<path d="M10 28q-1 6 2 8M38 28q1 6-2 8" stroke="#39b7ff" stroke-width="3" fill="none" stroke-linecap="round"/>'),
+      smile: faceSvg("open", "smile"),
+      grin: faceSvg("open", "grin"),
+      wink: faceSvg("wink", "smirk"),
+      love: faceSvg("hearts", "smile"),
+      cool: faceSvg("shades", "smirk"),
+      sad: faceSvg("open", "frown"),
+      cry: faceSvg("closed", "frown", '<path d="M15 27v10M33 27v10" stroke="#39b7ff" stroke-width="3.5" stroke-linecap="round"/>'),
+      angry: faceSvg("angry", "frown", "", "#ff7a3f"),
+      shock: faceSvg("big", "o"),
+      sus: faceSvg("side", "flat"),
+      silly: faceSvg("wink", "tongue"),
+      dead: faceSvg("x", "flat"),
+      sleep: faceSvg("closed", "flat", '<text x="32" y="12" font-size="12" font-weight="900" fill="#6a5cff" font-family="sans-serif">z</text>'),
+      heart: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 42C6 28 4 16 11 10c5-4 11-2 13 4 2-6 8-8 13-4 7 6 5 18-13 32z" fill="#ff2d6f" stroke="#b00040" stroke-width="2"/><path d="M13 14q3-3 6-1" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".6"/></svg>',
+      fire: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 4c2 9 12 13 12 26a12 12 0 01-24 0c0-6 3-9 6-12 0 4 2 6 4 6-1-8 0-14 2-20z" fill="#ff6a1a" stroke="#c23b00" stroke-width="2"/><path d="M24 24c4 4 6 7 6 10a6 6 0 01-12 0c0-3 3-6 6-10z" fill="#ffd23f"/></svg>',
+      skull: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 4C13 4 8 12 8 21c0 6 3 9 6 11v7h20v-7c3-2 6-5 6-11 0-9-5-17-16-17z" fill="#f2f2f7" stroke="#8a8a99" stroke-width="2"/><circle cx="17" cy="23" r="5"/><circle cx="31" cy="23" r="5"/><path d="M24 29l-3 6h6zM19 39v-5M24 39v-4M29 39v-5" stroke="#555" stroke-width="2"/></svg>',
+      gg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="2" y="8" width="44" height="32" rx="10" fill="#7c3aed" stroke="#c084fc" stroke-width="2"/><text x="24" y="31" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" font-family="sans-serif">GG</text></svg>',
+      sug: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect x="4" y="12" width="40" height="24" rx="12" fill="#ff7ad9" stroke="#c0398f" stroke-width="2"/><path d="M14 14l8 20M24 12l8 24M34 14l6 18" stroke="#fff" stroke-width="3" opacity=".7"/></svg>',
+      star: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M24 3l6 14 15 1-11 10 4 15-14-8-14 8 4-15L3 18l15-1z" fill="#ffd23f" stroke="#c98a00" stroke-width="2" stroke-linejoin="round"/></svg>',
+      thumbsup: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M6 22h9v20H6zM18 22l8-16c4 0 6 3 5 7l-1 6h12c3 0 5 3 4 6l-3 14c-1 3-3 4-6 4H18z" fill="#ffcf3f" stroke="#c98a00" stroke-width="2" stroke-linejoin="round"/></svg>'
+    };
+    const EMOJI_URL = {};
+    for (const [name, svg] of Object.entries(EMOJI_SVG)) EMOJI_URL[name] = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+
+    function emojiImg(name) {
+      const img = document.createElement("img");
+      img.className = "emoji";
+      img.src = EMOJI_URL[name];
+      img.alt = `:${name}:`;
+      img.title = `:${name}:`;
+      return img;
+    }
+
+    function appendWithEmojis(el, text) {
+      let last = 0;
+      for (const match of text.matchAll(/:([a-z]+):/g)) {
+        if (!EMOJI_URL[match[1]]) continue;
+        el.append(text.slice(last, match.index), emojiImg(match[1]));
+        last = match.index + match[0].length;
+      }
+      el.append(text.slice(last));
+    }
+
+    const emojiButton = document.querySelector("#emoji-button");
+    const emojiPopup = document.querySelector("#emoji-popup");
+    for (const name of Object.keys(EMOJI_URL)) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.title = `:${name}:`;
+      b.append(emojiImg(name));
+      b.addEventListener("click", () => {
+        messageText.setRangeText(`:${name}: `, messageText.selectionStart, messageText.selectionEnd, "end");
+        messageText.focus();
+        emojiPopup.hidden = true;
+        emojiButton.setAttribute("aria-expanded", "false");
+      });
+      emojiPopup.append(b);
+    }
+    emojiButton.addEventListener("click", () => {
+      emojiPopup.hidden = !emojiPopup.hidden;
+      emojiButton.setAttribute("aria-expanded", String(!emojiPopup.hidden));
+    });
+    document.addEventListener("click", event => {
+      if (!emojiPopup.hidden && !event.target.closest(".emoji-wrap")) {
+        emojiPopup.hidden = true;
+        emojiButton.setAttribute("aria-expanded", "false");
+      }
+    });
+
     function appendWithMentions(el, content) {
       const me = account ? account.username.toLowerCase() : "";
       let last = 0;
       for (const match of content.matchAll(/@[A-Za-z0-9_-]+/g)) {
         const tag = match[0].slice(1).toLowerCase();
-        el.append(content.slice(last, match.index));
+        appendWithEmojis(el, content.slice(last, match.index));
         const span = document.createElement("span");
         span.className = "mention";
         if (tag === me) span.classList.add("mention-me");
@@ -2162,7 +2267,7 @@
         el.append(span);
         last = match.index + match[0].length;
       }
-      el.append(content.slice(last));
+      appendWithEmojis(el, content.slice(last));
     }
 
     function mentionsMe(content) {
