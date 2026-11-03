@@ -335,6 +335,7 @@ interface Ctx {
   staff: string;
   role: Role;
   rest: string[];
+  raw: string;
   target?: string;
 }
 interface Cmd {
@@ -495,6 +496,36 @@ const COMMANDS: Record<string, Cmd> = {
       const text = rest.join(" ").trim().slice(0, 300);
       if (!text) throw new UserError("Usage: /announce message");
       await botPost(`📢 Announcement from @${staff}: ${await censor(text)}`);
+      return quiet();
+    },
+  },
+  poll: {
+    roles: MOD, usage: '/poll "Question" "Option 1" "Option 2" ["More"]  (or: /poll Question | A | B)',
+    help: "Start a live poll everyone can vote in (2-6 options, open 10 minutes)",
+    run: async ({ staff, raw }) => {
+      const parts = raw.includes("|")
+        ? raw.split("|").map((part) => part.trim())
+        : [...raw.matchAll(/"([^"]+)"|“([^”]+)”/g)].map((m) => (m[1] ?? m[2]).trim());
+      const [question, ...options] = parts.filter(Boolean);
+      if (!question || options.length < 2 || options.length > 6) {
+        throw new UserError('Usage: /poll "Question" "Option 1" "Option 2" (2-6 options), or /poll Question | A | B');
+      }
+      if (question.length > 150 || options.some((option) => option.length > 40)) throw new UserError("Question max 150 characters, options max 40.");
+      await db("polls?closed=eq.false", { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ closed: true }) });
+      await db("polls", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ question: await censor(question), options: await Promise.all(options.map((option) => censor(option))), created_by: staff }),
+      });
+      await botPost(`📊 @${staff} started a poll: ${await censor(question)} (vote in the poll box at the top of chat)`);
+      return quiet();
+    },
+  },
+  endpoll: {
+    roles: MOD, usage: "/endpoll", help: "End the current poll",
+    run: async ({ staff }) => {
+      await db("polls?closed=eq.false", { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ closed: true }) });
+      await botPost(`📊 @${staff} ended the poll.`);
       return quiet();
     },
   },
@@ -750,7 +781,7 @@ async function handleCommand(staff: string, text: string) {
       if (role !== "admin" && (await isStaffRole(await roleOf(target, true)))) throw new UserError("Only the admin can do that to a moderator.", 403);
     }
   }
-  return await cmd.run({ staff, role, rest, target });
+  return await cmd.run({ staff, role, rest, raw: text.trim().slice(head.length).trim(), target });
 }
 
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
