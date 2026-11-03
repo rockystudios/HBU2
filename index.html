@@ -303,14 +303,61 @@
     .paint-canvas { flex: 1; min-height: 200px; width: 100%; border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
     .typing-line { min-height: 18px; padding: 0 16px 4px; font-size: 12px; color: var(--muted); font-style: italic; }
     .app-icon-casino { background: linear-gradient(150deg, #facc15, #dc2626); --glow: rgba(250,204,21,.5); }
-    .casino-pane { display: flex; flex-direction: column; gap: 12px; }
+    .casino-pane { display: flex; flex-direction: column; gap: 14px; }
     .casino-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .casino-row input[type=number] { width: 110px; }
-    .casino-tabs .button[aria-pressed="true"] { border-color: #d7b4ff; box-shadow: 0 0 16px rgba(168,85,247,.55); }
-    .casino-stage { min-height: 110px; display: grid; place-items: center; gap: 6px; padding: 14px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); font-size: 44px; }
-    .casino-stage small { font-size: 15px; color: var(--muted); }
-    .casino-stage.win { box-shadow: 0 0 28px rgba(74,222,128,.5); }
-    .casino-stage.lose { box-shadow: 0 0 28px rgba(248,113,113,.35); }
+    .casino-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .casino-balance { font-size: 26px; font-weight: 850; padding: 6px 16px; border-radius: 999px; border: 1px solid rgba(250,204,21,.5); background: rgba(250,204,21,.1); box-shadow: 0 0 24px rgba(250,204,21,.25); transition: transform .2s; }
+    .casino-balance.bump { transform: scale(1.12); }
+    .casino-net { font-size: 13px; color: var(--muted); }
+    .casino-net.up { color: #4ade80; }
+    .casino-net.down { color: #f87171; }
+    .casino-games { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .casino-card { display: grid; gap: 2px; justify-items: center; padding: 12px 6px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); color: inherit; font: inherit; cursor: pointer; transition: transform .15s, box-shadow .2s, border-color .2s; }
+    .casino-card:hover { transform: translateY(-2px); }
+    .casino-card .ci { font-size: 28px; }
+    .casino-card b { font-size: 14px; }
+    .casino-card small { font-size: 11px; color: var(--muted); }
+    .casino-card[aria-pressed="true"] { border-color: #d7b4ff; box-shadow: 0 0 24px rgba(168,85,247,.6), inset 0 0 18px rgba(168,85,247,.25); background: rgba(168,85,247,.2); }
+    .casino-stage { position: relative; overflow: hidden; min-height: 190px; display: grid; place-items: center; align-content: center; gap: 8px; padding: 16px; text-align: center; border: 1px solid rgba(190,160,255,.35); border-radius: 18px; background: radial-gradient(circle at 50% 30%, rgba(168,85,247,.28), rgba(10,6,24,.85)); transition: box-shadow .3s; }
+    .casino-stage.win { box-shadow: 0 0 40px rgba(74,222,128,.55), inset 0 0 30px rgba(74,222,128,.2); }
+    .casino-stage.lose { box-shadow: 0 0 30px rgba(248,113,113,.35), inset 0 0 24px rgba(248,113,113,.12); }
+    .casino-stage.jackpot { animation: casino-flash .5s ease 4; }
+    @keyframes casino-flash { 50% { box-shadow: 0 0 70px rgba(250,204,21,.9), inset 0 0 50px rgba(250,204,21,.4); } }
+    .casino-msg { font-size: 17px; font-weight: 800; min-height: 24px; }
+    .casino-msg.win { color: #4ade80; text-shadow: 0 0 14px rgba(74,222,128,.7); }
+    .casino-msg.lose { color: #fca5a5; }
+    .casino-big { font-size: 20px; font-weight: 900; letter-spacing: .08em; color: #facc15; text-shadow: 0 0 18px rgba(250,204,21,.9); }
+    .reels { display: flex; gap: 10px; }
+    .reel { width: 76px; height: 92px; display: grid; place-items: center; font-size: 46px; border-radius: 14px; background: linear-gradient(#150a2e, #2a1250 50%, #150a2e); border: 2px solid rgba(190,160,255,.5); box-shadow: inset 0 0 18px rgba(0,0,0,.7); }
+    .reel.spin { animation: reel-blur .12s linear infinite; filter: blur(1.2px); }
+    @keyframes reel-blur { 50% { transform: translateY(5px); } }
+    .reel.hit { border-color: #facc15; box-shadow: 0 0 22px rgba(250,204,21,.8), inset 0 0 18px rgba(0,0,0,.7); }
+    .coin3d { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-size: 40px; font-weight: 900; color: #5b3b00; background: radial-gradient(circle at 35% 30%, #fff3b0, #facc15 55%, #b8860b); border: 4px solid #fde68a; box-shadow: 0 0 30px rgba(250,204,21,.6); }
+    .coin3d.spin { animation: coin-spin .55s linear infinite; }
+    @keyframes coin-spin { to { transform: rotateY(360deg); } }
+    .die { width: 92px; height: 92px; display: grid; place-items: center; font-size: 36px; font-weight: 900; border-radius: 20px; background: linear-gradient(145deg, #fff, #d9ccff); color: #3b0764; box-shadow: 0 0 28px rgba(168,85,247,.6); }
+    .die.spin { animation: die-roll .4s linear infinite; }
+    @keyframes die-roll { to { transform: rotate(360deg) scale(.92); } }
+    .dice-bar { position: relative; width: min(100%, 340px); height: 14px; border-radius: 999px; background: linear-gradient(90deg, #22c55e 0 48%, #ef4444 48% 52%, #22c55e 52% 100%); }
+    .dice-bar i { position: absolute; top: -5px; width: 4px; height: 24px; border-radius: 2px; background: #fff; box-shadow: 0 0 10px #fff; transform: translateX(-50%); transition: left .5s cubic-bezier(.2,1.2,.4,1); left: 50%; }
+    .casino-bets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .casino-bets input[type=number] { width: 96px; }
+    .chip { width: 46px; height: 46px; border-radius: 50%; border: 3px dashed rgba(255,255,255,.75); color: #fff; font: inherit; font-size: 13px; font-weight: 850; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.4); transition: transform .12s; }
+    .chip:hover { transform: translateY(-3px) rotate(-6deg); }
+    .chip:active { transform: scale(.92); }
+    .chip.c1 { background: #7c3aed; } .chip.c2 { background: #2563eb; } .chip.c3 { background: #059669; } .chip.c4 { background: #dc2626; } .chip.c5 { background: #111827; border-color: #facc15; color: #facc15; }
+    .casino-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; }
+    .casino-actions .button { padding: 14px 10px; font-size: 16px; font-weight: 850; }
+    .casino-actions .button:not(:disabled) { box-shadow: 0 0 22px rgba(168,85,247,.55); }
+    .casino-history { display: flex; gap: 6px; align-items: center; min-height: 18px; font-size: 12px; color: var(--muted); }
+    .casino-history i { width: 14px; height: 14px; border-radius: 50%; background: #64748b; }
+    .casino-history i.w { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    .casino-history i.l { background: #f87171; }
+    .confetti { position: absolute; top: -10px; width: 8px; height: 12px; border-radius: 2px; pointer-events: none; animation: confetti-fall 1.4s ease-in forwards; }
+    @keyframes confetti-fall { to { transform: translate(var(--dx), 260px) rotate(var(--rot)); opacity: 0; } }
+    .float-win { position: absolute; font-size: 30px; font-weight: 900; color: #4ade80; text-shadow: 0 0 16px rgba(74,222,128,.9); animation: float-up 1.3s ease-out forwards; pointer-events: none; }
+    @keyframes float-up { from { transform: translateY(30px) scale(.6); opacity: 0; } 25% { opacity: 1; } to { transform: translateY(-50px) scale(1.2); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .reel.spin, .coin3d.spin, .die.spin, .casino-stage.jackpot { animation: none; } .confetti, .float-win { display: none; } }
     .notes-pane { display: flex; flex-direction: column; gap: 8px; }
     .notes-pane textarea { flex: 1; width: 100%; resize: none; }
     .calc-pane { display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto; }
@@ -1016,23 +1063,32 @@
       </div>
       <div class="win-body">
         <div class="app-pane casino-pane">
-          <div class="casino-row"><b>🪙 <span id="casino-coins">0</span> coins</b></div>
-          <p class="rewards-login" id="casino-login" hidden>Log in from <a href="#messages">Messages</a> to gamble your coins.</p>
-          <div class="casino-row casino-tabs">
-            <button class="button" type="button" data-casino="flip" aria-pressed="true">Coin flip</button>
-            <button class="button" type="button" data-casino="dice" aria-pressed="false">Dice</button>
-            <button class="button" type="button" data-casino="slots" aria-pressed="false">Slots</button>
+          <div class="casino-top">
+            <div class="casino-balance">🪙 <span id="casino-coins">0</span></div>
+            <div class="casino-net" id="casino-net">Session: 0</div>
           </div>
-          <p class="muted" id="casino-rules"></p>
-          <div class="casino-row">
-            <label for="casino-bet">Bet</label>
+          <p class="rewards-login" id="casino-login" hidden>Log in from <a href="#messages">Messages</a> to gamble your coins.</p>
+          <div class="casino-games">
+            <button class="casino-card" type="button" data-casino="flip" aria-pressed="true"><span class="ci">🪙</span><b>Coin flip</b><small>Pays 2×</small></button>
+            <button class="casino-card" type="button" data-casino="dice" aria-pressed="false"><span class="ci">🎲</span><b>Dice</b><small>Pays 2×</small></button>
+            <button class="casino-card" type="button" data-casino="slots" aria-pressed="false"><span class="ci">🎰</span><b>Slots</b><small>Up to 20×</small></button>
+          </div>
+          <div class="casino-stage" id="casino-stage" aria-live="polite"></div>
+          <p class="muted" id="casino-rules" style="text-align:center;margin:0"></p>
+          <div class="casino-bets">
+            <button class="chip c1" type="button" data-chip="10">10</button>
+            <button class="chip c2" type="button" data-chip="25">25</button>
+            <button class="chip c3" type="button" data-chip="100">100</button>
+            <button class="chip c4" type="button" data-chip="500">500</button>
+            <button class="chip c5" type="button" data-chip="max">MAX</button>
+            <label for="casino-bet" class="muted">Bet</label>
             <input type="number" id="casino-bet" min="1" max="1000" value="10">
             <button class="button" type="button" id="casino-half">½</button>
             <button class="button" type="button" id="casino-double">2×</button>
           </div>
-          <div class="casino-row" id="casino-actions"></div>
-          <div class="casino-stage" id="casino-stage" aria-live="polite">🎰</div>
-          <p class="muted">Play for fun. Coins are only good for HBU name plates.</p>
+          <div class="casino-actions" id="casino-actions"></div>
+          <div class="casino-history" id="casino-history"><span>Recent:</span></div>
+          <p class="muted" style="margin:0">Play for fun. Coins are only good for HBU name plates.</p>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -3844,14 +3900,55 @@
     }
 
     const CASINO_GAMES = {
-      flip: { rules: "Pick a side. 48% to win, pays 2×.", picks: [["heads", "Heads 🪙"], ["tails", "Tails 🪙"]] },
-      dice: { rules: "Roll 1-100. Low is 1-48, high is 53-100. Pays 2×.", picks: [["low", "Low ⬇️"], ["high", "High ⬆️"]] },
-      slots: { rules: "Two matching = 1.5×, three = 8×, three 7s = 20×.", picks: [["", "Spin 🎰"]] }
+      flip: { rules: "Pick a side. 48% chance to win, pays 2×.", picks: [["heads", "Heads"], ["tails", "Tails"]] },
+      dice: { rules: "Roll 1-100. Low wins on 1-48, High on 53-100 (49-52 always loses). Pays 2×.", picks: [["low", "⬇️ Low"], ["high", "⬆️ High"]] },
+      slots: { rules: "Two matching = 1.5×, three = 8×, three 7s = 20×!", picks: [["", "🎰 SPIN"]] }
     };
+    const SLOT_SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎", "7️⃣"];
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const casinoSleep = ms => new Promise(resolve => window.setTimeout(resolve, reduceMotion ? 0 : ms));
     let casinoGame = "flip";
     let casinoBusy = false;
+    let casinoNet = 0;
+    const casinoHistory = [];
     const casinoStage = document.querySelector("#casino-stage");
     const casinoBet = document.querySelector("#casino-bet");
+    const casinoCoinsEl = document.querySelector("#casino-coins");
+
+    function stageFor(game) {
+      casinoStage.className = "casino-stage";
+      casinoStage.replaceChildren();
+      const msg = document.createElement("div");
+      msg.className = "casino-msg";
+      msg.id = "casino-msg";
+      if (game === "slots") {
+        const reels = document.createElement("div");
+        reels.className = "reels";
+        for (let i = 0; i < 3; i++) { const r = document.createElement("div"); r.className = "reel"; r.textContent = "❔"; reels.append(r); }
+        casinoStage.append(reels);
+      } else if (game === "dice") {
+        const die = document.createElement("div");
+        die.className = "die";
+        die.textContent = "?";
+        const bar = document.createElement("div");
+        bar.className = "dice-bar";
+        bar.append(document.createElement("i"));
+        casinoStage.append(die, bar);
+      } else {
+        const coin = document.createElement("div");
+        coin.className = "coin3d";
+        coin.textContent = "H";
+        casinoStage.append(coin);
+      }
+      msg.textContent = "Place your bet!";
+      casinoStage.append(msg);
+    }
+    function setCasinoCoins(value) {
+      casinoCoinsEl.textContent = value;
+      const box = casinoCoinsEl.parentElement;
+      box.classList.add("bump");
+      window.setTimeout(() => box.classList.remove("bump"), 220);
+    }
     function renderCasino() {
       const game = CASINO_GAMES[casinoGame];
       document.querySelectorAll("[data-casino]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.casino === casinoGame)));
@@ -3868,34 +3965,123 @@
         actions.append(button);
       }
       document.querySelector("#casino-login").hidden = Boolean(account);
-      document.querySelector("#casino-coins").textContent = wallet ? wallet.coins : 0;
+      casinoCoinsEl.textContent = wallet ? wallet.coins : 0;
+      if (!casinoBusy) stageFor(casinoGame);
+    }
+    function casinoConfetti(count) {
+      if (reduceMotion) return;
+      const colors = ["#facc15", "#a855f7", "#4ade80", "#38bdf8", "#f472b6"];
+      for (let i = 0; i < count; i++) {
+        const bit = document.createElement("span");
+        bit.className = "confetti";
+        bit.style.left = `${Math.random() * 100}%`;
+        bit.style.background = colors[i % colors.length];
+        bit.style.setProperty("--dx", `${Math.round(Math.random() * 120 - 60)}px`);
+        bit.style.setProperty("--rot", `${Math.round(Math.random() * 720)}deg`);
+        bit.style.animationDelay = `${Math.random() * 0.3}s`;
+        casinoStage.append(bit);
+        window.setTimeout(() => bit.remove(), 1900);
+      }
+    }
+    function casinoFloat(text) {
+      const el = document.createElement("div");
+      el.className = "float-win";
+      el.textContent = text;
+      casinoStage.append(el);
+      window.setTimeout(() => el.remove(), 1400);
+    }
+    async function animateReveal(r) {
+      const msg = casinoStage.querySelector("#casino-msg");
+      if (casinoGame === "slots") {
+        const reels = [...casinoStage.querySelectorAll(".reel")];
+        const spinner = window.setInterval(() => reels.forEach(el => { if (el.classList.contains("spin")) el.textContent = SLOT_SYMBOLS[Math.floor(Math.random() * 6)]; }), 70);
+        for (let i = 0; i < 3; i++) { reels[i].classList.add("spin"); reels[i].classList.remove("hit"); }
+        await casinoSleep(700);
+        for (let i = 0; i < 3; i++) {
+          reels[i].classList.remove("spin");
+          reels[i].textContent = r.reels[i];
+          await casinoSleep(450);
+        }
+        window.clearInterval(spinner);
+        if (r.reels[0] === r.reels[1] || r.reels[1] === r.reels[2] || r.reels[0] === r.reels[2]) {
+          reels.forEach((el, i) => { if (r.reels.filter(x => x === r.reels[i]).length > 1) el.classList.add("hit"); });
+        }
+      } else if (casinoGame === "dice") {
+        const die = casinoStage.querySelector(".die");
+        die.classList.add("spin");
+        const spinner = window.setInterval(() => { die.textContent = Math.floor(Math.random() * 100) + 1; }, 60);
+        await casinoSleep(900);
+        window.clearInterval(spinner);
+        die.classList.remove("spin");
+        die.textContent = r.roll;
+        casinoStage.querySelector(".dice-bar i").style.left = `${r.roll}%`;
+        await casinoSleep(500);
+      } else {
+        const coin = casinoStage.querySelector(".coin3d");
+        coin.classList.add("spin");
+        coin.textContent = "?";
+        await casinoSleep(1100);
+        coin.classList.remove("spin");
+        coin.textContent = r.side === "heads" ? "H" : "T";
+      }
+      msg.textContent = "";
     }
     async function playCasino(pick) {
       if (!account || casinoBusy) return;
       const bet = Math.floor(Number(casinoBet.value));
-      if (!(bet >= 1 && bet <= 1000)) { casinoStage.textContent = "Bet 1 to 1000 coins."; return; }
+      if (!(bet >= 1 && bet <= 1000)) { stageFor(casinoGame); casinoStage.querySelector("#casino-msg").textContent = "Bet 1 to 1000 coins."; return; }
       casinoBusy = true;
-      casinoStage.className = "casino-stage";
-      casinoStage.textContent = "…";
+      document.querySelectorAll("#casino-actions button").forEach(b => { b.disabled = true; });
+      const gameAtStart = casinoGame;
+      stageFor(gameAtStart);
+      casinoStage.querySelector("#casino-msg").textContent = "Good luck… 🤞";
       try {
-        const r = await rpc("hbu_gamble", { ...walletAuth(), p_game: casinoGame, p_bet: bet, p_pick: pick || null });
-        const shown = casinoGame === "slots" ? r.reels.join(" ") : casinoGame === "dice" ? `🎲 ${r.roll}` : (r.side === "heads" ? "🪙 Heads" : "🪙 Tails");
+        const r = await rpc("hbu_gamble", { ...walletAuth(), p_game: gameAtStart, p_bet: bet, p_pick: pick || null });
+        await animateReveal(r);
         const net = r.payout - r.bet;
-        casinoStage.className = "casino-stage " + (r.won ? "win" : r.payout === 0 ? "lose" : "");
-        casinoStage.replaceChildren(shown);
-        const small = document.createElement("small");
-        small.textContent = r.payout === 0 ? `You lost ${r.bet} coins.` : net > 0 ? `You won ${net} coins! 🎉` : "Push, you got your bet back.";
-        casinoStage.append(small);
+        const msg = casinoStage.querySelector("#casino-msg");
+        const jackpot = r.payout >= r.bet * 8;
+        casinoStage.classList.add(r.payout === 0 ? "lose" : net > 0 ? "win" : "push");
+        if (r.payout === 0) {
+          msg.className = "casino-msg lose";
+          msg.textContent = `Lost ${r.bet} 🪙 · try again!`;
+        } else if (net > 0) {
+          msg.className = "casino-msg win";
+          msg.textContent = jackpot ? `JACKPOT! +${net} 🪙` : `You won +${net} 🪙`;
+          casinoFloat(`+${net}`);
+          casinoConfetti(jackpot ? 70 : 24);
+          if (jackpot) casinoStage.classList.add("jackpot");
+        } else {
+          msg.textContent = "Push, bet returned.";
+        }
+        casinoNet += net;
+        const netEl = document.querySelector("#casino-net");
+        netEl.textContent = `Session: ${casinoNet > 0 ? "+" : ""}${casinoNet}`;
+        netEl.className = "casino-net " + (casinoNet > 0 ? "up" : casinoNet < 0 ? "down" : "");
+        casinoHistory.unshift(net > 0 ? "w" : "l");
+        casinoHistory.length = Math.min(casinoHistory.length, 12);
+        const hist = document.querySelector("#casino-history");
+        hist.replaceChildren(Object.assign(document.createElement("span"), { textContent: "Recent:" }));
+        casinoHistory.forEach(kind => { const dot = document.createElement("i"); dot.className = kind; hist.append(dot); });
         wallet = { ...(wallet || {}), coins: r.coins };
         renderWallet();
-        document.querySelector("#casino-coins").textContent = r.coins;
+        setCasinoCoins(r.coins);
       } catch (error) {
-        casinoStage.textContent = /coins|Bet|Pick/i.test(error.message) ? error.message : "Casino isn't set up yet (run supabase/gambling.sql).";
+        stageFor(gameAtStart);
+        casinoStage.querySelector("#casino-msg").textContent = /coins|Bet|Pick/i.test(error.message) ? error.message : "Casino isn't set up yet (run supabase/gambling.sql).";
       } finally {
         casinoBusy = false;
+        document.querySelectorAll("#casino-actions button").forEach(b => { b.disabled = !account; });
       }
     }
-    document.querySelectorAll("[data-casino]").forEach(b => b.addEventListener("click", () => { casinoGame = b.dataset.casino; renderCasino(); }));
+    document.querySelectorAll("[data-casino]").forEach(b => b.addEventListener("click", () => {
+      if (casinoBusy) return;
+      casinoGame = b.dataset.casino;
+      renderCasino();
+    }));
+    document.querySelectorAll("[data-chip]").forEach(chip => chip.addEventListener("click", () => {
+      casinoBet.value = chip.dataset.chip === "max" ? Math.max(1, Math.min(1000, wallet ? wallet.coins : 1)) : chip.dataset.chip;
+    }));
     document.querySelector("#casino-half").addEventListener("click", () => { casinoBet.value = Math.max(1, Math.floor(casinoBet.value / 2)); });
     document.querySelector("#casino-double").addEventListener("click", () => { casinoBet.value = Math.min(1000, casinoBet.value * 2); });
 
