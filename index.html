@@ -318,6 +318,16 @@
     .quest-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
     .quest-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a855f7, #34d399); box-shadow: 0 0 12px rgba(52,211,153,.6); transition: width .5s; }
     .quest-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+    .app-icon-links { background: linear-gradient(150deg, #22d3ee, #6366f1); --glow: rgba(34,211,238,.5); }
+    .links-pane { display: flex; flex-direction: column; gap: 12px; }
+    .links-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; }
+    .links-list { display: grid; gap: 8px; }
+    .link-card { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(168,85,247,.08); }
+    .link-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-url { grid-column: 1; font-size: 12px; color: #9fe8ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-meta { grid-column: 1; font-size: 11px; color: var(--muted); }
+    .link-btns { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
+    @media (max-width: 700px) { .links-form { grid-template-columns: 1fr; } }
     .casino-pane { display: flex; flex-direction: column; gap: 14px; }
     .casino-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .casino-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -655,6 +665,10 @@
         <button class="app-icon" type="button" data-app="paint">
           <span class="app-glyph app-icon-paint" aria-hidden="true"></span>
           <span class="app-label">Paint</span>
+        </button>
+        <button class="app-icon" type="button" data-app="links">
+          <span class="app-glyph app-icon-links" aria-hidden="true"></span>
+          <span class="app-label">Links</span>
         </button>
         <button class="app-icon" type="button" data-app="quests" id="quests-icon">
           <span class="app-glyph app-icon-quests" aria-hidden="true"></span>
@@ -1068,6 +1082,28 @@
             <button class="button button-primary" type="button" id="paint-save">Save PNG</button>
           </div>
           <canvas class="paint-canvas" id="paint-canvas" width="900" height="600"></canvas>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-links" data-app="links" role="dialog" aria-label="Links" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🔗</span> Unblocked Links</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Links" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane links-pane">
+          <p class="muted" style="margin:0">Share working unblocked sites. Tap Copy to grab a link. Only post safe sites, and don't post anything inappropriate.</p>
+          <form class="links-form" id="links-form" autocomplete="off">
+            <input type="text" id="links-title" maxlength="40" placeholder="Name" required>
+            <input type="url" id="links-url" maxlength="300" placeholder="https://..." required>
+            <button class="button button-primary" type="submit">Post</button>
+          </form>
+          <p class="muted" id="links-note" style="margin:0"></p>
+          <div class="links-list" id="links-list"></div>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -2737,6 +2773,7 @@
       owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       browser: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="9" ry="21" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 32h42M15 21h34M15 43h34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       paint: '<path d="M14 50l5-14 24-24a6 6 0 019 9L28 45z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M19 36l9 9" stroke="#fff" stroke-width="3"/><path d="M12 54q6 2 10-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>',
+      links: '<path d="M27 37a9 9 0 0012 0l9-9a9 9 0 00-13-13l-3 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M37 27a9 9 0 00-12 0l-9 9a9 9 0 0013 13l3-3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>',
       quests: '<circle cx="32" cy="32" r="20" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="4" fill="#fff"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       casino: '<rect x="12" y="14" width="40" height="36" rx="8" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><path d="M24 14v36M40 14v36" stroke="#fff" stroke-width="3"/><circle cx="18" cy="32" r="3" fill="#fff"/><path d="M32 26l4 6-4 6-4-6z" fill="#fff"/><circle cx="46" cy="32" r="3" fill="#fff"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
@@ -3640,7 +3677,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3671,6 +3708,7 @@
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
       quests: { open: () => loadQuests() },
+      links: { open: () => loadLinks() },
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
@@ -3941,6 +3979,95 @@
         link.click();
       });
     }
+
+    // Shared links
+    const linksList = document.querySelector("#links-list");
+    const linksNote = document.querySelector("#links-note");
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (error) {
+        const box = document.createElement("textarea");
+        box.value = text;
+        box.style.position = "fixed";
+        box.style.opacity = "0";
+        document.body.append(box);
+        box.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        box.remove();
+        return ok;
+      }
+    }
+    function renderLinks(rows) {
+      linksList.replaceChildren();
+      if (!rows.length) { linksNote.textContent = "No links yet. Be the first to post one!"; return; }
+      for (const row of rows) {
+        const card = document.createElement("div");
+        card.className = "link-card";
+        const title = document.createElement("b");
+        title.textContent = row.title;
+        const url = document.createElement("span");
+        url.className = "link-url";
+        url.textContent = row.url;
+        const meta = document.createElement("span");
+        meta.className = "link-meta";
+        meta.textContent = `by ${row.posted_by} · copied ${row.copies}×`;
+        const btns = document.createElement("div");
+        btns.className = "link-btns";
+        const copy = document.createElement("button");
+        copy.className = "button button-primary";
+        copy.type = "button";
+        copy.textContent = "Copy";
+        copy.addEventListener("click", async () => {
+          const ok = await copyText(row.url);
+          copy.textContent = ok ? "Copied ✓" : "Press Ctrl+C";
+          window.setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+          if (ok) rpc("hbu_link_copied", { p_id: row.id }).catch(() => {});
+        });
+        btns.append(copy);
+        const mine = account && account.username.toLowerCase() === String(row.posted_by).toLowerCase();
+        if (mine || (account && isStaff())) {
+          const del = document.createElement("button");
+          del.className = "button";
+          del.type = "button";
+          del.textContent = "✕";
+          del.title = "Remove";
+          del.addEventListener("click", async () => {
+            try { await rpc("hbu_link_delete", { ...walletAuth(), p_id: row.id }); } catch (error) { linksNote.textContent = error.message; }
+            loadLinks();
+          });
+          btns.append(del);
+        }
+        card.append(title, btns, url, meta);
+        linksList.append(card);
+      }
+    }
+    async function loadLinks() {
+      try {
+        const rows = await rpc("hbu_links_get", {});
+        linksNote.textContent = "";
+        renderLinks(Array.isArray(rows) ? rows : []);
+      } catch (error) {
+        linksNote.textContent = "Links are not set up yet (run supabase/links.sql).";
+      }
+    }
+    document.querySelector("#links-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) { linksNote.textContent = "Log in from Messages to post a link."; return; }
+      const title = document.querySelector("#links-title");
+      const url = document.querySelector("#links-url");
+      try {
+        await rpc("hbu_link_post", { ...walletAuth(), p_title: title.value, p_url: url.value });
+        title.value = "";
+        url.value = "";
+        await loadLinks();
+        linksNote.textContent = "Posted! 🎉";
+      } catch (error) {
+        linksNote.textContent = error.message;
+      }
+    });
 
     // Quests
     let questRows = [];
@@ -4430,7 +4557,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
