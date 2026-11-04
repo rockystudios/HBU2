@@ -222,6 +222,7 @@
     .reply-quote b { color: #e0c4ff; }
     .message-reply { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; padding: 0; }
     .message-reply:hover { color: #e0c4ff; }
+    .owner-badge { color: #e9d5ff; font-weight: 800; letter-spacing: .02em; text-shadow: 0 0 6px #c084fc, 0 0 14px #a855f7, 0 0 22px #7c3aed; }
     .vip-star { color: #ffd166; text-shadow: 0 0 8px rgba(255,209,102,.8); }
     .mod-check { margin-left: 4px; color: #66e9ff; text-shadow: 0 0 8px rgba(102,233,255,.8); font-size: 12px; }
     .mention { padding: 0 4px; border-radius: 5px; background: rgba(168,85,247,.22); color: #e0c4ff; font-weight: 700; }
@@ -2887,9 +2888,9 @@
           if (userRole) {
             const check = document.createElement("span");
             const def = roleDefs[userRole];
-            const label = userRole === "admin" ? "Admin" : def ? def.label : userRole;
-            const badge = userRole === "admin" ? "✔" : def ? def.badge : "★";
-            check.className = badge === "✔" ? "mod-check" : "mod-check vip-star";
+            const label = userRole === "admin" ? "Owner" : def ? def.label : userRole;
+            const badge = userRole === "admin" ? "꧁꧂" : def ? def.badge : "★";
+            check.className = userRole === "admin" ? "mod-check owner-badge" : badge === "✔" ? "mod-check" : "mod-check vip-star";
             check.textContent = badge;
             check.title = label;
             check.setAttribute("aria-label", label);

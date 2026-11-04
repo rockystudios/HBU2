@@ -207,7 +207,7 @@ async function isStaffRole(role: Role) {
 }
 
 async function roleLabel(role: Role) {
-  return role === "admin" ? "Admin" : role === "user" ? "Member" : (await roleDefs()).get(role)?.label ?? role;
+  return role === "admin" ? "Owner" : role === "user" ? "Member" : (await roleDefs()).get(role)?.label ?? role;
 }
 
 async function canUse(role: Role, name: string) {
@@ -668,7 +668,7 @@ const COMMANDS: Record<string, Cmd> = {
     roles: PERK, usage: "/staff", help: "Show who has a role (only you see it)",
     run: async () => {
       const rows = await db("accounts?select=username,role&role=not.is.null&order=username.asc") ?? [];
-      const lines = ["🛡 Staff:", `Admin: ${ADMINS.join(", ")}`];
+      const lines = ["🛡 Staff:", `Owner: ${ADMINS.join(", ")}`];
       for (const def of (await roleDefs()).values()) {
         const names = rows.filter((r: { role: string }) => r.role === def.name).map((r: { username: string }) => r.username).join(", ") || "none";
         lines.push(`${def.label}: ${names}`);
