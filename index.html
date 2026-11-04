@@ -329,6 +329,41 @@
     .link-meta { grid-column: 1; font-size: 11px; color: var(--muted); }
     .link-btns { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
     @media (max-width: 700px) { .links-form { grid-template-columns: 1fr; } }
+    .app-icon-creator { background: linear-gradient(150deg, #a78bfa, #2563eb); --glow: rgba(129,140,248,.55); }
+    .app-icon-store { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(244,114,182,.5); }
+    .ua-glyph { background: linear-gradient(150deg, #7c3aed, #312e81); overflow: hidden; }
+    .ua-glyph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ua-letter { font-size: 44px; font-weight: 900; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.4); }
+    .creator { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px; height: 100%; box-sizing: border-box; }
+    .creator-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .creator-bar select { min-width: 160px; max-width: 100%; }
+    .creator-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .creator-code, .creator-preview { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(8,4,20,.6); }
+    .creator-tabs { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--line); align-items: center; }
+    .creator-tabs .button { padding: 4px 12px; }
+    .creator-tabs .button[aria-pressed="true"] { border-color: #d7b4ff; box-shadow: 0 0 14px rgba(168,85,247,.55); }
+    .code-area { flex: 1; width: 100%; box-sizing: border-box; resize: none; border: 0; outline: 0; padding: 10px; background: transparent; color: #e9d5ff; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; tab-size: 2; white-space: pre; overflow: auto; }
+    .creator-preview iframe { flex: 1; width: 100%; border: 0; background: #0f0a1f; }
+    .creator-error { margin: 0; padding: 0 10px; font-size: 12px; color: #fca5a5; }
+    .creator-ai { display: grid; gap: 6px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: rgba(168,85,247,.08); }
+    .creator-ai-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .creator-ai-row input { flex: 1; min-width: 160px; }
+    .creator-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(5,3,14,.8); backdrop-filter: blur(4px); }
+    .publish-card { width: min(440px, 94%); max-height: 94%; overflow: auto; display: grid; gap: 10px; padding: 16px; border-radius: 16px; border: 1px solid rgba(190,160,255,.4); background: #140a2a; box-shadow: 0 0 40px rgba(168,85,247,.4); }
+    .publish-card h3 { margin: 0; }
+    .publish-icon-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .publish-icon { width: 96px; height: 96px; border-radius: 24px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(150deg, #7c3aed, #312e81); border: 1px solid rgba(255,255,255,.25); }
+    .publish-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .publish-draw canvas { width: 192px; height: 192px; border-radius: 16px; background: #fff; touch-action: none; cursor: crosshair; }
+    .store-pane { display: flex; flex-direction: column; gap: 12px; }
+    .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .store-card { display: grid; justify-items: center; gap: 6px; padding: 12px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
+    .store-card .store-icon { width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(150deg, #7c3aed, #312e81); }
+    .store-card .store-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .store-card b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .store-card small { color: var(--muted); font-size: 11px; }
+    .store-card .store-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    @media (max-width: 700px) { .creator-main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
     .casino-pane { display: flex; flex-direction: column; gap: 14px; }
     .casino-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .casino-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -666,6 +701,14 @@
         <button class="app-icon" type="button" data-app="paint">
           <span class="app-glyph app-icon-paint" aria-hidden="true"></span>
           <span class="app-label">Paint</span>
+        </button>
+        <button class="app-icon" type="button" data-app="creator">
+          <span class="app-glyph app-icon-creator" aria-hidden="true"></span>
+          <span class="app-label">App Creator</span>
+        </button>
+        <button class="app-icon" type="button" data-app="store">
+          <span class="app-glyph app-icon-store" aria-hidden="true"></span>
+          <span class="app-label">App Store</span>
         </button>
         <button class="app-icon" type="button" data-app="links">
           <span class="app-glyph app-icon-links" aria-hidden="true"></span>
@@ -1087,6 +1130,107 @@
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
+    <section class="app-window" id="win-creator" data-app="creator" role="dialog" aria-label="App Creator" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🛠️</span> App Creator</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close App Creator" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="creator">
+          <div class="creator-bar">
+            <select id="creator-select" aria-label="My apps"><option value="">➕ New app</option></select>
+            <button class="button" type="button" id="creator-save">💾 Save</button>
+            <button class="button button-primary" type="button" id="creator-publish">🚀 Publish</button>
+            <button class="button" type="button" id="creator-delete" hidden>🗑 Delete</button>
+          </div>
+          <p class="muted" id="creator-note" style="margin:0"></p>
+          <div class="creator-main">
+            <div class="creator-code">
+              <div class="creator-tabs">
+                <button class="button" type="button" data-code-tab="html" aria-pressed="true">HTML</button>
+                <button class="button" type="button" data-code-tab="css" aria-pressed="false">CSS</button>
+                <button class="button" type="button" data-code-tab="js" aria-pressed="false">JS</button>
+              </div>
+              <textarea class="code-area" id="code-html" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="HTML code"></textarea>
+              <textarea class="code-area" id="code-css" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="CSS code" hidden></textarea>
+              <textarea class="code-area" id="code-js" spellcheck="false" autocapitalize="off" autocorrect="off" aria-label="JavaScript code" hidden></textarea>
+            </div>
+            <div class="creator-preview">
+              <div class="creator-tabs"><b style="flex:1">Live preview</b><button class="button" type="button" id="preview-reload" title="Restart the preview">↻</button></div>
+              <iframe id="creator-preview" title="Live preview" sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock" allow="autoplay; fullscreen"></iframe>
+              <p class="creator-error" id="creator-error"></p>
+            </div>
+          </div>
+          <div class="creator-ai">
+            <div class="creator-ai-row"><b>🤖 AI helper</b><span class="muted" id="ai-credits">Log in to use it</span></div>
+            <div class="creator-ai-row">
+              <input type="text" id="ai-prompt" maxlength="800" placeholder="Ask for changes, e.g. &quot;make a clicker game with a score&quot;" autocomplete="off">
+              <button class="button button-primary" type="button" id="ai-ask">Ask (1 credit)</button>
+            </div>
+            <p class="muted" id="ai-reply" style="margin:0"></p>
+            <div class="creator-ai-row" id="ai-actions" hidden>
+              <button class="button button-primary" type="button" id="ai-apply">Apply to my code</button>
+              <button class="button" type="button" id="ai-undo" hidden>Undo</button>
+            </div>
+          </div>
+          <div class="creator-overlay" id="publish-panel" hidden>
+            <form class="publish-card" id="publish-form" autocomplete="off">
+              <h3>🚀 Publish your app</h3>
+              <label>App name<input type="text" id="pub-name" maxlength="24" placeholder="My cool app" required></label>
+              <div class="publish-icon-row">
+                <div class="publish-icon" id="pub-icon"></div>
+                <div style="display:grid;gap:6px">
+                  <button class="button" type="button" id="pub-upload">📁 Upload image</button>
+                  <button class="button" type="button" id="pub-draw-toggle">🎨 Draw one</button>
+                  <button class="button" type="button" id="pub-icon-clear">No image</button>
+                </div>
+                <input type="file" id="pub-file" accept="image/*" hidden>
+              </div>
+              <div class="publish-draw" id="pub-draw" hidden>
+                <canvas id="pub-canvas" width="128" height="128"></canvas>
+                <div class="casino-row" style="margin-top:6px">
+                  <input type="color" id="pub-color" value="#7c3aed" aria-label="Color">
+                  <input type="range" id="pub-size" min="2" max="20" value="8" aria-label="Brush size">
+                  <button class="button" type="button" id="pub-draw-clear">Clear</button>
+                  <button class="button button-primary" type="button" id="pub-draw-use">Use drawing</button>
+                </div>
+              </div>
+              <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pub-public"> List it in the App Store so anyone can install it</label>
+              <p class="muted" style="margin:0" id="pub-note">Publishing again later updates the app for everyone who installed it.</p>
+              <div class="casino-row">
+                <button class="button button-primary" type="submit">Publish</button>
+                <button class="button" type="button" id="pub-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-store" data-app="store" role="dialog" aria-label="App Store" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🛍️</span> App Store</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close App Store" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane store-pane">
+          <div class="casino-row">
+            <input type="search" id="store-search" maxlength="30" placeholder="Search apps or creators" autocomplete="off" style="flex:1;min-width:160px">
+            <button class="button" type="button" id="store-refresh">↻</button>
+          </div>
+          <p class="muted" id="store-note" style="margin:0"></p>
+          <div class="store-grid" id="store-grid"></div>
+          <p class="muted" style="margin:0">Apps are made by players. They run in a safe sandbox, but report anything inappropriate to a mod.</p>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
     <section class="app-window" id="win-links" data-app="links" role="dialog" aria-label="Links" hidden>
       <div class="win-titlebar">
         <span class="win-title"><span aria-hidden="true">🔗</span> Unblocked Links</span>
@@ -1195,6 +1339,14 @@
             <p class="app-note" id="accounts-status"></p>
             <ul class="owner-list" id="accounts-list"></ul>
           </details>
+          <h2>AI credits</h2>
+          <p class="app-note">Everyone gets 10 free AI credits a month in the App Creator. Give extra credits here (use a negative number to take some away).</p>
+          <form class="friends-form" id="credits-form">
+            <input id="credits-name" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
+            <input id="credits-amount" type="number" value="20" step="1" aria-label="Credits" style="max-width:100px" required>
+            <button class="button button-primary" type="submit">Give credits</button>
+          </form>
+          <p class="app-note" id="credits-status"></p>
           <h2>Roles</h2>
           <p class="app-note">Make roles and pick which commands each one can use. Changes apply to everyone right away. "Staff" roles also get the admin panel and can talk while the chat is locked.</p>
           <form class="friends-form" id="role-new-form">
@@ -2563,6 +2715,7 @@
       if (!account) {
         wallet = null;
         renderWallet();
+        syncUserApps([]);
         return;
       }
       const current = account;
@@ -2578,6 +2731,7 @@
       renderWallet();
       loadPlates(true);
       loadQuests();
+      loadInstalledApps();
     }
 
     async function buyPlate(plate) {
@@ -2774,6 +2928,8 @@
       owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       browser: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="9" ry="21" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 32h42M15 21h34M15 43h34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       paint: '<path d="M14 50l5-14 24-24a6 6 0 019 9L28 45z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M19 36l9 9" stroke="#fff" stroke-width="3"/><path d="M12 54q6 2 10-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>',
+      creator: '<path d="M24 20L10 32l14 12M40 20l14 12-14 12" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M35 14L29 50" stroke="#fff" stroke-width="4" stroke-linecap="round"/>',
+      store: '<path d="M12 26l4-12h32l4 12z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M14 26v26h36V26" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M26 52V38h12v14" fill="none" stroke="#fff" stroke-width="3"/>',
       links: '<path d="M27 37a9 9 0 0012 0l9-9a9 9 0 00-13-13l-3 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M37 27a9 9 0 00-12 0l-9 9a9 9 0 0013 13l3-3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>',
       quests: '<circle cx="32" cy="32" r="20" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="4" fill="#fff"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       casino: '<rect x="12" y="14" width="40" height="36" rx="8" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><path d="M24 14v36M40 14v36" stroke="#fff" stroke-width="3"/><circle cx="18" cy="32" r="3" fill="#fff"/><path d="M32 26l4 6-4 6-4-6z" fill="#fff"/><circle cx="46" cy="32" r="3" fill="#fff"/>',
@@ -3678,7 +3834,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3710,6 +3866,8 @@
       clock: { open: () => tickBigClock() },
       quests: { open: () => loadQuests() },
       links: { open: () => loadLinks() },
+      creator: { open: () => openCreator() },
+      store: { open: () => loadStore() },
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
@@ -3733,6 +3891,7 @@
       if (!win || win.hidden) return;
       win.hidden = true;
       win.classList.remove("maximized");
+      if (name.startsWith("ua-")) win.querySelector("iframe").srcdoc = "";
       if (name === "arcade") {
         stopGame();
         if (location.hash.startsWith("#play/")) history.replaceState(null, "", location.pathname + location.search);
@@ -3758,7 +3917,7 @@
       win.style.top = `${top}px`;
     }
 
-    for (const [name, win] of Object.entries(windowEls)) {
+    function wireWindow(name, win) {
       win.addEventListener("pointerdown", () => focusWindow(win), true);
       win.querySelector(".win-close").addEventListener("click", () => closeApp(name));
       win.querySelector(".win-full").addEventListener("click", () => toggleMaximize(win));
@@ -3811,6 +3970,7 @@
         grip.addEventListener("pointercancel", stop);
       });
     }
+    for (const [name, win] of Object.entries(windowEls)) wireWindow(name, win);
     for (const icon of document.querySelectorAll(".app-icon")) icon.addEventListener("click", () => openApp(icon.dataset.app));
     window.addEventListener("resize", () => Object.values(windowEls).forEach(clampWindow));
     document.addEventListener("keydown", event => {
@@ -3980,6 +4140,509 @@
         link.click();
       });
     }
+
+    // ---- App Creator, App Store and player-made apps ----
+    const USER_APP_SANDBOX = "allow-scripts allow-forms allow-modals allow-pointer-lock";
+    const userApps = new Map();
+    const appGrid = document.querySelector(".app-grid");
+    const safeIcon = value => typeof value === "string" && /^data:image\/(png|webp|jpeg);base64,/.test(value) ? value : "";
+
+    function buildAppDoc(code, withErrors) {
+      const c = code || {};
+      const shim = "try{window.localStorage.length}catch(e){var m={};try{Object.defineProperty(window,'localStorage',{value:{getItem:function(k){return k in m?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]},clear:function(){m={}},key:function(i){return Object.keys(m)[i]||null},get length(){return Object.keys(m).length}}})}catch(_){}}"
+        + (withErrors ? "window.addEventListener('error',function(e){parent.postMessage({hbuAppError:(e.message||'Error')+(e.lineno?' (line '+e.lineno+')':'')},'*')});" : "");
+      return "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+        + "<style>html,body{margin:0;min-height:100%}body{background:#0f0a1f;color:#efe7ff;font-family:system-ui,sans-serif}</style>"
+        + "<script>" + shim + "<\/script><style>" + (c.css || "") + "</style></head><body>" + (c.html || "") + "<script>" + (c.js || "") + "<\/script></body></html>";
+    }
+
+    function iconNode(icon, name) {
+      const src = safeIcon(icon);
+      if (src) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = src;
+        return img;
+      }
+      const letter = document.createElement("span");
+      letter.className = "ua-letter";
+      letter.textContent = (String(name || "?").trim()[0] || "?").toUpperCase();
+      return letter;
+    }
+
+    function ensureUserApp(row) {
+      const key = `ua-${row.id}`;
+      const existing = userApps.get(row.id);
+      if (existing) {
+        const changed = existing.row.version !== row.version;
+        existing.row = row;
+        existing.label.textContent = row.name;
+        existing.title.textContent = row.name;
+        existing.glyph.replaceChildren(iconNode(row.icon, row.name));
+        if (changed && !existing.win.hidden) loadUserApp(row.id);
+        return;
+      }
+      const button = document.createElement("button");
+      button.className = "app-icon";
+      button.type = "button";
+      button.dataset.app = key;
+      const glyph = document.createElement("span");
+      glyph.className = "app-glyph ua-glyph";
+      glyph.setAttribute("aria-hidden", "true");
+      glyph.append(iconNode(row.icon, row.name));
+      const label = document.createElement("span");
+      label.className = "app-label";
+      label.textContent = row.name;
+      button.append(glyph, label);
+      button.addEventListener("click", () => openApp(key));
+      appGrid.append(button);
+
+      const win = document.createElement("section");
+      win.className = "app-window";
+      win.id = `win-${key}`;
+      win.dataset.app = key;
+      win.hidden = true;
+      win.setAttribute("role", "dialog");
+      win.innerHTML = '<div class="win-titlebar"><span class="win-title"></span><span class="win-controls"><button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button><button class="win-btn win-close" type="button" aria-label="Close" title="Close">✕</button></span></div>'
+        + '<div class="win-body"><iframe class="browser-frame" title="App" allow="autoplay; fullscreen"></iframe></div><span class="win-resize" aria-hidden="true"></span>';
+      win.querySelector("iframe").setAttribute("sandbox", USER_APP_SANDBOX);
+      const title = win.querySelector(".win-title");
+      title.textContent = row.name;
+      win.setAttribute("aria-label", row.name);
+      windowEls.owner.after(win);
+      windowEls[key] = win;
+      windowSizes[key] = [640, 560];
+      appHooks[key] = { open: () => loadUserApp(row.id) };
+      wireWindow(key, win);
+      userApps.set(row.id, { row, button, win, glyph, label, title });
+    }
+
+    function removeUserApp(id) {
+      const entry = userApps.get(id);
+      if (!entry) return;
+      const key = `ua-${id}`;
+      closeApp(key);
+      entry.button.remove();
+      entry.win.remove();
+      delete windowEls[key];
+      delete windowSizes[key];
+      delete appHooks[key];
+      userApps.delete(id);
+    }
+
+    function syncUserApps(rows) {
+      const ids = new Set(rows.map(row => row.id));
+      for (const id of [...userApps.keys()]) if (!ids.has(id)) removeUserApp(id);
+      rows.forEach(ensureUserApp);
+    }
+
+    async function loadUserApp(id) {
+      const entry = userApps.get(id);
+      if (!entry || !account) return;
+      const frame = entry.win.querySelector("iframe");
+      frame.srcdoc = buildAppDoc({ html: '<p style="padding:20px">Loading…</p>' });
+      try {
+        const app = await rpc("hbu_app_get", { ...walletAuth(), p_id: id, p_draft: false });
+        frame.srcdoc = buildAppDoc(app.code, false);
+      } catch (error) {
+        frame.srcdoc = buildAppDoc({ html: '<p style="padding:20px">This app is not available anymore.</p>' });
+      }
+    }
+
+    async function loadInstalledApps() {
+      if (!account) { syncUserApps([]); return; }
+      const current = account;
+      try {
+        const rows = await rpc("hbu_app_installed", walletAuth());
+        if (account === current) syncUserApps(Array.isArray(rows) ? rows : []);
+      } catch (error) {
+        console.warn("Apps unavailable (has supabase/app-creator.sql been run?).", error);
+      }
+    }
+
+    // ---- App Creator ----
+    const creatorEls = {
+      select: document.querySelector("#creator-select"),
+      note: document.querySelector("#creator-note"),
+      preview: document.querySelector("#creator-preview"),
+      error: document.querySelector("#creator-error"),
+      code: { html: document.querySelector("#code-html"), css: document.querySelector("#code-css"), js: document.querySelector("#code-js") },
+      del: document.querySelector("#creator-delete")
+    };
+    const STARTER = {
+      html: '<h1>Hello, HBU! 👋</h1>\n<p>Edit the code on the left and watch me change.</p>\n<button id="btn">Click me</button>\n<p id="out"></p>',
+      css: 'body {\n  display: grid;\n  place-items: center;\n  text-align: center;\n  min-height: 100vh;\n}\nbutton {\n  padding: 10px 20px;\n  border: 0;\n  border-radius: 12px;\n  color: #fff;\n  background: linear-gradient(135deg, #a855f7, #6d28d9);\n  box-shadow: 0 0 20px #a855f7;\n  font-size: 16px;\n  cursor: pointer;\n}',
+      js: 'let clicks = 0;\ndocument.getElementById("btn").addEventListener("click", () => {\n  clicks++;\n  document.getElementById("out").textContent = "Clicked " + clicks + " times!";\n});'
+    };
+    let creatorId = null;
+    let creatorMeta = { name: "", icon: "", is_public: false, published: false };
+    let creatorMine = [];
+    let previewTimer = 0;
+    let aiPending = null;
+    let aiBackup = null;
+
+    const getCode = () => ({ html: creatorEls.code.html.value, css: creatorEls.code.css.value, js: creatorEls.code.js.value });
+    function setCode(code) {
+      creatorEls.code.html.value = code.html || "";
+      creatorEls.code.css.value = code.css || "";
+      creatorEls.code.js.value = code.js || "";
+      refreshPreview();
+    }
+    function refreshPreview() {
+      window.clearTimeout(previewTimer);
+      creatorEls.error.textContent = "";
+      creatorEls.preview.srcdoc = buildAppDoc(getCode(), true);
+    }
+    function schedulePreview() {
+      window.clearTimeout(previewTimer);
+      previewTimer = window.setTimeout(refreshPreview, 450);
+    }
+    window.addEventListener("message", event => {
+      if (event.source !== creatorEls.preview.contentWindow || !event.data || typeof event.data.hbuAppError !== "string") return;
+      creatorEls.error.textContent = `⚠️ ${event.data.hbuAppError.slice(0, 160)}`;
+    });
+    for (const area of Object.values(creatorEls.code)) {
+      area.addEventListener("input", schedulePreview);
+      area.addEventListener("keydown", event => {
+        if (event.key !== "Tab" || event.shiftKey) return;
+        event.preventDefault();
+        const { selectionStart: start, selectionEnd: end } = area;
+        area.value = area.value.slice(0, start) + "  " + area.value.slice(end);
+        area.selectionStart = area.selectionEnd = start + 2;
+        schedulePreview();
+      });
+    }
+    document.querySelectorAll("[data-code-tab]").forEach(tab => tab.addEventListener("click", () => {
+      document.querySelectorAll("[data-code-tab]").forEach(other => other.setAttribute("aria-pressed", String(other === tab)));
+      for (const [name, area] of Object.entries(creatorEls.code)) area.hidden = name !== tab.dataset.codeTab;
+    }));
+    document.querySelector("#preview-reload").addEventListener("click", refreshPreview);
+
+    function creatorNote(text) { creatorEls.note.textContent = text; }
+
+    async function loadAiCredits() {
+      const el = document.querySelector("#ai-credits");
+      if (!account) { el.textContent = "Log in to use it"; return; }
+      try {
+        const c = await rpc("hbu_ai_credits", walletAuth());
+        showAiCredits(c);
+      } catch (error) {
+        el.textContent = "AI isn't set up yet (run supabase/app-creator.sql)";
+      }
+    }
+    function showAiCredits(c) {
+      document.querySelector("#ai-credits").textContent = `🪙 ${c.free_left}/${c.free_total} free this month${c.extra ? ` + ${c.extra} extra` : ""}`;
+    }
+
+    async function loadMyApps(selectId) {
+      if (!account) { creatorMine = []; } else {
+        try { creatorMine = await rpc("hbu_app_mine", walletAuth()); } catch (error) { creatorMine = []; creatorNote("Apps aren't set up yet (run supabase/app-creator.sql)."); }
+      }
+      creatorEls.select.replaceChildren(new Option("➕ New app", ""));
+      for (const app of creatorMine) creatorEls.select.append(new Option(`${app.name}${app.published ? ` (v${app.version})` : " (draft)"}`, String(app.id)));
+      creatorEls.select.value = selectId ? String(selectId) : (creatorId ? String(creatorId) : "");
+      creatorEls.del.hidden = !creatorId;
+    }
+
+    function newCreatorApp() {
+      creatorId = null;
+      creatorMeta = { name: "", icon: "", is_public: false, published: false };
+      aiPending = null;
+      document.querySelector("#ai-actions").hidden = true;
+      setCode(STARTER);
+      creatorEls.del.hidden = true;
+      creatorNote(account ? "New app. Save to keep it, Publish when it's ready." : "Log in from Messages to save, publish and use the AI helper. You can still play around here!");
+    }
+
+    async function openCreator() {
+      if (creatorEls.preview.srcdoc === "" && !creatorEls.code.html.value) newCreatorApp();
+      await loadMyApps();
+      loadAiCredits();
+    }
+
+    creatorEls.select.addEventListener("change", async () => {
+      const id = Number(creatorEls.select.value);
+      if (!id) { newCreatorApp(); return; }
+      try {
+        const app = await rpc("hbu_app_get", { ...walletAuth(), p_id: id, p_draft: true });
+        creatorId = app.id;
+        creatorMeta = { name: app.name, icon: app.icon || "", is_public: Boolean(app.is_public), published: Boolean(app.published) };
+        setCode(app.code || {});
+        creatorEls.del.hidden = false;
+        creatorNote(`Editing "${app.name}"${app.published ? ` (live version ${app.version}). Publish again to update it.` : " (not published yet)."}`);
+      } catch (error) {
+        creatorNote(error.message);
+      }
+    });
+
+    async function saveCreator(quiet) {
+      if (!account) { creatorNote("Log in from Messages to save your app."); return false; }
+      try {
+        creatorId = await rpc("hbu_app_save", { ...walletAuth(), p_id: creatorId, p_draft: getCode() });
+        await loadMyApps(creatorId);
+        if (!quiet) creatorNote("Saved! 💾");
+        return true;
+      } catch (error) {
+        creatorNote(error.message);
+        return false;
+      }
+    }
+    document.querySelector("#creator-save").addEventListener("click", () => saveCreator(false));
+
+    creatorEls.del.addEventListener("click", async () => {
+      if (!creatorId || !window.confirm("Delete this app for good? Everyone who installed it loses it.")) return;
+      try {
+        await rpc("hbu_app_delete", { ...walletAuth(), p_id: creatorId });
+        creatorId = null;
+        await loadMyApps();
+        newCreatorApp();
+        creatorNote("App deleted.");
+        loadInstalledApps();
+      } catch (error) {
+        creatorNote(error.message);
+      }
+    });
+
+    // Publish panel
+    const pubEls = {
+      panel: document.querySelector("#publish-panel"),
+      name: document.querySelector("#pub-name"),
+      icon: document.querySelector("#pub-icon"),
+      pub: document.querySelector("#pub-public"),
+      file: document.querySelector("#pub-file"),
+      draw: document.querySelector("#pub-draw"),
+      canvas: document.querySelector("#pub-canvas"),
+      note: document.querySelector("#pub-note")
+    };
+    let pubIcon = "";
+    function showPubIcon() {
+      pubEls.icon.replaceChildren(iconNode(pubIcon, pubEls.name.value || "?"));
+    }
+    pubEls.name.addEventListener("input", () => { if (!pubIcon) showPubIcon(); });
+    document.querySelector("#creator-publish").addEventListener("click", async () => {
+      if (!account) { creatorNote("Log in from Messages to publish."); return; }
+      pubEls.name.value = creatorMeta.name || "";
+      pubIcon = creatorMeta.icon || "";
+      pubEls.pub.checked = creatorMeta.is_public;
+      pubEls.draw.hidden = true;
+      pubEls.note.textContent = creatorMeta.published ? "Publishing again updates the app for everyone who installed it." : "After publishing, your app shows up on your home screen.";
+      showPubIcon();
+      pubEls.panel.hidden = false;
+      pubEls.name.focus();
+    });
+    document.querySelector("#pub-cancel").addEventListener("click", () => { pubEls.panel.hidden = true; });
+    document.querySelector("#pub-upload").addEventListener("click", () => pubEls.file.click());
+    document.querySelector("#pub-icon-clear").addEventListener("click", () => { pubIcon = ""; showPubIcon(); });
+    document.querySelector("#pub-draw-toggle").addEventListener("click", () => { pubEls.draw.hidden = !pubEls.draw.hidden; if (!pubEls.draw.hidden) clearPubCanvas(); });
+
+    function canvasToIcon(source, srcW, srcH) {
+      for (const size of [128, 96, 64]) {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const side = Math.min(srcW, srcH);
+        ctx.drawImage(source, (srcW - side) / 2, (srcH - side) / 2, side, side, 0, 0, size, size);
+        const url = canvas.toDataURL("image/webp", 0.85);
+        if (url.length <= 45000 && safeIcon(url)) return url;
+      }
+      return "";
+    }
+    pubEls.file.addEventListener("change", () => {
+      const file = pubEls.file.files && pubEls.file.files[0];
+      pubEls.file.value = "";
+      if (!file || !/^image\//.test(file.type) || file.size > 6 * 1024 * 1024) { pubEls.note.textContent = "Pick an image under 6 MB."; return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        pubIcon = canvasToIcon(img, img.naturalWidth, img.naturalHeight);
+        URL.revokeObjectURL(url);
+        pubEls.note.textContent = pubIcon ? "Image added!" : "That image is too detailed. Try a simpler one.";
+        showPubIcon();
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); pubEls.note.textContent = "Couldn't read that image."; };
+      img.src = url;
+    });
+    const pubCtx = pubEls.canvas.getContext("2d");
+    function clearPubCanvas() {
+      if (!pubCtx) return;
+      pubCtx.fillStyle = "#fff";
+      pubCtx.fillRect(0, 0, 128, 128);
+    }
+    if (pubCtx) {
+      pubCtx.lineCap = pubCtx.lineJoin = "round";
+      let last = null;
+      const pt = e => { const r = pubEls.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * 128 / (r.width || 128), y: (e.clientY - r.top) * 128 / (r.height || 128) }; };
+      pubEls.canvas.addEventListener("pointerdown", e => {
+        last = pt(e);
+        if (pubEls.canvas.setPointerCapture) pubEls.canvas.setPointerCapture(e.pointerId);
+        pubCtx.strokeStyle = document.querySelector("#pub-color").value;
+        pubCtx.lineWidth = Number(document.querySelector("#pub-size").value);
+        pubCtx.beginPath(); pubCtx.moveTo(last.x, last.y); pubCtx.lineTo(last.x + 0.01, last.y); pubCtx.stroke();
+      });
+      pubEls.canvas.addEventListener("pointermove", e => {
+        if (!last) return;
+        const n = pt(e);
+        pubCtx.beginPath(); pubCtx.moveTo(last.x, last.y); pubCtx.lineTo(n.x, n.y); pubCtx.stroke();
+        last = n;
+      });
+      for (const name of ["pointerup", "pointercancel"]) pubEls.canvas.addEventListener(name, () => { last = null; });
+    }
+    document.querySelector("#pub-draw-clear").addEventListener("click", clearPubCanvas);
+    document.querySelector("#pub-draw-use").addEventListener("click", () => {
+      pubIcon = canvasToIcon(pubEls.canvas, 128, 128);
+      pubEls.draw.hidden = true;
+      pubEls.note.textContent = pubIcon ? "Drawing added!" : "Couldn't use that drawing. Try again.";
+      showPubIcon();
+    });
+    document.querySelector("#publish-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      pubEls.note.textContent = "Publishing…";
+      if (!(await saveCreator(true))) { pubEls.note.textContent = "Couldn't save your app first."; return; }
+      try {
+        const version = await rpc("hbu_app_publish", { ...walletAuth(), p_id: creatorId, p_name: pubEls.name.value, p_icon: pubIcon || null, p_public: pubEls.pub.checked });
+        creatorMeta = { name: pubEls.name.value.trim(), icon: pubIcon, is_public: pubEls.pub.checked, published: true };
+        pubEls.panel.hidden = true;
+        creatorNote(`🎉 Published "${creatorMeta.name}" (version ${version})! ${creatorMeta.is_public ? "It's in the App Store now." : "Only you can see it."} It's on your home screen.`);
+        await loadMyApps(creatorId);
+        loadInstalledApps();
+      } catch (error) {
+        pubEls.note.textContent = error.message;
+      }
+    });
+
+    // AI helper
+    const aiEls = { prompt: document.querySelector("#ai-prompt"), ask: document.querySelector("#ai-ask"), reply: document.querySelector("#ai-reply"), actions: document.querySelector("#ai-actions"), apply: document.querySelector("#ai-apply"), undo: document.querySelector("#ai-undo") };
+    aiEls.ask.addEventListener("click", async () => {
+      if (!account) { aiEls.reply.textContent = "Log in from Messages to use the AI helper."; return; }
+      const prompt = aiEls.prompt.value.trim();
+      if (prompt.length < 3) { aiEls.reply.textContent = "Tell the AI what you want first."; return; }
+      aiEls.ask.disabled = true;
+      aiEls.reply.textContent = "Thinking… 🤔";
+      aiEls.actions.hidden = true;
+      try {
+        const result = await adminCall("app_ai", { prompt, ...getCode() });
+        aiPending = { html: result.html, css: result.css, js: result.js };
+        aiEls.reply.textContent = `🤖 ${result.message}`;
+        aiEls.actions.hidden = false;
+        aiEls.apply.hidden = false;
+        aiEls.undo.hidden = true;
+        aiEls.prompt.value = "";
+        if (result.credits) showAiCredits(result.credits);
+      } catch (error) {
+        aiEls.reply.textContent = error.message;
+        loadAiCredits();
+      } finally {
+        aiEls.ask.disabled = false;
+      }
+    });
+    aiEls.prompt.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); aiEls.ask.click(); } });
+    aiEls.apply.addEventListener("click", () => {
+      if (!aiPending) return;
+      aiBackup = getCode();
+      setCode(aiPending);
+      aiPending = null;
+      aiEls.apply.hidden = true;
+      aiEls.undo.hidden = false;
+      aiEls.reply.textContent += " ✅ Applied!";
+    });
+    aiEls.undo.addEventListener("click", () => {
+      if (!aiBackup) return;
+      setCode(aiBackup);
+      aiBackup = null;
+      aiEls.actions.hidden = true;
+      aiEls.reply.textContent = "Undone.";
+    });
+
+    // ---- App Store ----
+    const storeGrid = document.querySelector("#store-grid");
+    const storeNote = document.querySelector("#store-note");
+    let storeTimer = 0;
+    async function loadStore() {
+      try {
+        const q = document.querySelector("#store-search").value.trim();
+        const rows = await rpc("hbu_app_store", { p_search: q || null });
+        renderStore(Array.isArray(rows) ? rows : []);
+      } catch (error) {
+        storeNote.textContent = "The App Store isn't set up yet (run supabase/app-creator.sql).";
+      }
+    }
+    function renderStore(rows) {
+      storeGrid.replaceChildren();
+      storeNote.textContent = rows.length ? "" : "No apps yet. Build one in App Creator and publish it as public!";
+      for (const row of rows) {
+        const card = document.createElement("div");
+        card.className = "store-card";
+        const icon = document.createElement("div");
+        icon.className = "store-icon";
+        icon.append(iconNode(row.icon, row.name));
+        const name = document.createElement("b");
+        name.textContent = row.name;
+        const by = document.createElement("small");
+        by.textContent = `by ${row.owner} · ${row.installs} installs`;
+        const actions = document.createElement("div");
+        actions.className = "store-actions";
+        const installed = userApps.has(row.id);
+        const main = document.createElement("button");
+        main.className = "button button-primary";
+        main.type = "button";
+        main.textContent = installed ? "Open" : "Install";
+        main.addEventListener("click", async () => {
+          if (!account) { storeNote.textContent = "Log in from Messages to install apps."; return; }
+          if (!userApps.has(row.id)) {
+            try {
+              await rpc("hbu_app_install", { ...walletAuth(), p_id: row.id, p_on: true });
+              await loadInstalledApps();
+            } catch (error) { storeNote.textContent = error.message; return; }
+          }
+          openApp(`ua-${row.id}`);
+          loadStore();
+        });
+        actions.append(main);
+        if (installed && !(userApps.get(row.id).row.mine)) {
+          const remove = document.createElement("button");
+          remove.className = "button";
+          remove.type = "button";
+          remove.textContent = "Remove";
+          remove.addEventListener("click", async () => {
+            try { await rpc("hbu_app_install", { ...walletAuth(), p_id: row.id, p_on: false }); } catch (error) { storeNote.textContent = error.message; }
+            await loadInstalledApps();
+            loadStore();
+          });
+          actions.append(remove);
+        }
+        if (account && (isStaff() || isOwner() || String(row.owner).toLowerCase() === account.username.toLowerCase())) {
+          const del = document.createElement("button");
+          del.className = "button";
+          del.type = "button";
+          del.textContent = "🗑";
+          del.title = "Delete this app";
+          del.addEventListener("click", async () => {
+            if (!window.confirm(`Delete "${row.name}" for everyone?`)) return;
+            try { await rpc("hbu_app_delete", { ...walletAuth(), p_id: row.id }); } catch (error) { storeNote.textContent = error.message; }
+            await loadInstalledApps();
+            loadStore();
+          });
+          actions.append(del);
+        }
+        card.append(icon, name, by, actions);
+        storeGrid.append(card);
+      }
+    }
+    document.querySelector("#store-search").addEventListener("input", () => { window.clearTimeout(storeTimer); storeTimer = window.setTimeout(loadStore, 350); });
+    document.querySelector("#store-refresh").addEventListener("click", loadStore);
+
+    // Owner: give AI credits
+    document.querySelector("#credits-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const status = document.querySelector("#credits-status");
+      status.textContent = "Working…";
+      try {
+        const result = await adminCall("admin_owner_credits_give", { target: document.querySelector("#credits-name").value.trim(), amount: Number(document.querySelector("#credits-amount").value) });
+        status.textContent = `${result.username} now has ${result.credits.free_left} free + ${result.credits.extra} extra credits.`;
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
 
     // Shared links
     const linksList = document.querySelector("#links-list");
@@ -4558,7 +5221,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
