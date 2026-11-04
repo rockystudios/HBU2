@@ -407,6 +407,8 @@
     .store-card { display: grid; justify-items: center; gap: 6px; padding: 12px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
     .store-card .store-icon { width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(150deg, #7c3aed, #312e81); }
     .store-card .store-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .store-head { margin: 6px 0 0; font-size: 14px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+    .store-card .store-icon .app-glyph { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
     .store-card b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .store-card small { color: var(--muted); font-size: 11px; }
     .store-card .store-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
@@ -1297,8 +1299,11 @@
             <button class="button" type="button" id="store-refresh">↻</button>
           </div>
           <p class="muted" id="store-note" style="margin:0"></p>
+          <h3 class="store-head">Made by HBU</h3>
+          <div class="store-grid" id="official-grid"></div>
+          <h3 class="store-head">Made by players</h3>
           <div class="store-grid" id="store-grid"></div>
-          <p class="muted" style="margin:0">Apps are made by players. They run in a safe sandbox, but report anything inappropriate to a mod.</p>
+          <p class="muted" style="margin:0">Player apps are made by players. They run in a safe sandbox, but report anything inappropriate to a mod.</p>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -4067,7 +4072,7 @@
 
     function openApp(name) {
       const win = windowEls[name];
-      if (!win || (name === "owner" && !isOwner())) return;
+      if (!win || (name === "owner" && !isOwner()) || (OFFICIAL_STORE[name] && !officialOn.has(name))) return;
       const wasClosed = win.hidden;
       if (wasClosed) {
         if (!win.style.width) placeWindow(win, name);
@@ -4756,11 +4761,80 @@
       aiEls.reply.textContent = "Undone.";
     });
 
+    // ---- HBU apps that must be installed from the App Store ----
+    const OFFICIAL_STORE = {
+      links: ["Links", "Share and copy unblocked website links."],
+      pet: ["Pet", "Adopt a pet and keep it happy."],
+      clicker: ["Clicker", "Tap, upgrade and cash out slowly."],
+      achievements: ["Trophies", "Unlock trophies for coin rewards."],
+      requests: ["Requests", "Ask for games and vote on ideas."]
+    };
+    const OFFICIAL_KEY = "hbu-official-apps";
+    const officialOn = new Set();
+    try {
+      for (const id of JSON.parse(localStorage.getItem(OFFICIAL_KEY) || "[]")) if (OFFICIAL_STORE[id]) officialOn.add(id);
+    } catch (error) { /* ignore */ }
+    function applyOfficial() {
+      for (const id of Object.keys(OFFICIAL_STORE)) {
+        const icon = document.querySelector(`.app-icon[data-app="${id}"]`);
+        if (icon) icon.hidden = !officialOn.has(id);
+        if (!officialOn.has(id)) closeApp(id);
+      }
+    }
+    function setOfficial(id, on) {
+      if (on) officialOn.add(id); else officialOn.delete(id);
+      try { localStorage.setItem(OFFICIAL_KEY, JSON.stringify([...officialOn])); } catch (error) { /* ignore */ }
+      applyOfficial();
+      renderOfficial();
+    }
+    function renderOfficial() {
+      const grid = document.querySelector("#official-grid");
+      const q = document.querySelector("#store-search").value.trim().toLowerCase();
+      grid.replaceChildren();
+      for (const [id, [label, blurb]] of Object.entries(OFFICIAL_STORE)) {
+        if (q && !label.toLowerCase().includes(q) && !"hbu".includes(q)) continue;
+        const card = document.createElement("div");
+        card.className = "store-card";
+        const icon = document.createElement("div");
+        icon.className = "store-icon";
+        const glyph = document.querySelector(`.app-icon[data-app="${id}"] .app-glyph`);
+        if (glyph) icon.append(glyph.cloneNode(true));
+        const name = document.createElement("b");
+        name.textContent = label;
+        const by = document.createElement("small");
+        by.textContent = blurb;
+        const actions = document.createElement("div");
+        actions.className = "store-actions";
+        const main = document.createElement("button");
+        main.className = "button button-primary";
+        main.type = "button";
+        const on = officialOn.has(id);
+        main.textContent = on ? "Open" : "Install";
+        main.addEventListener("click", () => {
+          if (!officialOn.has(id)) setOfficial(id, true);
+          openApp(id);
+        });
+        actions.append(main);
+        if (on) {
+          const remove = document.createElement("button");
+          remove.className = "button";
+          remove.type = "button";
+          remove.textContent = "Remove";
+          remove.addEventListener("click", () => setOfficial(id, false));
+          actions.append(remove);
+        }
+        card.append(icon, name, by, actions);
+        grid.append(card);
+      }
+    }
+    applyOfficial();
+
     // ---- App Store ----
     const storeGrid = document.querySelector("#store-grid");
     const storeNote = document.querySelector("#store-note");
     let storeTimer = 0;
     async function loadStore() {
+      renderOfficial();
       try {
         const q = document.querySelector("#store-search").value.trim();
         const rows = await rpc("hbu_app_store", { p_search: q || null });
@@ -4771,7 +4845,7 @@
     }
     function renderStore(rows) {
       storeGrid.replaceChildren();
-      storeNote.textContent = rows.length ? "" : "No apps yet. Build one in App Creator and publish it as public!";
+      storeNote.textContent = rows.length ? "" : "No player apps yet. Build one in App Creator and publish it as public!";
       for (const row of rows) {
         const card = document.createElement("div");
         card.className = "store-card";
