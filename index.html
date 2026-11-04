@@ -3763,7 +3763,7 @@
       event.preventDefault();
       const message = messageText.value.trim();
       if (!account || !message) return;
-      if (/^\/(help|rules|poll|endpoll|spy|warn|sugban|ban|unban|mute|unmute|kick|clear|purge|announce|lock|unlock|slowmode|botban|botunban|banlist|mutelist|whois|warns|addword|delword|words|staff|me|shrug|tableflip|unflip|roll|flip|8ball|hug|highfive)(\s|$)/i.test(message)) {
+      if (/^\/(help|rules|poll|endpoll|spy|sum|warn|sugban|ban|unban|mute|unmute|kick|clear|purge|announce|lock|unlock|slowmode|botban|botunban|banlist|mutelist|whois|warns|addword|delword|words|staff|me|shrug|tableflip|unflip|roll|flip|8ball|hug|highfive)(\s|$)/i.test(message)) {
         messageText.value = "";
         runCommand(message);
         return;
