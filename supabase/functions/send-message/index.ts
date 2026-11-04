@@ -961,12 +961,17 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
     adminOnly();
     if (isAdmin(target.username)) throw new UserError("The admin is already all-powerful.");
     const next = typeof body.role === "string" && (await roleDefs(true)).has(body.role) ? body.role : null;
+    const prevRole = await roleOf(target.username, true);
     await db(`accounts?username=eq.${enc(target.username)}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ role: next }),
     });
     await log({ username: target.username, action: next ? `made ${next} by ${staff}` : `role removed by ${staff}` });
+    if (next && next !== prevRole) {
+      const label = (await roleDefs()).get(next)?.label ?? next;
+      await botPost(`🎉 @${target.username} just got promoted to ${label}!`).catch(() => {});
+    }
     return json({ ok: true });
   }
   if (action === "admin_bot_block" || action === "admin_bot_restore") {
