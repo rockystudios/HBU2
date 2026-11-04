@@ -333,6 +333,11 @@
     .app-icon-pet { background: linear-gradient(150deg, #fb7185, #f59e0b); --glow: rgba(251,146,60,.5); }
     .app-icon-clicker { background: linear-gradient(150deg, #34d399, #0ea5e9); --glow: rgba(52,211,153,.5); }
     .app-icon-achievements { background: linear-gradient(150deg, #fde047, #f97316); --glow: rgba(253,224,71,.5); }
+    .app-icon-logs { background: linear-gradient(150deg, #34d399, #6d28d9); --glow: rgba(52,211,153,.5); }
+    .log-card { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); display: grid; gap: 4px; }
+    .log-card b { font-size: 15px; }
+    .log-card small { color: var(--muted); }
+    .log-card p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
     .app-icon-requests { background: linear-gradient(150deg, #818cf8, #ec4899); --glow: rgba(129,140,248,.55); }
     .mini-pane { display: flex; flex-direction: column; gap: 12px; }
     .mini-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
@@ -797,6 +802,10 @@
         <button class="app-icon" type="button" data-app="requests">
           <span class="app-glyph app-icon-requests" aria-hidden="true"></span>
           <span class="app-label">Requests</span>
+        </button>
+        <button class="app-icon" type="button" data-app="logs">
+          <span class="app-glyph app-icon-logs" aria-hidden="true"></span>
+          <span class="app-label">Logs</span>
         </button>
         <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
@@ -1451,6 +1460,23 @@
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
+    <section class="app-window" id="win-logs" data-app="logs" role="dialog" aria-label="Update Logs" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">📰</span> Update Logs</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Update Logs" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <p class="muted" style="margin:0" id="logs-note">What's new on HBU.</p>
+          <div class="links-list" id="logs-list"></div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+
     <section class="app-window" id="win-quests" data-app="quests" role="dialog" aria-label="Quests" hidden>
       <div class="win-titlebar">
         <span class="win-title"><span aria-hidden="true">🎯</span> Quests</span>
@@ -1545,6 +1571,15 @@
             <button class="button button-primary" type="submit">Give credits</button>
           </form>
           <p class="app-note" id="credits-status"></p>
+          <h2>Update logs</h2>
+          <p class="app-note">Post a new entry for the Logs app. Everyone can read it.</p>
+          <form class="friends-form" id="log-form" style="flex-wrap:wrap">
+            <input id="log-title" type="text" maxlength="80" placeholder="Title (e.g. New game: ...)" autocomplete="off" required style="flex:1 1 100%">
+            <textarea id="log-body" maxlength="2000" rows="3" placeholder="Details (optional)" style="flex:1 1 100%"></textarea>
+            <button class="button button-primary" type="submit">Post log</button>
+          </form>
+          <p class="app-note" id="log-status"></p>
+          <ul class="owner-list" id="log-owner-list"></ul>
           <h2>Roles</h2>
           <p class="app-note">Make roles and pick which commands each one can use. Changes apply to everyone right away. "Staff" roles also get the admin panel and can talk while the chat is locked.</p>
           <form class="friends-form" id="role-new-form">
@@ -1675,6 +1710,14 @@
         emoji: "🏍️",
         image: "assets/game-covers/moto-x3m-2.svg",
         url: "https://tunnle-rush-2025.github.io/projects/moto-x3m-2/index.html"
+      },
+      {
+        id: "web-game",
+        name: "Web Game",
+        genre: "Arcade",
+        emoji: "🌐",
+        image: "assets/game-covers/web-game.svg",
+        url: "https://skiingbeast2025.github.io/webdickers/"
       }
     ];
     const homeView = document.querySelector("#home-view");
@@ -3135,6 +3178,7 @@
       pet: '<circle cx="14" cy="28" r="6" fill="#fff"/><circle cx="25" cy="17" r="6" fill="#fff"/><circle cx="39" cy="17" r="6" fill="#fff"/><circle cx="50" cy="28" r="6" fill="#fff"/><path d="M32 31c-9 0-16 9-14 17 1 5 6 6 10 5 3-1 5-1 8 0 4 1 9 0 10-5 2-8-5-17-14-17z" fill="#fff"/>',
       clicker: '<path d="M20 9l30 25-13 2 8 16-7 3-8-16-10 9z" fill="#fff" fill-opacity=".9" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M12 20h-5M16 10l-3-4M30 6V1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       achievements: '<path d="M20 10h24v14a12 12 0 01-24 0z" fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M20 15h-8c0 9 4 13 9 13M44 15h8c0 9-4 13-9 13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M32 37v9M22 54h20M25 46h14v8H25z" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
+      logs: '<rect x="14" y="10" width="36" height="44" rx="6" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><path d="M22 24h20M22 33h20M22 42h12" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>',
       requests: '<path d="M32 8a16 16 0 00-9 29c2 2 3 4 3 7h12c0-3 1-5 3-7A16 16 0 0032 8z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M26 50h12M28 56h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
@@ -4037,7 +4081,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -4072,13 +4116,14 @@
       clicker: { open: () => openClicker() },
       achievements: { open: () => loadAchievements() },
       requests: { open: () => loadRequests() },
+      logs: { open: () => loadLogs() },
       links: { open: () => loadLinks() },
       creator: { open: () => openCreator() },
       store: { open: () => loadStore() },
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
-      owner: { open: () => { loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
+      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
     function openApp(name) {
@@ -4973,6 +5018,62 @@
     document.querySelector("#store-search").addEventListener("input", () => { window.clearTimeout(storeTimer); storeTimer = window.setTimeout(loadStore, 350); });
     document.querySelector("#store-refresh").addEventListener("click", loadStore);
 
+    // ---- Update logs ----
+    const logsList = document.querySelector("#logs-list");
+    const ownerLogList = document.querySelector("#log-owner-list");
+    function logCard(row, withDelete) {
+      const card = document.createElement("div");
+      card.className = "log-card";
+      const title = document.createElement("b");
+      title.textContent = row.title;
+      const when = document.createElement("small");
+      when.textContent = new Date(row.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      card.append(title, when);
+      if (row.body && !withDelete) {
+        const body = document.createElement("p");
+        body.textContent = row.body;
+        card.append(body);
+      }
+      if (withDelete) {
+        const del = document.createElement("button");
+        del.className = "button";
+        del.type = "button";
+        del.textContent = "Remove";
+        del.addEventListener("click", async () => {
+          try { await rpc("hbu_log_delete", { ...walletAuth(), p_id: row.id }); } catch (error) { document.querySelector("#log-status").textContent = error.message; }
+          loadLogs();
+        });
+        card.append(del);
+      }
+      return card;
+    }
+    async function loadLogs() {
+      const note = document.querySelector("#logs-note");
+      try {
+        const rows = await rpc("hbu_logs_get", {});
+        const list = Array.isArray(rows) ? rows : [];
+        note.textContent = list.length ? "What's new on HBU." : "No updates posted yet.";
+        logsList.replaceChildren(...list.map(row => logCard(row, false)));
+        ownerLogList.replaceChildren(...(isOwner() ? list.map(row => logCard(row, true)) : []));
+      } catch (error) {
+        note.textContent = "Logs aren't set up yet (run supabase/logs.sql).";
+      }
+    }
+    document.querySelector("#log-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const status = document.querySelector("#log-status");
+      status.textContent = "Posting…";
+      try {
+        await rpc("hbu_log_add", { ...walletAuth(), p_title: document.querySelector("#log-title").value, p_body: document.querySelector("#log-body").value });
+        document.querySelector("#log-title").value = "";
+        document.querySelector("#log-body").value = "";
+        status.textContent = "Posted!";
+        loadLogs();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
     // Owner: give AI credits
     document.querySelector("#credits-form").addEventListener("submit", async event => {
       event.preventDefault();
@@ -5845,7 +5946,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#creator": "creator", "#store": "store", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
