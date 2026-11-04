@@ -407,6 +407,8 @@
     .store-card { display: grid; justify-items: center; gap: 6px; padding: 12px; text-align: center; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
     .store-card .store-icon { width: 72px; height: 72px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(150deg, #7c3aed, #312e81); }
     .store-card .store-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .ua-lock { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; background: #0f0a1f; }
+    .ua-lock p { margin: 0; }
     .store-head { margin: 6px 0 0; font-size: 14px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
     .store-card .store-icon .app-glyph { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
     .store-card b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1273,6 +1275,15 @@
                 </div>
               </div>
               <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pub-public"> List it in the App Store so anyone can install it</label>
+              <div class="casino-row">
+                <label for="pub-price">Price (coins, 0 = free)</label>
+                <input type="number" id="pub-price" min="0" max="1000" value="0" style="width:90px">
+                <select id="pub-per" aria-label="Charge">
+                  <option value="once">one time</option>
+                  <option value="day">per day</option>
+                </select>
+              </div>
+              <p class="muted" style="margin:0">Paid apps pay the coins straight to you. If you add a price to a free app, people who haven't paid have to pay to keep using it.</p>
               <p class="muted" style="margin:0" id="pub-note">Publishing again later updates the app for everyone who installed it.</p>
               <div class="casino-row">
                 <button class="button button-primary" type="submit">Publish</button>
@@ -4412,7 +4423,7 @@
       win.hidden = true;
       win.setAttribute("role", "dialog");
       win.innerHTML = '<div class="win-titlebar"><span class="win-title"></span><span class="win-controls"><button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button><button class="win-btn win-close" type="button" aria-label="Close" title="Close">✕</button></span></div>'
-        + '<div class="win-body"><iframe class="browser-frame" title="App" allow="autoplay; fullscreen"></iframe></div><span class="win-resize" aria-hidden="true"></span>';
+        + '<div class="win-body" style="position:relative"><iframe class="browser-frame" title="App" allow="autoplay; fullscreen"></iframe><div class="ua-lock" hidden></div></div><span class="win-resize" aria-hidden="true"></span>';
       win.querySelector("iframe").setAttribute("sandbox", USER_APP_SANDBOX);
       const title = win.querySelector(".win-title");
       title.textContent = row.name;
@@ -4444,13 +4455,51 @@
       rows.forEach(ensureUserApp);
     }
 
+    function showLock(id, info) {
+      const entry = userApps.get(id);
+      const lock = entry.win.querySelector(".ua-lock");
+      const daily = info.price_per === "day";
+      lock.replaceChildren();
+      const h = document.createElement("b");
+      h.textContent = `🔒 ${info.name}`;
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = daily ? `${info.owner} charges ${info.price} coins a day to use this app.` : `${info.owner} charges ${info.price} coins, one time, to use this app.`;
+      const note = document.createElement("p");
+      note.className = "muted";
+      lock.append(h, p);
+      let days = null;
+      if (daily) {
+        days = document.createElement("select");
+        for (const n of [1, 3, 7, 14, 30]) days.append(new Option(`${n} day${n > 1 ? "s" : ""} · ${n * info.price} coins`, String(n)));
+        lock.append(days);
+      }
+      const buy = document.createElement("button");
+      buy.type = "button";
+      buy.className = "button button-primary";
+      buy.textContent = daily ? "Buy time" : `Buy for ${info.price} coins`;
+      buy.addEventListener("click", async () => {
+        buy.disabled = true;
+        try {
+          await rpc("hbu_app_buy", { ...walletAuth(), p_id: id, p_days: days ? Number(days.value) : 1 });
+          refreshWallet();
+          await loadInstalledApps();
+          loadUserApp(id);
+        } catch (error) { note.textContent = error.message; buy.disabled = false; }
+      });
+      lock.append(buy, note);
+      lock.hidden = false;
+    }
+
     async function loadUserApp(id) {
       const entry = userApps.get(id);
       if (!entry || !account) return;
+      entry.win.querySelector(".ua-lock").hidden = true;
       const frame = entry.win.querySelector("iframe");
       frame.srcdoc = buildAppDoc({ html: '<p style="padding:20px">Loading…</p>' });
       try {
         const app = await rpc("hbu_app_get", { ...walletAuth(), p_id: id, p_draft: false });
+        if (app.locked) { frame.srcdoc = ""; showLock(id, app); return; }
         frame.srcdoc = buildAppDoc(app.code, false);
       } catch (error) {
         frame.srcdoc = buildAppDoc({ html: '<p style="padding:20px">This app is not available anymore.</p>' });
@@ -4483,7 +4532,7 @@
       js: 'let clicks = 0;\ndocument.getElementById("btn").addEventListener("click", () => {\n  clicks++;\n  document.getElementById("out").textContent = "Clicked " + clicks + " times!";\n});'
     };
     let creatorId = null;
-    let creatorMeta = { name: "", icon: "", is_public: false, published: false };
+    let creatorMeta = { name: "", icon: "", is_public: false, published: false, price: 0, price_per: "once" };
     let creatorMine = [];
     let previewTimer = 0;
     let aiPending = null;
@@ -4554,7 +4603,7 @@
 
     function newCreatorApp() {
       creatorId = null;
-      creatorMeta = { name: "", icon: "", is_public: false, published: false };
+      creatorMeta = { name: "", icon: "", is_public: false, published: false, price: 0, price_per: "once" };
       aiPending = null;
       document.querySelector("#ai-actions").hidden = true;
       setCode(STARTER);
@@ -4574,7 +4623,7 @@
       try {
         const app = await rpc("hbu_app_get", { ...walletAuth(), p_id: id, p_draft: true });
         creatorId = app.id;
-        creatorMeta = { name: app.name, icon: app.icon || "", is_public: Boolean(app.is_public), published: Boolean(app.published) };
+        creatorMeta = { name: app.name, icon: app.icon || "", is_public: Boolean(app.is_public), published: Boolean(app.published), price: app.price || 0, price_per: app.price_per || "once" };
         setCode(app.code || {});
         creatorEls.del.hidden = false;
         creatorNote(`Editing "${app.name}"${app.published ? ` (live version ${app.version}). Publish again to update it.` : " (not published yet)."}`);
@@ -4617,6 +4666,8 @@
       name: document.querySelector("#pub-name"),
       icon: document.querySelector("#pub-icon"),
       pub: document.querySelector("#pub-public"),
+      price: document.querySelector("#pub-price"),
+      per: document.querySelector("#pub-per"),
       file: document.querySelector("#pub-file"),
       draw: document.querySelector("#pub-draw"),
       canvas: document.querySelector("#pub-canvas"),
@@ -4632,6 +4683,8 @@
       pubEls.name.value = creatorMeta.name || "";
       pubIcon = creatorMeta.icon || "";
       pubEls.pub.checked = creatorMeta.is_public;
+      pubEls.price.value = String(creatorMeta.price || 0);
+      pubEls.per.value = creatorMeta.price_per || "once";
       pubEls.draw.hidden = true;
       pubEls.note.textContent = creatorMeta.published ? "Publishing again updates the app for everyone who installed it." : "After publishing, your app shows up on your home screen.";
       showPubIcon();
@@ -4704,13 +4757,15 @@
     });
     document.querySelector("#publish-form").addEventListener("submit", async event => {
       event.preventDefault();
+      const price = Math.floor(Number(pubEls.price.value) || 0);
+      if (price < 0 || price > 1000) { pubEls.note.textContent = "Price must be 0 to 1000 coins."; return; }
       pubEls.note.textContent = "Publishing…";
       if (!(await saveCreator(true))) { pubEls.note.textContent = "Couldn't save your app first."; return; }
       try {
-        const version = await rpc("hbu_app_publish", { ...walletAuth(), p_id: creatorId, p_name: pubEls.name.value, p_icon: pubIcon || null, p_public: pubEls.pub.checked });
-        creatorMeta = { name: pubEls.name.value.trim(), icon: pubIcon, is_public: pubEls.pub.checked, published: true };
+        const version = await rpc("hbu_app_publish", { ...walletAuth(), p_id: creatorId, p_name: pubEls.name.value, p_icon: pubIcon || null, p_public: pubEls.pub.checked, p_price: price, p_per: pubEls.per.value });
+        creatorMeta = { name: pubEls.name.value.trim(), icon: pubIcon, is_public: pubEls.pub.checked, published: true, price, price_per: pubEls.per.value };
         pubEls.panel.hidden = true;
-        creatorNote(`🎉 Published "${creatorMeta.name}" (version ${version})! ${creatorMeta.is_public ? "It's in the App Store now." : "Only you can see it."} It's on your home screen.`);
+        creatorNote(`🎉 Published "${creatorMeta.name}" (version ${version})! ${creatorMeta.is_public ? "It's in the App Store now" + (price ? ` for ${price} coins${pubEls.per.value === "day" ? " a day" : ""}.` : ".") : "Only you can see it."} It's on your home screen.`);
         await loadMyApps(creatorId);
         loadInstalledApps();
       } catch (error) {
@@ -4855,17 +4910,27 @@
         const name = document.createElement("b");
         name.textContent = row.name;
         const by = document.createElement("small");
-        by.textContent = `by ${row.owner} · ${row.installs} installs`;
+        const priceText = row.price > 0 ? `${row.price} coins${row.price_per === "day" ? "/day" : ""}` : "Free";
+        by.textContent = `by ${row.owner} · ${row.installs} installs · ${priceText}`;
         const actions = document.createElement("div");
         actions.className = "store-actions";
         const installed = userApps.has(row.id);
         const main = document.createElement("button");
         main.className = "button button-primary";
         main.type = "button";
-        main.textContent = installed ? "Open" : "Install";
+        const mineApp = Boolean(account) && String(row.owner).toLowerCase() === account.username.toLowerCase();
+        const needsPay = row.price > 0 && !mineApp && !(installed && userApps.get(row.id).row.unlocked);
+        main.textContent = needsPay ? `Buy · ${priceText}` : installed ? "Open" : "Install";
         main.addEventListener("click", async () => {
           if (!account) { storeNote.textContent = "Log in from Messages to install apps."; return; }
-          if (!userApps.has(row.id)) {
+          if (needsPay) {
+            if (!window.confirm(`Pay ${row.price} coins to ${row.owner} for "${row.name}"${row.price_per === "day" ? " (1 day)" : ""}?`)) return;
+            try {
+              await rpc("hbu_app_buy", { ...walletAuth(), p_id: row.id, p_days: 1 });
+              refreshWallet();
+              await loadInstalledApps();
+            } catch (error) { storeNote.textContent = error.message; return; }
+          } else if (!userApps.has(row.id)) {
             try {
               await rpc("hbu_app_install", { ...walletAuth(), p_id: row.id, p_on: true });
               await loadInstalledApps();
