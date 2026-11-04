@@ -1072,6 +1072,19 @@
           </form>
         </div>
         <div class="rewards-card">
+          <h3>Change password</h3>
+          <p>Type your old password, then pick a new one. Every other browser signed in to your account gets signed out.</p>
+          <form class="settings-form" id="password-form" autocomplete="off">
+            <label for="pw-old">Old password</label>
+            <input id="pw-old" type="password" required autocomplete="current-password">
+            <label for="pw-new">New password (6+ characters)</label>
+            <input id="pw-new" type="password" minlength="6" maxlength="100" required autocomplete="new-password">
+            <label for="pw-new2">New password again</label>
+            <input id="pw-new2" type="password" minlength="6" maxlength="100" required autocomplete="new-password">
+            <button class="button button-primary" id="pw-submit" type="submit">Change password</button>
+          </form>
+        </div>
+        <div class="rewards-card">
           <h3>Blocked users</h3>
           <p>You won't see their messages, DMs or notifications.</p>
           <form class="settings-inline" id="block-form">
@@ -2061,9 +2074,18 @@
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error((body && body.message) || `Request failed (${response.status}).`);
+        const message = (body && body.message) || `Request failed (${response.status}).`;
+        if (/wrong username or password/i.test(message) && account && args && args.p_username === account.username && args.p_password === account.password) signOutEverywhere();
+        throw new Error(message);
       }
       return body;
+    }
+
+    // The saved password stopped working (it was changed in another browser), so this browser gets signed out.
+    function signOutEverywhere() {
+      if (!account) return;
+      doSignOut();
+      showToast("Your password was changed, so you were signed out. Log in again.");
     }
 
     async function sendMessage(message, receiver) {
@@ -2074,6 +2096,7 @@
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
+        if (response.status === 401) signOutEverywhere();
         const error = new Error((body && body.error) || `Request failed (${response.status}).`);
         error.status = response.status;
         throw error;
@@ -2568,6 +2591,27 @@
         showToast(`Could not change username: ${error.message}`);
       } finally {
         renameSubmit.disabled = false;
+      }
+    });
+
+    document.querySelector("#password-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) return;
+      const oldPw = document.querySelector("#pw-old").value;
+      const newPw = document.querySelector("#pw-new").value;
+      if (newPw !== document.querySelector("#pw-new2").value) { showToast("The new passwords don't match."); return; }
+      const submit = document.querySelector("#pw-submit");
+      submit.disabled = true;
+      try {
+        await rpc("hbu_change_password", { p_username: account.username, p_password: oldPw, p_new: newPw });
+        account = { username: account.username, password: newPw };
+        saveSession();
+        event.target.reset();
+        showToast("Password changed. Your other browsers were signed out.");
+      } catch (error) {
+        showToast(`Could not change password: ${error.message}`);
+      } finally {
+        submit.disabled = false;
       }
     });
 
@@ -3890,7 +3934,8 @@
       }
     });
 
-    document.querySelector("#logout-button").addEventListener("click", () => {
+    document.querySelector("#logout-button").addEventListener("click", doSignOut);
+    function doSignOut() {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setChatFull(false);
       account = null;
@@ -3901,7 +3946,7 @@
       drawPoll();
       saveSession();
       showChat();
-    });
+    }
     convoMain.addEventListener("click", () => openConvo("everyone"));
     dmNewForm.addEventListener("submit", event => {
       event.preventDefault();
