@@ -338,6 +338,24 @@
     .log-card b { font-size: 15px; }
     .log-card small { color: var(--muted); }
     .log-card p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .app-icon-social { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(244,114,182,.55); }
+    .soc-compose { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
+    .soc-compose textarea { width: 100%; min-height: 64px; resize: vertical; }
+    .soc-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .soc-row .grow { flex: 1; }
+    .soc-preview { max-width: 100%; max-height: 180px; border-radius: 10px; border: 1px solid var(--line); }
+    .soc-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .soc-tabs .button[aria-pressed="true"] { background: linear-gradient(135deg, #a855f7, #6d28d9); color: #fff; }
+    .soc-card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
+    .soc-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .soc-head .soc-name { font-weight: 700; background: none; border: 0; color: #e9d5ff; cursor: pointer; padding: 0; font: inherit; font-weight: 700; }
+    .soc-head .soc-name:hover { text-decoration: underline; }
+    .soc-head time { color: var(--muted); font-size: 11px; }
+    .soc-body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .soc-img { max-width: 100%; max-height: 420px; border-radius: 12px; border: 1px solid var(--line); justify-self: start; }
+    .soc-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .soc-like[aria-pressed="true"] { color: #f472b6; border-color: #f472b6; }
+    .soc-profile { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.12); }
     .app-icon-requests { background: linear-gradient(150deg, #818cf8, #ec4899); --glow: rgba(129,140,248,.55); }
     .mini-pane { display: flex; flex-direction: column; gap: 12px; }
     .mini-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
@@ -806,6 +824,10 @@
         <button class="app-icon" type="button" data-app="logs">
           <span class="app-glyph app-icon-logs" aria-hidden="true"></span>
           <span class="app-label">Logs</span>
+        </button>
+        <button class="app-icon" type="button" data-app="social">
+          <span class="app-glyph app-icon-social" aria-hidden="true"></span>
+          <span class="app-label">HBU Social</span>
         </button>
         <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
@@ -1473,6 +1495,44 @@
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
+    <section class="app-window" id="win-social" data-app="social" role="dialog" aria-label="HBU Social" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">💬</span> HBU Social</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close HBU Social" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <p class="muted" id="soc-login" hidden style="margin:0">Log in from <a href="#messages">Messages</a> to use HBU Social.</p>
+          <div id="soc-main">
+            <form class="soc-compose" id="soc-form" autocomplete="off">
+              <textarea id="soc-text" maxlength="500" placeholder="What's happening?"></textarea>
+              <img class="soc-preview" id="soc-preview" alt="Picture to post" hidden>
+              <div class="soc-row">
+                <label class="button" for="soc-file">🖼 Add picture</label>
+                <input type="file" id="soc-file" accept="image/png,image/jpeg,image/webp" hidden>
+                <button class="button" type="button" id="soc-unpic" hidden>Remove picture</button>
+                <span class="grow muted" id="soc-count" style="text-align:right">0 / 500</span>
+                <button class="button button-primary" type="submit" id="soc-send">Post</button>
+              </div>
+            </form>
+            <p class="muted" id="soc-status" style="margin:6px 0 0"></p>
+            <div class="soc-tabs" id="soc-tabs" style="margin:8px 0">
+              <button class="button" type="button" data-mode="all" aria-pressed="true">Everyone</button>
+              <button class="button" type="button" data-mode="following" aria-pressed="false">Following</button>
+            </div>
+            <div id="soc-profile" class="soc-profile" hidden></div>
+            <div class="links-list" id="soc-feed"></div>
+            <button class="button" type="button" id="soc-more" hidden style="margin-top:8px">Load more</button>
+          </div>
+          <p class="muted" style="margin:0">Text and pictures only, no videos. Be kind. Staff can remove posts.</p>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+
     <section class="app-window" id="win-logs" data-app="logs" role="dialog" aria-label="Update Logs" hidden>
       <div class="win-titlebar">
         <span class="win-title"><span aria-hidden="true">📰</span> Update Logs</span>
@@ -3223,6 +3283,7 @@
       clicker: '<path d="M20 9l30 25-13 2 8 16-7 3-8-16-10 9z" fill="#fff" fill-opacity=".9" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M12 20h-5M16 10l-3-4M30 6V1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       achievements: '<path d="M20 10h24v14a12 12 0 01-24 0z" fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M20 15h-8c0 9 4 13 9 13M44 15h8c0 9-4 13-9 13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M32 37v9M22 54h20M25 46h14v8H25z" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
       logs: '<rect x="14" y="10" width="36" height="44" rx="6" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><path d="M22 24h20M22 33h20M22 42h12" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>',
+      social: '<path d="M10 14h44v28H30L18 52V42h-8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M32 36s-9-5-9-11a5 5 0 019-3 5 5 0 019 3c0 6-9 11-9 11z" fill="#fff"/>',
       requests: '<path d="M32 8a16 16 0 00-9 29c2 2 3 4 3 7h12c0-3 1-5 3-7A16 16 0 0032 8z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M26 50h12M28 56h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
@@ -4133,7 +4194,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], social: [620, 700], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -4168,6 +4229,7 @@
       clicker: { open: () => openClicker() },
       achievements: { open: () => loadAchievements() },
       requests: { open: () => loadRequests() },
+      social: { open: () => socOpen() },
       logs: { open: () => loadLogs() },
       links: { open: () => loadLinks() },
       creator: { open: () => openCreator() },
@@ -5510,6 +5572,228 @@
       }
     });
 
+    // ---- HBU Social ----
+    const soc = { mode: "all", user: null, image: "", posts: [], busy: false };
+    function socOpen() {
+      $("#soc-login").hidden = Boolean(account);
+      $("#soc-main").hidden = !account;
+      if (account) socReload();
+    }
+    const socTime = iso => new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    function socCard(post) {
+      const card = document.createElement("article");
+      card.className = "soc-card";
+      const head = document.createElement("div");
+      head.className = "soc-head";
+      const name = document.createElement("button");
+      name.type = "button";
+      name.className = "soc-name";
+      name.textContent = post.author;
+      name.addEventListener("click", () => socShowUser(post.author));
+      const time = document.createElement("time");
+      time.dateTime = post.created_at;
+      time.textContent = socTime(post.created_at);
+      head.append(name, time);
+      card.append(head);
+      if (post.body) {
+        const body = document.createElement("p");
+        body.className = "soc-body";
+        body.textContent = post.body;
+        card.append(body);
+      }
+      if (post.image && /^data:image\/(png|webp|jpeg);base64,/.test(post.image)) {
+        const img = document.createElement("img");
+        img.className = "soc-img";
+        img.alt = `Picture from ${post.author}`;
+        img.loading = "lazy";
+        img.src = post.image;
+        card.append(img);
+      }
+      const actions = document.createElement("div");
+      actions.className = "soc-actions";
+      const like = document.createElement("button");
+      like.type = "button";
+      like.className = "button soc-like";
+      const paintLike = () => { like.setAttribute("aria-pressed", String(post.liked)); like.textContent = `${post.liked ? "♥" : "♡"} ${post.likes}`; like.setAttribute("aria-label", post.liked ? "Unlike" : "Like"); };
+      paintLike();
+      like.addEventListener("click", async () => {
+        like.disabled = true;
+        try {
+          const result = await rpc("hbu_social_like", { ...walletAuth(), p_id: post.id });
+          post.liked = result.liked;
+          post.likes = Number(result.likes);
+          paintLike();
+        } catch (error) { $("#soc-status").textContent = error.message; }
+        like.disabled = false;
+      });
+      actions.append(like);
+      if (!post.mine) {
+        const follow = document.createElement("button");
+        follow.type = "button";
+        follow.className = "button";
+        const paintFollow = () => { follow.textContent = post.following ? "Following ✓" : "Follow"; };
+        paintFollow();
+        follow.addEventListener("click", async () => {
+          follow.disabled = true;
+          try {
+            await rpc("hbu_social_follow", { ...walletAuth(), p_target: post.author, p_on: !post.following });
+            for (const other of soc.posts) if (other.author.toLowerCase() === post.author.toLowerCase()) other.following = !post.following;
+            socDraw();
+          } catch (error) { $("#soc-status").textContent = error.message; follow.disabled = false; }
+        });
+        actions.append(follow);
+      }
+      if (post.can_delete) {
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "button";
+        del.textContent = "🗑";
+        del.title = "Delete this post";
+        del.addEventListener("click", async () => {
+          if (!window.confirm("Delete this post?")) return;
+          try { await rpc("hbu_social_delete", { ...walletAuth(), p_id: post.id }); } catch (error) { $("#soc-status").textContent = error.message; return; }
+          soc.posts = soc.posts.filter(item => item.id !== post.id);
+          socDraw();
+        });
+        actions.append(del);
+      }
+      card.append(actions);
+      return card;
+    }
+    function socDraw() {
+      const feed = $("#soc-feed");
+      feed.replaceChildren(...soc.posts.map(socCard));
+      if (!soc.posts.length) {
+        const empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = soc.mode === "following" ? "Nothing yet. Follow people to see their posts here." : "No posts yet. Be the first!";
+        feed.append(empty);
+      }
+    }
+    async function socLoad(more) {
+      if (soc.busy || !account) return;
+      soc.busy = true;
+      try {
+        const before = more && soc.posts.length ? soc.posts[soc.posts.length - 1].id : null;
+        const rows = await rpc("hbu_social_feed", { ...walletAuth(), p_mode: soc.user ? "user" : soc.mode, p_user: soc.user, p_before: before });
+        const list = Array.isArray(rows) ? rows : [];
+        soc.posts = more ? soc.posts.concat(list) : list;
+        $("#soc-more").hidden = list.length < 15;
+        $("#soc-status").textContent = "";
+        socDraw();
+      } catch (error) {
+        $("#soc-status").textContent = /function|schema cache/i.test(error.message) ? "HBU Social isn't set up yet (run supabase/social.sql)." : error.message;
+      }
+      soc.busy = false;
+    }
+    function socReload() { return socLoad(false); }
+    async function socShowUser(name) {
+      soc.user = name;
+      const box = $("#soc-profile");
+      box.hidden = false;
+      box.replaceChildren();
+      $("#soc-tabs").hidden = true;
+      try {
+        const info = await rpc("hbu_social_profile", { ...walletAuth(), p_target: name });
+        const title = document.createElement("b");
+        title.textContent = info.username;
+        const stats = document.createElement("span");
+        stats.className = "muted";
+        stats.textContent = `${info.posts} posts · ${info.followers} followers · ${info.following} following`;
+        const row = document.createElement("div");
+        row.className = "soc-row";
+        const back = document.createElement("button");
+        back.type = "button";
+        back.className = "button";
+        back.textContent = "← Back";
+        back.addEventListener("click", () => { soc.user = null; box.hidden = true; $("#soc-tabs").hidden = false; socReload(); });
+        row.append(back);
+        if (!info.me) {
+          const follow = document.createElement("button");
+          follow.type = "button";
+          follow.className = "button button-primary";
+          let on = info.followed;
+          const paint = () => { follow.textContent = on ? "Following ✓" : "Follow"; };
+          paint();
+          follow.addEventListener("click", async () => {
+            try { await rpc("hbu_social_follow", { ...walletAuth(), p_target: info.username, p_on: !on }); on = !on; paint(); socShowUser(name); } catch (error) { $("#soc-status").textContent = error.message; }
+          });
+          row.append(follow);
+        }
+        box.append(title, stats, row);
+      } catch (error) { $("#soc-status").textContent = error.message; }
+      socReload();
+    }
+    for (const tab of document.querySelectorAll("#soc-tabs button")) {
+      tab.addEventListener("click", () => {
+        soc.mode = tab.dataset.mode;
+        for (const other of document.querySelectorAll("#soc-tabs button")) other.setAttribute("aria-pressed", String(other === tab));
+        socReload();
+      });
+    }
+    $("#soc-more").addEventListener("click", () => socLoad(true));
+    $("#soc-text").addEventListener("input", () => { $("#soc-count").textContent = `${$("#soc-text").value.length} / 500`; });
+    function socClearImage() {
+      soc.image = "";
+      $("#soc-preview").hidden = true;
+      $("#soc-preview").removeAttribute("src");
+      $("#soc-unpic").hidden = true;
+    }
+    $("#soc-unpic").addEventListener("click", socClearImage);
+    $("#soc-file").addEventListener("change", () => {
+      const input = $("#soc-file");
+      const file = input.files && input.files[0];
+      input.value = "";
+      if (!file) return;
+      if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024) { $("#soc-status").textContent = "Pick a png, jpeg or webp picture under 10 MB (no gifs or videos)."; return; }
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let scale = Math.min(1, 900 / Math.max(img.width, img.height));
+        let data = "";
+        for (let attempt = 0; attempt < 6; attempt++) {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) break;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          data = canvas.toDataURL("image/jpeg", 0.8);
+          if (data.length <= 190000) break;
+          scale *= 0.75;
+          data = "";
+        }
+        if (!data) { $("#soc-status").textContent = "That picture is too detailed. Try a smaller one."; return; }
+        soc.image = data;
+        $("#soc-preview").src = data;
+        $("#soc-preview").hidden = false;
+        $("#soc-unpic").hidden = false;
+        $("#soc-status").textContent = "";
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); $("#soc-status").textContent = "Couldn't read that picture."; };
+      img.src = url;
+    });
+    $("#soc-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) return;
+      const send = $("#soc-send");
+      send.disabled = true;
+      try {
+        await rpc("hbu_social_post", { ...walletAuth(), p_body: $("#soc-text").value, p_image: soc.image || null });
+        $("#soc-text").value = "";
+        $("#soc-count").textContent = "0 / 500";
+        socClearImage();
+        $("#soc-status").textContent = "Posted! 🎉";
+        if (soc.user) { soc.user = null; $("#soc-profile").hidden = true; $("#soc-tabs").hidden = false; }
+        await socReload();
+        $("#soc-status").textContent = "Posted! 🎉";
+      } catch (error) {
+        $("#soc-status").textContent = error.message;
+      }
+      send.disabled = false;
+    });
+
     // Quests
     let questRows = [];
     const questList = document.querySelector("#quest-list");
@@ -5998,7 +6282,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
