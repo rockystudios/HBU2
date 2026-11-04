@@ -840,6 +840,22 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
     });
     return json({ accounts: rows ?? [] });
   }
+  if (action === "admin_owner_credits_give") {
+    const target = await findAccount(String(body.target ?? "").trim());
+    if (!target) throw new UserError("That user does not exist.");
+    const amount = Math.trunc(Number(body.amount));
+    if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > 100000) throw new UserError("Enter an amount between -100000 and 100000 (not 0).");
+    try {
+      const state = await db("rpc/hbu_ai_give", { method: "POST", body: JSON.stringify({ p_who: target.username, p_amount: amount }) });
+      await log({ username: target.username, action: `${amount > 0 ? "given" : "removed"} ${Math.abs(amount)} AI credits by ${staff}` });
+      return json({ ok: true, username: target.username, credits: state });
+    } catch (error) {
+      if (/hbu_ai_give|schema cache|42883|PGRST202/i.test(String((error as Error).message))) {
+        throw new UserError("AI credits aren't set up yet. Run supabase/app-creator.sql in the Supabase SQL editor, then try again.", 500);
+      }
+      throw error;
+    }
+  }
   if (action === "admin_owner_roles") {
     return json({ roles: [...(await roleDefs(true)).values()], commands: all });
   }
@@ -1008,13 +1024,55 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
   throw new UserError("Unknown action.");
 }
 
+const AI_PROMPT = `You are the AI helper inside HBU's App Creator, where kids and teens build small apps with HTML, CSS and JavaScript.
+The app runs in a sandboxed iframe: "html" is only the BODY content (no <html>, <head> or <body> tags, no <script> tags), "css" is plain CSS, "js" is plain JavaScript that runs after the HTML loads.
+Keep apps self contained (no external libraries or network calls unless asked), friendly, and fun to use. Keep the futuristic dark purple style unless asked otherwise.
+Never include anything hateful, sexual, violent, or any code that tries to steal data or escape the sandbox; if asked, politely refuse in "message" and return the code unchanged.
+Reply ONLY with JSON: {"message": "one or two short friendly sentences about what you did or a quick answer", "html": "...", "css": "...", "js": "..."}.
+Always return the COMPLETE updated html, css and js (not snippets). If the user only asked a question, return the code unchanged.`;
+
+async function appAi(name: string, body: Record<string, unknown>) {
+  const prompt = String(body.prompt ?? "").trim().slice(0, 800);
+  if (prompt.length < 3) throw new UserError("Tell the AI what you want (a few words at least).");
+  const cut = (v: unknown) => String(v ?? "").slice(0, 20000);
+  let kind: string;
+  try {
+    kind = await db("rpc/hbu_ai_take", { method: "POST", body: JSON.stringify({ p_who: name }) });
+  } catch (error) {
+    const text = String((error as Error).message);
+    if (/out of AI credits/i.test(text)) throw new UserError("You are out of AI credits. Free credits come back next month.", 402);
+    if (/hbu_ai_take|schema cache|42883|PGRST202/i.test(text)) throw new UserError("AI isn't set up yet. Run supabase/app-creator.sql in the Supabase SQL editor.", 500);
+    throw error;
+  }
+  try {
+    const raw = await openai([
+      { role: "system", content: AI_PROMPT },
+      { role: "user", content: `Current code:\nHTML:\n${cut(body.html)}\n\nCSS:\n${cut(body.css)}\n\nJS:\n${cut(body.js)}\n\nRequest: ${prompt}` },
+    ], true, 3500);
+    const out = JSON.parse(raw);
+    const credits = await db("rpc/hbu_ai_state", { method: "POST", body: JSON.stringify({ p_who: name }) });
+    return json({
+      ok: true,
+      message: String(out.message ?? "Done!").slice(0, 400),
+      html: String(out.html ?? body.html ?? "").slice(0, 60000),
+      css: String(out.css ?? body.css ?? "").slice(0, 60000),
+      js: String(out.js ?? body.js ?? "").slice(0, 60000),
+      credits,
+    });
+  } catch (error) {
+    await db("rpc/hbu_ai_refund", { method: "POST", body: JSON.stringify({ p_who: name, p_kind: kind }) }).catch(() => {});
+    console.error("app_ai failed", error);
+    throw new UserError("The AI is unavailable right now. You were not charged. Try again in a moment.", 503);
+  }
+}
+
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
-    const isAdminAction = typeof action === "string" && action.startsWith("admin_");
+    const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
     }
@@ -1030,6 +1088,7 @@ export async function handle(req: Request): Promise<Response> {
     const realName: string = await loginRes.json();
     recordIp(req, realName);
     if (action === "edit_message") return await editMessage(realName, body.id, text);
+    if (action === "app_ai") return await appAi(realName, body);
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
     if (COMMAND.test(text)) {
