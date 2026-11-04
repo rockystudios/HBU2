@@ -329,6 +329,53 @@
     .link-meta { grid-column: 1; font-size: 11px; color: var(--muted); }
     .link-btns { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 6px; }
     @media (max-width: 700px) { .links-form { grid-template-columns: 1fr; } }
+
+    .app-icon-pet { background: linear-gradient(150deg, #fb7185, #f59e0b); --glow: rgba(251,146,60,.5); }
+    .app-icon-clicker { background: linear-gradient(150deg, #34d399, #0ea5e9); --glow: rgba(52,211,153,.5); }
+    .app-icon-achievements { background: linear-gradient(150deg, #fde047, #f97316); --glow: rgba(253,224,71,.5); }
+    .app-icon-requests { background: linear-gradient(150deg, #818cf8, #ec4899); --glow: rgba(129,140,248,.55); }
+    .mini-pane { display: flex; flex-direction: column; gap: 12px; }
+    .mini-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .mini-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a855f7, #34d399); box-shadow: 0 0 12px rgba(52,211,153,.5); transition: width .5s; }
+    .mini-bar.warm i { background: linear-gradient(90deg, #f59e0b, #fb7185); box-shadow: 0 0 12px rgba(251,146,60,.5); }
+    .mini-card { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
+    .pet-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .pet-pick { font-size: 34px; padding: 10px 0; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.04); cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .pet-pick:hover { transform: translateY(-3px); }
+    .pet-pick.on { border-color: #c084fc; box-shadow: 0 0 20px rgba(192,132,252,.6); background: rgba(168,85,247,.2); }
+    .pet-stage { display: grid; place-items: center; gap: 6px; padding: 18px 10px 12px; border-radius: 18px; border: 1px solid var(--line); background: radial-gradient(circle at 50% 60%, rgba(168,85,247,.28), transparent 70%); }
+    .pet-face { position: relative; font-size: 96px; line-height: 1; filter: drop-shadow(0 10px 18px rgba(0,0,0,.5)); animation: pet-bob 2.4s ease-in-out infinite; user-select: none; }
+    .pet-face.sad { animation-duration: 4.5s; filter: grayscale(.6) drop-shadow(0 10px 18px rgba(0,0,0,.5)); }
+    .pet-face.happy { animation: pet-hop .6s ease-in-out 3; }
+    .pet-mood { position: absolute; right: -18px; top: -6px; font-size: 32px; }
+    .pet-name { font-size: 20px; font-weight: 850; }
+    .pet-stat { display: grid; grid-template-columns: 82px 1fr 38px; gap: 8px; align-items: center; font-size: 13px; }
+    .pet-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pet-actions .button { flex: 1; }
+    @keyframes pet-bob { 50% { transform: translateY(-8px) scale(1.03); } }
+    @keyframes pet-hop { 40% { transform: translateY(-26px) rotate(-6deg); } 70% { transform: translateY(-4px) rotate(5deg); } }
+    .click-big { position: relative; width: 170px; height: 170px; margin: 6px auto; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); background: radial-gradient(circle at 35% 30%, #86efac, #0ea5e9 70%); font-size: 70px; cursor: pointer; box-shadow: 0 0 40px rgba(52,211,153,.55), inset 0 -12px 24px rgba(0,0,0,.3); transition: transform .08s; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .click-big:active, .click-big.press { transform: scale(.93); }
+    .click-pop { position: absolute; pointer-events: none; font-weight: 900; color: #bbf7d0; text-shadow: 0 0 8px #34d399; animation: click-pop .8s ease-out forwards; }
+    @keyframes click-pop { to { transform: translateY(-70px); opacity: 0; } }
+    .click-stats { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+    .click-up { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+    .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .ach-card { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.03); }
+    .ach-card .ach-icon { grid-row: 1 / span 3; font-size: 34px; filter: grayscale(1); opacity: .5; }
+    .ach-card.on { border-color: rgba(250,204,21,.6); background: rgba(250,204,21,.08); box-shadow: 0 0 18px rgba(250,204,21,.2); }
+    .ach-card.on .ach-icon { filter: none; opacity: 1; }
+    .ach-card small { color: var(--muted); }
+    .req-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+    .req-card { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(168,85,247,.08); }
+    .req-vote { grid-row: 1 / span 3; display: grid; place-items: center; min-width: 52px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: inherit; cursor: pointer; font-weight: 800; }
+    .req-vote.on { border-color: #c084fc; background: rgba(168,85,247,.3); box-shadow: 0 0 14px rgba(192,132,252,.5); }
+    .req-card.added { border-color: rgba(74,222,128,.6); }
+    .req-card.declined { opacity: .55; }
+    .req-card .req-note { grid-column: 2; font-size: 12px; color: #cdb8f0; word-break: break-word; }
+    .req-card .req-meta { grid-column: 2; font-size: 11px; color: var(--muted); }
+    .req-btns { grid-column: 3; grid-row: 1 / span 3; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    @media (max-width: 700px) { .req-form { grid-template-columns: 1fr; } }
     .app-icon-creator { background: linear-gradient(150deg, #a78bfa, #2563eb); --glow: rgba(129,140,248,.55); }
     .app-icon-store { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(244,114,182,.5); }
     .ua-glyph { background: linear-gradient(150deg, #7c3aed, #312e81); overflow: hidden; }
@@ -554,7 +601,7 @@
     .home-greeting { display: flex; flex-direction: column; align-items: center; }
     .home-greeting h1 { max-width: none; margin: 14px 0 10px; font-size: clamp(38px, 7vw, 68px); }
     .home-greeting p { margin: 0 0 20px; color: #aaa2b8; font-size: 15px; }
-    .app-grid { --cell: 86px; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); grid-auto-rows: var(--cell) 14px; width: min(100%, 1500px); align-items: center; justify-items: center; transform: translateX(2.5%); }
+    .app-grid { --cell: 86px; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); grid-auto-rows: var(--cell) 30px; width: min(100%, 1500px); align-items: center; justify-items: center; transform: translateX(2.5%); }
     .app-grid > .app-icon { grid-column: var(--c, auto); grid-row: var(--r, auto); width: 100%; }
     .app-grid .app-glyph { width: clamp(50px, 5vw, 72px); height: clamp(50px, 5vw, 72px); font-size: clamp(25px, 2.5vw, 36px); border-radius: clamp(15px, 1.5vw, 21px); }
     .app-grid .app-logo { width: 62%; height: 62%; }
@@ -730,6 +777,22 @@
         <button class="app-icon" type="button" data-app="casino">
           <span class="app-glyph app-icon-casino" aria-hidden="true"></span>
           <span class="app-label">Casino</span>
+        </button>
+        <button class="app-icon" type="button" data-app="pet">
+          <span class="app-glyph app-icon-pet" aria-hidden="true"></span>
+          <span class="app-label">Pet</span>
+        </button>
+        <button class="app-icon" type="button" data-app="clicker">
+          <span class="app-glyph app-icon-clicker" aria-hidden="true"></span>
+          <span class="app-label">Clicker</span>
+        </button>
+        <button class="app-icon" type="button" data-app="achievements">
+          <span class="app-glyph app-icon-achievements" aria-hidden="true"></span>
+          <span class="app-label">Trophies</span>
+        </button>
+        <button class="app-icon" type="button" data-app="requests">
+          <span class="app-glyph app-icon-requests" aria-hidden="true"></span>
+          <span class="app-label">Requests</span>
         </button>
         <button class="app-icon" type="button" data-app="owner" id="owner-icon" hidden>
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
@@ -1258,6 +1321,116 @@
           </form>
           <p class="muted" id="links-note" style="margin:0"></p>
           <div class="links-list" id="links-list"></div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-pet" data-app="pet" role="dialog" aria-label="Pet" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🐾</span> Pet</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Pet" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <div class="casino-top">
+            <div class="casino-balance">🪙 <span id="pet-coins">0</span></div>
+            <span class="muted">Adopt 🪙100 · food 🪙5 · playing is free</span>
+          </div>
+          <p class="muted" id="pet-note"></p>
+          <div id="pet-adopt" class="mini-card" hidden>
+            <b>Adopt a pet</b>
+            <div class="pet-picker" id="pet-picker"></div>
+            <form class="friends-form" id="pet-form" autocomplete="off">
+              <input id="pet-name-input" type="text" maxlength="16" placeholder="Name your pet" required>
+              <button class="button button-primary" type="submit">Adopt 🪙100</button>
+            </form>
+          </div>
+          <div id="pet-home" hidden>
+            <div class="pet-stage">
+              <div class="pet-face" id="pet-face"><span id="pet-emoji"></span><span class="pet-mood" id="pet-mood"></span></div>
+              <div class="pet-name"><span id="pet-name"></span> <small class="muted">Lv <span id="pet-level">1</span></small></div>
+              <div class="mini-bar" style="width:70%"><i id="pet-xp"></i></div>
+              <small class="muted" id="pet-xp-text"></small>
+            </div>
+            <div class="mini-card" style="margin-top:12px">
+              <div class="pet-stat"><span>🍖 Fullness</span><div class="mini-bar warm"><i id="pet-full"></i></div><span id="pet-full-n"></span></div>
+              <div class="pet-stat"><span>🎾 Happiness</span><div class="mini-bar"><i id="pet-joy"></i></div><span id="pet-joy-n"></span></div>
+              <div class="pet-actions">
+                <button class="button button-primary" type="button" id="pet-feed">Feed 🪙5</button>
+                <button class="button" type="button" id="pet-play">Play</button>
+                <button class="button" type="button" id="pet-rename">Rename</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-clicker" data-app="clicker" role="dialog" aria-label="Clicker" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">⚡</span> Clicker</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Clicker" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <div class="casino-top">
+            <div class="casino-balance">⚡ <span id="ck-bits">0</span> bits</div>
+            <span class="muted">🪙 <span id="ck-coins">0</span></span>
+          </div>
+          <p class="muted" id="ck-note">Tap the orb to earn bits. Trade bits for upgrades, or cash them out for a few coins.</p>
+          <button class="click-big" id="ck-orb" type="button" aria-label="Click to earn bits">✨</button>
+          <div class="click-stats"><span>+<b id="ck-pc">1</b> per click</span><span><b id="ck-ps">0</b> bits / second</span></div>
+          <div class="mini-card click-up"><div><b>👆 Stronger taps</b> <small class="muted" id="ck-tap-lv"></small></div><button class="button" type="button" id="ck-buy-tap"></button></div>
+          <div class="mini-card click-up"><div><b>🤖 Auto-clicker</b> <small class="muted" id="ck-auto-lv"></small></div><button class="button" type="button" id="ck-buy-auto"></button></div>
+          <div class="mini-card click-up"><div><b>🪙 Cash out</b> <small class="muted" id="ck-cash-info"></small></div><button class="button button-primary" type="button" id="ck-cash">Cash out</button></div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-achievements" data-app="achievements" role="dialog" aria-label="Trophies" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🏆</span> Trophies</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Trophies" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <div class="casino-top">
+            <div class="casino-balance">🏆 <span id="ach-count">0</span></div>
+            <span class="muted">Unlock trophies to earn coins!</span>
+          </div>
+          <p class="muted" id="ach-note"></p>
+          <div class="ach-grid" id="ach-list"></div>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-requests" data-app="requests" role="dialog" aria-label="Game Requests" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">💡</span> Game Requests</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Game Requests" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <p class="muted" style="margin:0">Want a game in the arcade? Request it, then vote for the ones you want most. Staff mark them as added.</p>
+          <form class="req-form" id="req-form" autocomplete="off">
+            <input type="text" id="req-title" maxlength="60" placeholder="Game name" required>
+            <input type="text" id="req-note" maxlength="200" placeholder="Link or note (optional)">
+            <button class="button button-primary" type="submit">Request</button>
+          </form>
+          <p class="muted" id="req-note-status" style="margin:0"></p>
+          <div class="links-list" id="req-list"></div>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -2741,6 +2914,7 @@
       loadPlates(true);
       loadQuests();
       loadInstalledApps();
+      loadAchievements(true);
     }
 
     async function buyPlate(plate) {
@@ -2942,6 +3116,10 @@
       links: '<path d="M27 37a9 9 0 0012 0l9-9a9 9 0 00-13-13l-3 3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M37 27a9 9 0 00-12 0l-9 9a9 9 0 0013 13l3-3" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>',
       quests: '<circle cx="32" cy="32" r="20" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="4" fill="#fff"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       casino: '<rect x="12" y="14" width="40" height="36" rx="8" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><path d="M24 14v36M40 14v36" stroke="#fff" stroke-width="3"/><circle cx="18" cy="32" r="3" fill="#fff"/><path d="M32 26l4 6-4 6-4-6z" fill="#fff"/><circle cx="46" cy="32" r="3" fill="#fff"/>',
+      pet: '<circle cx="14" cy="28" r="6" fill="#fff"/><circle cx="25" cy="17" r="6" fill="#fff"/><circle cx="39" cy="17" r="6" fill="#fff"/><circle cx="50" cy="28" r="6" fill="#fff"/><path d="M32 31c-9 0-16 9-14 17 1 5 6 6 10 5 3-1 5-1 8 0 4 1 9 0 10-5 2-8-5-17-14-17z" fill="#fff"/>',
+      clicker: '<path d="M20 9l30 25-13 2 8 16-7 3-8-16-10 9z" fill="#fff" fill-opacity=".9" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><path d="M12 20h-5M16 10l-3-4M30 6V1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      achievements: '<path d="M20 10h24v14a12 12 0 01-24 0z" fill="#fff" fill-opacity=".25" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M20 15h-8c0 9 4 13 9 13M44 15h8c0 9-4 13-9 13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M32 37v9M22 54h20M25 46h14v8H25z" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
+      requests: '<path d="M32 8a16 16 0 00-9 29c2 2 3 4 3 7h12c0-3 1-5 3-7A16 16 0 0032 8z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M26 50h12M28 56h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
     for (const [name, artwork] of Object.entries(APP_LOGOS)) {
@@ -3843,7 +4021,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3874,6 +4052,10 @@
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
       quests: { open: () => loadQuests() },
+      pet: { open: () => loadPet() },
+      clicker: { open: () => openClicker() },
+      achievements: { open: () => loadAchievements() },
+      requests: { open: () => loadRequests() },
       links: { open: () => loadLinks() },
       creator: { open: () => openCreator() },
       store: { open: () => loadStore() },
@@ -4754,6 +4936,288 @@
       }
     });
 
+    // ---- Pet, Clicker, Trophies and Game requests ----
+    const fmtNum = n => Math.floor(Number(n) || 0).toLocaleString();
+    function setCoins(coins) {
+      if (typeof coins !== "number") return;
+      wallet = { ...(wallet || {}), coins };
+      renderWallet();
+    }
+    const $ = selector => document.querySelector(selector);
+
+    // Pet
+    const PET_EMOJI = { cat: "🐱", dog: "🐶", fox: "🦊", dragon: "🐲", bunny: "🐰", panda: "🐼", alien: "👽", frog: "🐸" };
+    let petPick = "cat";
+    let petState = null;
+    let petWait = 0;
+    function renderPetPicker() {
+      const box = $("#pet-picker");
+      box.replaceChildren();
+      for (const [key, emoji] of Object.entries(PET_EMOJI)) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "pet-pick" + (key === petPick ? " on" : "");
+        b.textContent = emoji;
+        b.title = key;
+        b.addEventListener("click", () => { petPick = key; renderPetPicker(); });
+        box.append(b);
+      }
+    }
+    function renderPet(data) {
+      const pet = data.pet;
+      petState = pet;
+      setCoins(data.coins);
+      $("#pet-coins").textContent = fmtNum(data.coins);
+      $("#pet-adopt").hidden = Boolean(pet);
+      $("#pet-home").hidden = !pet;
+      if (!pet) { renderPetPicker(); $("#pet-note").textContent = "You don't have a pet yet. Pick one!"; return; }
+      const low = Math.min(pet.fullness, pet.joy);
+      const mood = pet.fullness === 0 ? "😭" : low < 25 ? "😢" : low < 50 ? "😐" : low < 80 ? "🙂" : "😄";
+      $("#pet-emoji").textContent = PET_EMOJI[pet.species] || "🐾";
+      $("#pet-mood").textContent = mood;
+      $("#pet-face").classList.toggle("sad", low < 25);
+      $("#pet-name").textContent = pet.name;
+      $("#pet-level").textContent = pet.level;
+      const into = pet.xp % 50;
+      $("#pet-xp").style.width = `${(into / 50) * 100}%`;
+      $("#pet-xp-text").textContent = `${into} / 50 XP to level ${pet.level + 1}`;
+      $("#pet-full").style.width = `${pet.fullness}%`;
+      $("#pet-joy").style.width = `${pet.joy}%`;
+      $("#pet-full-n").textContent = `${pet.fullness}%`;
+      $("#pet-joy-n").textContent = `${pet.joy}%`;
+      $("#pet-note").textContent = pet.fullness < 30 ? `${pet.name} is hungry! 🍖` : pet.joy < 30 ? `${pet.name} wants to play! 🎾` : `${pet.name} is doing great.`;
+      petWait = pet.play_wait;
+      renderPetPlay();
+    }
+    function renderPetPlay() {
+      const button = $("#pet-play");
+      button.disabled = petWait > 0;
+      button.textContent = petWait > 0 ? `Rest ${Math.floor(petWait / 60)}:${String(petWait % 60).padStart(2, "0")}` : "Play 🎾";
+    }
+    window.setInterval(() => { if (petWait > 0) { petWait--; renderPetPlay(); } }, 1000);
+    async function loadPet() {
+      if (!account) { $("#pet-adopt").hidden = true; $("#pet-home").hidden = true; $("#pet-note").textContent = "Log in from Messages to get a pet."; return; }
+      const current = account;
+      try {
+        const data = await rpc("hbu_pet_get", walletAuth());
+        if (account === current) renderPet(data);
+      } catch (error) {
+        $("#pet-note").textContent = "Pets are not set up yet (run supabase/more-apps.sql).";
+      }
+    }
+    async function petAct(fn, args, cheer) {
+      try {
+        renderPet(await rpc(fn, { ...walletAuth(), ...args }));
+        if (cheer) {
+          const face = $("#pet-face");
+          face.classList.add("happy");
+          window.setTimeout(() => face.classList.remove("happy"), 1900);
+        }
+      } catch (error) {
+        $("#pet-note").textContent = error.message;
+      }
+    }
+    $("#pet-form").addEventListener("submit", event => {
+      event.preventDefault();
+      if (!account) { $("#pet-note").textContent = "Log in from Messages first."; return; }
+      petAct("hbu_pet_adopt", { p_name: $("#pet-name-input").value, p_species: petPick }, true);
+    });
+    $("#pet-feed").addEventListener("click", () => petAct("hbu_pet_feed", {}, true));
+    $("#pet-play").addEventListener("click", () => petAct("hbu_pet_play", {}, true));
+    $("#pet-rename").addEventListener("click", () => {
+      const name = window.prompt("New name for your pet (2-16 characters):", petState ? petState.name : "");
+      if (name) petAct("hbu_pet_rename", { p_name: name }, false);
+    });
+    window.setInterval(() => { if (account && appOpen("pet") && !document.hidden) loadPet(); }, 60000);
+
+    // Clicker
+    const ck = { s: null, pending: 0, busy: false, bits: 0 };
+    function renderClicker() {
+      const s = ck.s;
+      if (!s) return;
+      $("#ck-bits").textContent = fmtNum(ck.bits);
+      $("#ck-coins").textContent = fmtNum(s.coins);
+      $("#ck-pc").textContent = s.per_click;
+      $("#ck-ps").textContent = s.per_sec;
+      $("#ck-tap-lv").textContent = `Lv ${s.tap}`;
+      $("#ck-auto-lv").textContent = `Lv ${s.auto} · +1 bit/sec each`;
+      for (const [id, cost] of [["#ck-buy-tap", s.tap_cost], ["#ck-buy-auto", s.auto_cost]]) {
+        const b = $(id);
+        b.textContent = cost == null ? "Maxed" : `⚡ ${fmtNum(cost)}`;
+        b.disabled = cost == null || ck.bits < cost;
+      }
+      $("#ck-cash-info").textContent = `${fmtNum(s.rate)} bits = 1 coin · ${s.cashed_today}/${s.cap} coins today`;
+      $("#ck-cash").disabled = ck.bits < s.rate || s.cashed_today >= s.cap;
+    }
+    async function ckCall(extra = {}) {
+      if (!account || ck.busy) return null;
+      ck.busy = true;
+      const sent = ck.pending;
+      ck.pending = 0;
+      try {
+        const s = await rpc("hbu_clicker", { ...walletAuth(), p_clicks: sent, p_buy: extra.buy || null, p_cash: Boolean(extra.cash) });
+        if (s.skipped && ck.s) ck.pending += sent;
+        else { ck.s = s; ck.bits = s.bits + ck.pending * s.per_click; }
+        setCoins(s.coins);
+        return s;
+      } catch (error) {
+        ck.pending += sent;
+        $("#ck-note").textContent = /schema cache|function/i.test(error.message) ? "Clicker is not set up yet (run supabase/more-apps.sql)." : error.message;
+        return null;
+      } finally {
+        ck.busy = false;
+        renderClicker();
+      }
+    }
+    async function openClicker() {
+      if (!account) { $("#ck-note").textContent = "Log in from Messages to play."; return; }
+      $("#ck-note").textContent = "Tap the orb! Up to about 10 taps a second count.";
+      await ckCall();
+    }
+    $("#ck-orb").addEventListener("click", event => {
+      if (!ck.s) { if (!account) $("#ck-note").textContent = "Log in from Messages to play."; return; }
+      ck.pending++;
+      ck.bits += ck.s.per_click;
+      const pop = document.createElement("span");
+      pop.className = "click-pop";
+      pop.textContent = `+${ck.s.per_click}`;
+      const rect = event.currentTarget.getBoundingClientRect();
+      pop.style.left = `${(event.clientX || rect.left + rect.width / 2) - rect.left - 10}px`;
+      pop.style.top = `${(event.clientY || rect.top + rect.height / 2) - rect.top - 20}px`;
+      event.currentTarget.append(pop);
+      window.setTimeout(() => pop.remove(), 800);
+      renderClicker();
+    });
+    $("#ck-buy-tap").addEventListener("click", () => ckCall({ buy: "tap" }));
+    $("#ck-buy-auto").addEventListener("click", () => ckCall({ buy: "auto" }));
+    $("#ck-cash").addEventListener("click", async () => {
+      const s = await ckCall({ cash: true });
+      if (s) $("#ck-note").textContent = `🪙 Cashed out ${s.paid} coin${s.paid === 1 ? "" : "s"}!`;
+    });
+    window.setInterval(() => {
+      if (ck.s && appOpen("clicker")) { ck.bits += ck.s.per_sec; renderClicker(); }
+    }, 1000);
+    window.setInterval(() => {
+      if (account && (ck.pending > 0 || appOpen("clicker")) && !document.hidden) ckCall();
+    }, 5000);
+
+    // Trophies
+    let achAt = 0;
+    function renderAchievements(list) {
+      const box = $("#ach-list");
+      box.replaceChildren();
+      $("#ach-count").textContent = `${list.filter(a => a.unlocked).length} / ${list.length}`;
+      for (const a of list) {
+        const card = document.createElement("div");
+        card.className = "ach-card" + (a.unlocked ? " on" : "");
+        const icon = document.createElement("span");
+        icon.className = "ach-icon";
+        icon.textContent = a.icon;
+        const title = document.createElement("b");
+        title.textContent = a.title;
+        const desc = document.createElement("small");
+        desc.textContent = a.desc;
+        const foot = document.createElement("small");
+        foot.textContent = a.unlocked ? `✅ Unlocked · +${a.reward} 🪙` : `${fmtNum(a.progress)} / ${fmtNum(a.goal)} · reward ${a.reward} 🪙`;
+        card.append(icon, title, desc, foot);
+        box.append(card);
+      }
+    }
+    async function loadAchievements(silent) {
+      if (!account) { if (!silent) $("#ach-note").textContent = "Log in from Messages to earn trophies."; return; }
+      if (silent && Date.now() - achAt < 30000) return;
+      achAt = Date.now();
+      const current = account;
+      try {
+        const result = await rpc("hbu_achievements", walletAuth());
+        if (account !== current) return;
+        setCoins(result.coins);
+        for (const item of result.new || []) showToast(`${item.icon} Trophy unlocked: ${item.title} (+${item.reward} coins)`);
+        $("#ach-note").textContent = "";
+        renderAchievements(result.list || []);
+      } catch (error) {
+        if (!silent) $("#ach-note").textContent = "Trophies are not set up yet (run supabase/more-apps.sql).";
+      }
+    }
+    window.setInterval(() => { if (account && !document.hidden) loadAchievements(true); }, 120000);
+
+    // Game requests
+    function renderRequests(rows, staff) {
+      const box = $("#req-list");
+      box.replaceChildren();
+      if (!rows.length) { $("#req-note-status").textContent = "No requests yet. Ask for a game!"; return; }
+      for (const row of rows) {
+        const card = document.createElement("div");
+        card.className = `req-card ${row.status}`;
+        const vote = document.createElement("button");
+        vote.type = "button";
+        vote.className = "req-vote" + (row.voted ? " on" : "");
+        vote.textContent = `▲ ${row.votes}`;
+        vote.disabled = row.status !== "open";
+        vote.title = row.voted ? "Remove your vote" : "Vote";
+        vote.addEventListener("click", async () => {
+          if (!account) { $("#req-note-status").textContent = "Log in from Messages to vote."; return; }
+          try { await rpc("hbu_request_vote", { ...walletAuth(), p_id: row.id }); } catch (error) { $("#req-note-status").textContent = error.message; }
+          loadRequests();
+        });
+        const title = document.createElement("b");
+        title.textContent = row.title;
+        card.append(vote, title);
+        const btns = document.createElement("div");
+        btns.className = "req-btns";
+        const act = (label, fn, args) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "button";
+          b.textContent = label;
+          b.addEventListener("click", async () => {
+            try { await rpc(fn, { ...walletAuth(), ...args }); } catch (error) { $("#req-note-status").textContent = error.message; }
+            loadRequests();
+          });
+          btns.append(b);
+        };
+        if (staff) {
+          if (row.status === "open") { act("✅ Added", "hbu_request_set", { p_id: row.id, p_status: "added" }); act("❌ No", "hbu_request_set", { p_id: row.id, p_status: "declined" }); }
+          else act("Reopen", "hbu_request_set", { p_id: row.id, p_status: "open" });
+        }
+        if (row.mine || staff) act("✕", "hbu_request_delete", { p_id: row.id });
+        card.append(btns);
+        if (row.note) {
+          const note = document.createElement("span");
+          note.className = "req-note";
+          note.textContent = row.note;
+          card.append(note);
+        }
+        const meta = document.createElement("span");
+        meta.className = "req-meta";
+        meta.textContent = `by ${row.by} · ${row.status === "added" ? "✅ added to the arcade" : row.status === "declined" ? "❌ declined" : "open"}`;
+        card.append(meta);
+        box.append(card);
+      }
+    }
+    async function loadRequests() {
+      try {
+        const result = await rpc("hbu_requests_get", account ? walletAuth() : {});
+        $("#req-note-status").textContent = "";
+        renderRequests(result.rows || [], Boolean(result.staff));
+      } catch (error) {
+        $("#req-note-status").textContent = "Requests are not set up yet (run supabase/more-apps.sql).";
+      }
+    }
+    $("#req-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) { $("#req-note-status").textContent = "Log in from Messages to request a game."; return; }
+      try {
+        await rpc("hbu_request_post", { ...walletAuth(), p_title: $("#req-title").value, p_note: $("#req-note").value });
+        $("#req-title").value = "";
+        $("#req-note").value = "";
+        await loadRequests();
+        $("#req-note-status").textContent = "Requested! 🎉";
+      } catch (error) {
+        $("#req-note-status").textContent = error.message;
+      }
+    });
+
     // Quests
     let questRows = [];
     const questList = document.querySelector("#quest-list");
@@ -5242,7 +5706,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#creator": "creator", "#store": "store", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
