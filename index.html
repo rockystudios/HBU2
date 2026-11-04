@@ -2889,7 +2889,7 @@
             const check = document.createElement("span");
             const def = roleDefs[userRole];
             const label = userRole === "admin" ? "Owner" : def ? def.label : userRole;
-            const badge = userRole === "admin" ? "꧁꧂" : def ? def.badge : "★";
+            const badge = userRole === "admin" ? "꧁" : def ? def.badge : "★";
             check.className = userRole === "admin" ? "mod-check owner-badge" : badge === "✔" ? "mod-check" : "mod-check vip-star";
             check.textContent = badge;
             check.title = label;
