@@ -303,6 +303,21 @@
     .paint-canvas { flex: 1; min-height: 200px; width: 100%; border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
     .typing-line { min-height: 18px; padding: 0 16px 4px; font-size: 12px; color: var(--muted); font-style: italic; }
     .app-icon-casino { background: linear-gradient(150deg, #facc15, #dc2626); --glow: rgba(250,204,21,.5); }
+    .app-icon-quests { background: linear-gradient(150deg, #34d399, #7c3aed); --glow: rgba(52,211,153,.5); }
+    .app-icon.has-dot::after { content: ""; position: absolute; top: -2px; right: 6px; width: 16px; height: 16px; border-radius: 50%; background: #facc15; border: 2px solid #1a0b33; box-shadow: 0 0 14px #facc15; animation: quest-pulse 1.4s ease-in-out infinite; }
+    @keyframes quest-pulse { 50% { transform: scale(1.25); } }
+    .quest-pane { display: flex; flex-direction: column; gap: 12px; }
+    .quest-section { display: grid; gap: 10px; }
+    .quest-section h3 { margin: 4px 0 0; font-size: 15px; display: flex; justify-content: space-between; }
+    .quest-section h3 small { color: var(--muted); font-weight: 600; }
+    .quest-card { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
+    .quest-card.done { border-color: rgba(74,222,128,.6); box-shadow: 0 0 20px rgba(74,222,128,.25); }
+    .quest-card.claimed { opacity: .55; }
+    .quest-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .quest-reward { font-weight: 850; color: #facc15; white-space: nowrap; }
+    .quest-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .quest-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #a855f7, #34d399); box-shadow: 0 0 12px rgba(52,211,153,.6); transition: width .5s; }
+    .quest-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
     .casino-pane { display: flex; flex-direction: column; gap: 14px; }
     .casino-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .casino-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -640,6 +655,10 @@
         <button class="app-icon" type="button" data-app="paint">
           <span class="app-glyph app-icon-paint" aria-hidden="true"></span>
           <span class="app-label">Paint</span>
+        </button>
+        <button class="app-icon" type="button" data-app="quests" id="quests-icon">
+          <span class="app-glyph app-icon-quests" aria-hidden="true"></span>
+          <span class="app-label">Quests</span>
         </button>
         <button class="app-icon" type="button" data-app="casino">
           <span class="app-glyph app-icon-casino" aria-hidden="true"></span>
@@ -1049,6 +1068,27 @@
             <button class="button button-primary" type="button" id="paint-save">Save PNG</button>
           </div>
           <canvas class="paint-canvas" id="paint-canvas" width="900" height="600"></canvas>
+        </div>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-quests" data-app="quests" role="dialog" aria-label="Quests" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🎯</span> Quests</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Quests" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane quest-pane">
+          <div class="casino-top">
+            <div class="casino-balance">🪙 <span id="quest-coins">0</span></div>
+            <span class="muted">Finish quests, claim coins!</span>
+          </div>
+          <p class="rewards-login" id="quest-login" hidden>Log in from <a href="#messages">Messages</a> to do quests.</p>
+          <p class="muted" id="quest-note"></p>
+          <div id="quest-list"></div>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -2500,6 +2540,7 @@
       }
       renderWallet();
       loadPlates(true);
+      loadQuests();
     }
 
     async function buyPlate(plate) {
@@ -2696,6 +2737,7 @@
       owner: '<path d="M10 46l-3-26 14 11 11-19 11 19 14-11-3 26z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="7" cy="19" r="3" fill="#fff"/><circle cx="32" cy="11" r="3" fill="#fff"/><circle cx="57" cy="19" r="3" fill="#fff"/><circle cx="25" cy="37" r="5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 37h14M39 37v5M44 37v4" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 54h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       browser: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><ellipse cx="32" cy="32" rx="9" ry="21" fill="none" stroke="#fff" stroke-width="3"/><path d="M11 32h42M15 21h34M15 43h34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       paint: '<path d="M14 50l5-14 24-24a6 6 0 019 9L28 45z" fill="#fff" fill-opacity=".2" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M19 36l9 9" stroke="#fff" stroke-width="3"/><path d="M12 54q6 2 10-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#fff"/>',
+      quests: '<circle cx="32" cy="32" r="20" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="4" fill="#fff"/><path d="M32 8v8M32 48v8M8 32h8M48 32h8" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       casino: '<rect x="12" y="14" width="40" height="36" rx="8" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3"/><path d="M24 14v36M40 14v36" stroke="#fff" stroke-width="3"/><circle cx="18" cy="32" r="3" fill="#fff"/><path d="M32 26l4 6-4 6-4-6z" fill="#fff"/><circle cx="46" cy="32" r="3" fill="#fff"/>',
       themes: '<path d="M32 8a24 24 0 100 48h4a6 6 0 005-9q-3-5 3-6 10-2 8-13A24 24 0 0032 8z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="19" cy="27" r="3.5" fill="#fff"/><circle cx="26" cy="18" r="3.5" fill="#fff"/><circle cx="38" cy="19" r="3.5" fill="#fff"/><circle cx="45" cy="29" r="3.5" fill="#fff"/>'
     };
@@ -3598,7 +3640,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -3628,6 +3670,7 @@
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
+      quests: { open: () => loadQuests() },
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
@@ -3898,6 +3941,101 @@
         link.click();
       });
     }
+
+    // Quests
+    let questRows = [];
+    const questList = document.querySelector("#quest-list");
+    const questNote = document.querySelector("#quest-note");
+    const questsIcon = document.querySelector("#quests-icon");
+    const questTimeLeft = iso => {
+      const ms = new Date(iso) - Date.now();
+      if (!(ms > 0)) return "resetting";
+      const h = Math.floor(ms / 3600000);
+      return h >= 24 ? `${Math.floor(h / 24)}d ${h % 24}h left` : `${h}h ${Math.floor(ms % 3600000 / 60000)}m left`;
+    };
+    function renderQuests() {
+      document.querySelector("#quest-login").hidden = Boolean(account);
+      document.querySelector("#quest-coins").textContent = wallet ? wallet.coins : 0;
+      questList.replaceChildren();
+      for (const period of ["daily", "weekly"]) {
+        const rows = questRows.filter(q => q.period === period);
+        if (!rows.length) continue;
+        const section = document.createElement("div");
+        section.className = "quest-section";
+        const h = document.createElement("h3");
+        h.textContent = period === "daily" ? "Daily quests" : "Weekly quests";
+        const small = document.createElement("small");
+        small.textContent = questTimeLeft(rows[0].ends_at);
+        h.append(small);
+        section.append(h);
+        for (const q of rows) {
+          const done = q.progress >= q.goal;
+          const card = document.createElement("div");
+          card.className = "quest-card" + (q.claimed ? " claimed" : done ? " done" : "");
+          const head = document.createElement("div");
+          head.className = "quest-head";
+          const title = document.createElement("b");
+          title.textContent = q.title;
+          const reward = document.createElement("span");
+          reward.className = "quest-reward";
+          reward.textContent = `+${q.reward} 🪙`;
+          head.append(title, reward);
+          const bar = document.createElement("div");
+          bar.className = "quest-bar";
+          const fill = document.createElement("i");
+          fill.style.width = `${Math.min(100, Math.round(q.progress / q.goal * 100))}%`;
+          bar.append(fill);
+          const foot = document.createElement("div");
+          foot.className = "quest-foot";
+          const count = document.createElement("span");
+          count.textContent = `${q.progress} / ${q.goal}`;
+          foot.append(count);
+          if (q.claimed) {
+            foot.append(Object.assign(document.createElement("span"), { textContent: "✅ Claimed" }));
+          } else if (done) {
+            const claim = document.createElement("button");
+            claim.className = "button button-primary";
+            claim.type = "button";
+            claim.textContent = "Claim!";
+            claim.addEventListener("click", () => claimQuest(q, claim));
+            foot.append(claim);
+          }
+          card.append(head, bar, foot);
+          section.append(card);
+        }
+        questList.append(section);
+      }
+      questsIcon.classList.toggle("has-dot", questRows.some(q => q.progress >= q.goal && !q.claimed));
+    }
+    async function loadQuests() {
+      if (!account) { questRows = []; renderQuests(); return; }
+      const current = account;
+      try {
+        const rows = await rpc("hbu_quests_get", walletAuth());
+        if (account !== current) return;
+        questRows = Array.isArray(rows) ? rows : [];
+        questNote.textContent = "";
+      } catch (error) {
+        questRows = [];
+        questNote.textContent = "Quests are not set up yet (run supabase/quests.sql).";
+      }
+      renderQuests();
+    }
+    async function claimQuest(q, button) {
+      button.disabled = true;
+      try {
+        const result = await rpc("hbu_quest_claim", { ...walletAuth(), p_quest: q.id });
+        wallet = { ...(wallet || {}), coins: result.coins };
+        renderWallet();
+        await loadQuests();
+        questNote.textContent = `🎉 +${result.reward} coins!`;
+        return;
+      } catch (error) {
+        await loadQuests();
+        questNote.textContent = error.message;
+      }
+    }
+    window.setInterval(() => { if (account && !document.hidden) loadQuests(); }, 60000);
 
     const CASINO_GAMES = {
       flip: { rules: "Pick a side. 48% chance to win, pays 2×.", picks: [["heads", "Heads"], ["tails", "Tails"]] },
@@ -4292,7 +4430,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#owner": "owner" };
 
     function stopGame() {
       window.clearTimeout(activeLoadTimer);
@@ -4327,7 +4465,10 @@
           writeLocal(usageStorageKey, usage);
           updateUsageSummary();
         }, 12000);
-        if (frame.src !== game.url) frame.src = game.url;
+        if (frame.src !== game.url) {
+          frame.src = game.url;
+          if (account) rpc("hbu_quest_play", walletAuth()).catch(() => {});
+        }
       } else {
         const target = appByHash[location.hash];
         if (target && target !== "arcade") {

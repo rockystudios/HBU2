@@ -34,6 +34,12 @@ begin
   end if;
 
   update accounts set coins = coins - p_bet + payout where username = who returning coins into total;
+  -- Counts toward quests (needs supabase/quests.sql; ignored if it hasn't been run).
+  begin
+    perform public.hbu_quest_bump(who, 'casino', 1);
+    if payout > p_bet then perform public.hbu_quest_bump(who, 'casino_win', 1); end if;
+  exception when others then null;
+  end;
   return res || jsonb_build_object('payout', payout, 'bet', p_bet, 'coins', total, 'won', payout > p_bet);
 end;
 $$;
