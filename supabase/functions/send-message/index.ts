@@ -471,9 +471,9 @@ const COMMANDS: Record<string, Cmd> = {
     roles: MOD, usage: "/clear @user [count]", help: "Delete someone's recent messages (default 10, max 50)", target: "guard",
     run: async ({ staff, rest, target }) => {
       const count = Math.min(50, Math.max(1, Number(rest[0]) || 10));
-      const rows = await db(`messages?select=id&receiver=eq.everyone&user=eq.${enc(target!)}&order=created_at.desc&limit=${count}`) ?? [];
+      const rows = await db(`messages?select=id&receiver=eq.everyone&deleted_at=is.null&user=eq.${enc(target!)}&order=created_at.desc&limit=${count}`) ?? [];
       if (rows.length) {
-        await db(`messages?id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+        await hideMessages(`id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, staff);
       }
       await log({ username: target, action: `${rows.length} messages cleared by ${staff}` });
       return done(`Deleted ${rows.length} message${rows.length === 1 ? "" : "s"} from ${target}.`);
@@ -483,9 +483,9 @@ const COMMANDS: Record<string, Cmd> = {
     roles: MOD, usage: "/purge [count]", help: "Delete the latest messages in the main chat (default 20, max 100)",
     run: async ({ staff, rest }) => {
       const count = Math.min(100, Math.max(1, Number(rest[0]) || 20));
-      const rows = await db(`messages?select=id&receiver=eq.everyone&order=created_at.desc&limit=${count}`) ?? [];
+      const rows = await db(`messages?select=id&receiver=eq.everyone&deleted_at=is.null&order=created_at.desc&limit=${count}`) ?? [];
       if (rows.length) {
-        await db(`messages?id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+        await hideMessages(`id=in.(${rows.map((row: { id: number }) => row.id).join(",")})`, staff);
       }
       await log({ action: `${rows.length} messages purged by ${staff}` });
       return done(`Deleted the last ${rows.length} message${rows.length === 1 ? "" : "s"}.`);
@@ -664,6 +664,24 @@ const COMMANDS: Record<string, Cmd> = {
       return showLines([`🕵 ${a.username} ↔ ${b.username} (last ${rows.length}, only you can see this)`, ...lines]);
     },
   },
+  rd: {
+    roles: ["admin"], usage: "/rd", help: "Show the last 20 deleted main chat messages (owner only, only you see it)",
+    run: async ({ staff }) => {
+      if (!isAdmin(staff)) throw new UserError("Only the owner can use /rd.", 403);
+      const rows = await db("messages?select=user,message,created_at,deleted_at,deleted_by&receiver=eq.everyone&deleted_at=not.is.null&order=deleted_at.desc&limit=20")
+        .catch((error: Error) => {
+          if (/deleted_at|42703/i.test(String(error?.message))) throw new UserError("Deleted messages aren't set up yet. Run supabase/soft-delete.sql in the Supabase SQL editor.", 500);
+          throw error;
+        }) ?? [];
+      if (!rows.length) return showLines(["🗑 No deleted messages yet."]);
+      const lines = (rows as { user: string; message: string; deleted_at: string; deleted_by: string }[]).map((m) => {
+        const when = new Date(m.deleted_at).toISOString().slice(5, 16).replace("T", " ");
+        const who = m.deleted_by && m.deleted_by !== m.user ? `deleted by ${m.deleted_by}` : "deleted by author";
+        return `[${when}] ${m.user}: ${String(m.message).replaceAll(EDIT_MARK, "")} (${who})`;
+      });
+      return showLines([`🗑 Last ${rows.length} deleted messages (only you can see this)`, ...lines]);
+    },
+  },
   sum: {
     roles: ["admin"], usage: "/sum amount", help: "Privately summarize recent main chat messages with AI (owner only)",
     run: async ({ staff, rest }) => {
@@ -672,7 +690,7 @@ const COMMANDS: Record<string, Cmd> = {
       const amount = Number(rest[0]);
       if (!Number.isSafeInteger(amount) || amount < 1 || amount > 50) throw new UserError("Usage: /sum amount (1-50)");
       const rows = await db(
-        `messages?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=${amount}`,
+        `messages?select=user,message,created_at&receiver=eq.everyone&deleted_at=is.null&order=created_at.desc&limit=${amount}`,
       ) ?? [];
       if (!rows.length) return showLines(["📝 No main chat messages to summarize."]);
       const messages = (rows as { user: string; message: string; created_at: string }[]).reverse();
@@ -835,14 +853,35 @@ function recordIp(req: Request, name: string) {
   }).catch(() => {});
 }
 
+// Deleted messages are hidden (deleted_at), never erased, so the owner can still see them with /rd.
+async function hideMessages(filter: string, by: string) {
+  await db(`messages?${filter}&deleted_at=is.null`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ deleted_at: new Date().toISOString(), deleted_by: by }),
+  });
+}
+
+async function deleteOwnMessage(name: string, id: unknown) {
+  const num = Number(id);
+  if (!Number.isSafeInteger(num) || num <= 0) throw new UserError("Invalid message.");
+  const [row] = await db(`messages?select=id,user,message,receiver,deleted_at&id=eq.${num}`) ?? [];
+  if (!row || row.deleted_at) throw new UserError("That message no longer exists.");
+  if (row.user !== name) throw new UserError("You can only delete your own messages.", 403);
+  if (row.receiver !== "everyone") throw new UserError("Direct messages cannot be deleted.", 403);
+  await hideMessages(`id=eq.${num}`, name);
+  await log({ username: name, receiver: "everyone", original: row.message, action: "deleted by author" });
+  return json({ ok: true });
+}
+
 // A trailing invisible mark means "edited"; the site turns it into "(edited)".
 const EDIT_MARK = "\u2063";
 
 async function editMessage(name: string, id: unknown, text: string) {
   const num = Number(id);
   if (!Number.isSafeInteger(num) || num <= 0) throw new UserError("Invalid message.");
-  const [row] = await db(`messages?select=id,user,message,receiver&id=eq.${num}`) ?? [];
-  if (!row) throw new UserError("That message no longer exists.");
+  const [row] = await db(`messages?select=id,user,message,receiver,deleted_at&id=eq.${num}`) ?? [];
+  if (!row || row.deleted_at) throw new UserError("That message no longer exists.");
   if (row.user !== name) throw new UserError("You can only edit your own messages.", 403);
   if (row.receiver !== "everyone") throw new UserError("Only main chat messages can be edited.", 403);
   const [account] = await db(`accounts?select=banned_until&username=eq.${enc(name)}`).catch(() => []) ?? [];
@@ -949,10 +988,10 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
   if (action === "admin_delete") {
     const id = Number(body.id);
     if (!Number.isSafeInteger(id) || id <= 0) throw new UserError("Invalid message.");
-    const [row] = await db(`messages?select=id,user,message,receiver&id=eq.${id}`) ?? [];
-    if (!row) throw new UserError("That message no longer exists.");
+    const [row] = await db(`messages?select=id,user,message,receiver,deleted_at&id=eq.${id}`) ?? [];
+    if (!row || row.deleted_at) throw new UserError("That message no longer exists.");
     if (row.receiver !== "everyone") throw new UserError("Direct messages cannot be deleted.", 403);
-    await db(`messages?id=eq.${id}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+    await hideMessages(`id=eq.${id}`, staff);
     await log({ username: row.user, receiver: "everyone", original: row.message, action: `deleted by ${staff}` });
     return json({ ok: true });
   }
@@ -1104,7 +1143,7 @@ export async function handle(req: Request): Promise<Response> {
   try {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
-    const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai");
+    const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
     }
@@ -1119,6 +1158,7 @@ export async function handle(req: Request): Promise<Response> {
     if (!loginRes.ok) throw new UserError("Wrong username or password", 401);
     const realName: string = await loginRes.json();
     recordIp(req, realName);
+    if (action === "delete_message") return await deleteOwnMessage(realName, body.id);
     if (action === "edit_message") return await editMessage(realName, body.id, text);
     if (action === "app_ai") return await appAi(realName, body);
     if (isAdminAction) return await handleAdmin(action, realName, body);
