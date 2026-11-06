@@ -1190,6 +1190,65 @@ async function appAi(name: string, body: Record<string, unknown>) {
 const ALTCHA_HMAC_SECRET = Deno.env.get("ALTCHA_HMAC_SECRET") ?? "";
 const signupHits = new Map<string, number[]>();
 
+const IMAGE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+async function imageSignature(id: string, answer: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(ALTCHA_HMAC_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}:${answer}`));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function imageChallenge() {
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
+  const random = crypto.getRandomValues(new Uint8Array(32));
+  const answer = Array.from(random.slice(0, 6), (value) => IMAGE_ALPHABET[value % IMAGE_ALPHABET.length]).join("");
+  const id = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  await db(`hbu_image_challenges?expires_at=lt.${enc(new Date().toISOString())}`, {
+    method: "DELETE", headers: { Prefer: "return=minimal" },
+  });
+  await db("hbu_image_challenges", {
+    method: "POST", headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ id, answer_signature: await imageSignature(id, answer), expires_at: expiresAt }),
+  });
+
+  const lines = Array.from({ length: 8 }, (_, i) =>
+    `<path d="M0 ${random[6 + i] % 100} Q150 ${random[14 + i] % 100} 320 ${random[22 + i] % 100}" fill="none" stroke="#9473aa" stroke-width="1.5" opacity=".55"/>`
+  ).join("");
+  const letters = Array.from(answer, (char, i) => {
+    const x = 31 + i * 51;
+    const y = 55 + random[6 + i] % 15 - 7;
+    const angle = random[14 + i] % 31 - 15;
+    return `<text x="${x}" y="${y}" transform="rotate(${angle} ${x} ${y})">${char}</text>`;
+  }).join("");
+  const image = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="100" viewBox="0 0 320 100"><rect width="320" height="100" fill="#f3edfa"/>${lines}<g fill="#321448" font-family="sans-serif" font-size="41" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${letters}</g>${lines}</svg>`;
+  return new Response(JSON.stringify({ id, image: btoa(image) }), {
+    headers: { ...cors, "Cache-Control": "no-store", "Content-Type": "application/json" },
+  });
+}
+
+async function verifyImageChallenge(body: Record<string, unknown>) {
+  const id = typeof body.challenge_id === "string" ? body.challenge_id : "";
+  const answer = typeof body.challenge_answer === "string" ? body.challenge_answer.trim().toUpperCase() : "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || !/^[A-Z2-9]{6}$/.test(answer)) {
+    throw new UserError("Enter the six characters shown in the image.", 400);
+  }
+  let rows;
+  try {
+    rows = await db(`hbu_image_challenges?id=eq.${enc(id)}&select=answer_signature,expires_at`, {
+      method: "DELETE", headers: { Prefer: "return=representation" },
+    });
+  } catch (error) {
+    console.error("Could not verify image signup challenge.", error);
+    throw new UserError("Could not verify the image. Check the service and run supabase/image-verification.sql.", 503);
+  }
+  const challenge = Array.isArray(rows) ? rows[0] : null;
+  if (!challenge || new Date(challenge.expires_at).getTime() <= Date.now() ||
+      challenge.answer_signature !== await imageSignature(id, answer)) {
+    throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
+  }
+}
+
 async function signupChallenge() {
   if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   try {
@@ -1215,9 +1274,7 @@ async function signupChallenge() {
   });
 }
 
-async function signup(req: Request, body: Record<string, unknown>) {
-  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
-  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+async function verifyAltchaChallenge(body: Record<string, unknown>) {
   const token = typeof body.altcha === "string" ? body.altcha : "";
   if (!token) throw new UserError("Please complete the human check.", 400);
   let payload: { challenge: Parameters<typeof verifySolution>[0]["challenge"]; solution: Parameters<typeof verifySolution>[0]["solution"] };
@@ -1240,14 +1297,6 @@ async function signup(req: Request, body: Record<string, unknown>) {
   }).catch(() => null);
   if (!verification?.verified) throw new UserError("Human check failed or expired. Please try again.", 400);
 
-  if (ip) {
-    const now = Date.now();
-    const hits = (signupHits.get(ip) ?? []).filter((t) => now - t < 3600000);
-    if (hits.length >= 3) throw new UserError("Too many accounts from your network. Try again later.", 429);
-    if (signupHits.size > 2000) signupHits.clear();
-    signupHits.set(ip, [...hits, now]);
-  }
-
   try {
     await db("hbu_altcha_used_challenges", {
       method: "POST",
@@ -1264,6 +1313,20 @@ async function signup(req: Request, body: Record<string, unknown>) {
     console.error("Could not record ALTCHA signup challenge.", error);
     throw new UserError("Signup protection is not set up yet. Run supabase/altcha.sql in the Supabase SQL editor.", 503);
   }
+}
+
+async function signup(req: Request, body: Record<string, unknown>) {
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  if (body.action === "signup_image") await verifyImageChallenge(body);
+  else await verifyAltchaChallenge(body);
+  if (ip) {
+    const now = Date.now();
+    const hits = (signupHits.get(ip) ?? []).filter((t) => now - t < 3600000);
+    if (hits.length >= 3) throw new UserError("Too many accounts from your network. Try again later.", 429);
+    if (signupHits.size > 2000) signupHits.clear();
+    signupHits.set(ip, [...hits, now]);
+  }
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_signup`, {
     method: "POST",
@@ -1279,6 +1342,15 @@ async function signup(req: Request, body: Record<string, unknown>) {
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "image_challenge") {
+    try {
+      return await imageChallenge();
+    } catch (error) {
+      console.error("Could not create image signup challenge.", error);
+      if (error instanceof UserError) return json({ error: error.message }, error.status);
+      return json({ error: "Could not create an image challenge. Check the service and run supabase/image-verification.sql." }, 503);
+    }
+  }
   if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "altcha_challenge") {
     try {
       return await signupChallenge();
@@ -1292,7 +1364,7 @@ export async function handle(req: Request): Promise<Response> {
   try {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
-    if (action === "signup") return await signup(req, body);
+    if (action === "signup" || action === "signup_image") return await signup(req, body);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");

@@ -8,7 +8,6 @@
   <link rel="icon" href="assets/logo.jpg">
   <link rel="apple-touch-icon" href="assets/logo.jpg">
   <title>Clever</title>
-  <script async src="assets/vendor/altcha/altcha.min.js" type="module"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -192,6 +191,10 @@
     .chat-join { padding: 28px 20px; }
     .chat-join-form { max-width: 420px; display: grid; gap: 12px; }
     .chat-join-form label { display: grid; gap: 8px; color: #c9c1d8; font-size: 13px; font-weight: 700; }
+    .auth-image-check { display: grid; gap: 8px; }
+    .auth-image-check[hidden] { display: none; }
+    .auth-image-check img { width: min(320px, 100%); height: auto; border-radius: 8px; background: #f3edfa; }
+    .auth-image-check p { margin: 0; color: var(--muted); font-size: 12px; }
     .auth-tabs { margin-bottom: 14px; display: flex; gap: 8px; }
     .auth-tabs .icon-button[aria-pressed="true"] { border-color: rgba(192,132,252,.55); color: #e9c9ff; background: rgba(168,85,247,.16); }
     .chat-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); }
@@ -927,7 +930,16 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
-              <div id="auth-altcha-container"></div>
+              <div class="auth-image-check" id="auth-image-check" hidden>
+                <p>Type the six characters shown. Letters are not case-sensitive.</p>
+                <img id="auth-challenge-image" width="320" height="100" alt="Verification image with six characters" hidden>
+                <label for="auth-challenge-answer">Characters in the image
+                  <input id="auth-challenge-answer" type="text" minlength="6" maxlength="6" autocomplete="off" spellcheck="false">
+                </label>
+                <button class="icon-button" id="auth-challenge-refresh" type="button">New image</button>
+                <p id="auth-challenge-status" role="status" aria-live="polite"></p>
+                <p id="auth-mouse-status">Mouse movements: 0. Movement stays on this device and is not required.</p>
+              </div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
@@ -2515,50 +2527,63 @@
       }
     }
 
+    const authImageCheck = document.querySelector("#auth-image-check");
+    const authChallengeImage = document.querySelector("#auth-challenge-image");
+    const authChallengeAnswer = document.querySelector("#auth-challenge-answer");
+    const authChallengeRefresh = document.querySelector("#auth-challenge-refresh");
+    const authChallengeStatus = document.querySelector("#auth-challenge-status");
+    const authMouseStatus = document.querySelector("#auth-mouse-status");
+    let authChallengeId = "";
+    let authChallengeRequest = 0;
+    let authMouseMoves = 0;
+
+    authImageCheck.addEventListener("pointermove", event => {
+      if (event.pointerType === "mouse") {
+        authMouseMoves++;
+        authMouseStatus.textContent = `Mouse movements: ${authMouseMoves}. Movement stays on this device and is not required.`;
+      }
+    }, { passive: true });
+
+    async function loadImageChallenge() {
+      const request = ++authChallengeRequest;
+      authChallengeId = "";
+      authChallengeAnswer.value = "";
+      authChallengeImage.hidden = true;
+      authChallengeStatus.textContent = "Loading verification image...";
+      try {
+        const response = await authFetch(`${supabaseFunctionsUrl}/send-message?action=image_challenge`, {
+          headers: { apikey: supabaseAnonKey }
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(body?.error || `Verification failed (${response.status}).`);
+        if (typeof body?.id !== "string" || typeof body?.image !== "string") throw new Error("The verification service returned an invalid image.");
+        if (request !== authChallengeRequest || !signupMode) return;
+        authChallengeId = body.id;
+        authChallengeImage.src = `data:image/svg+xml;base64,${body.image}`;
+        authChallengeImage.hidden = false;
+        authChallengeStatus.textContent = "";
+      } catch (error) {
+        console.error("Could not load verification image.", error);
+        if (request === authChallengeRequest && signupMode) {
+          authChallengeStatus.textContent = `${error.message} Select New image to try again.`;
+        }
+      }
+    }
+
+    authChallengeRefresh.addEventListener("click", loadImageChallenge);
+
     function setAuthMode(signup) {
       signupMode = signup;
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
-      const altchaContainer = document.querySelector("#auth-altcha-container");
-      altchaContainer.replaceChildren();
-      if (signup) {
-        const widget = document.createElement("altcha-widget");
-        let verificationError = "";
-        widget.id = "auth-altcha";
-        widget.setAttribute("name", "altcha");
-        widget.setAttribute("challenge", `${supabaseFunctionsUrl}/send-message?action=altcha_challenge`);
-        widget.addEventListener("load", () => {
-          widget.configure({
-            fetch: async (url, options = {}) => {
-              const headers = new Headers(options.headers);
-              if (new URL(url, location.href).origin === new URL(supabaseFunctionsUrl).origin) {
-                headers.set("apikey", supabaseAnonKey);
-              }
-              try {
-                const response = await authFetch(url, { ...options, headers });
-                if (!response.ok) {
-                  const body = await response.clone().json().catch(() => null);
-                  verificationError = typeof body?.error === "string" ? body.error : `Verification service failed (${response.status}).`;
-                }
-                return response;
-              } catch (error) {
-                verificationError = error.message;
-                throw error;
-              }
-            }
-          });
-        });
-        widget.addEventListener("statechange", event => {
-          if (event.detail?.state === "error") {
-            messageStatus.textContent = verificationError || "Verification failed. Check your connection and try again.";
-          } else if (event.detail?.state === "verifying") {
-            verificationError = "";
-            messageStatus.textContent = "";
-          }
-        });
-        altchaContainer.append(widget);
-      }
+      authImageCheck.hidden = !signup;
+      authChallengeAnswer.required = signup;
+      authChallengeId = "";
+      authMouseMoves = 0;
+      authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
+      if (signup) void loadImageChallenge();
+      else authChallengeRequest++;
       authStudentId.required = signup;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -3796,6 +3821,7 @@
       authSubmit.disabled = true;
       tabLogin.disabled = true;
       tabSignup.disabled = true;
+      authChallengeRefresh.disabled = true;
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
@@ -3813,15 +3839,13 @@
           }
         }
         if (signupMode) {
-          if (!customElements.get("altcha-widget")) throw new Error("The verification widget could not load. Refresh the page and try again.");
-          const token = new FormData(authForm).get("altcha");
-          if (typeof token !== "string" || !token) throw new Error("Please complete the human check.");
+          if (!authChallengeId) throw new Error("Load a verification image before creating an account.");
           let signupRes;
           try {
             signupRes = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
               method: "POST",
               headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "signup", username, password, student_id: authStudentId.value.trim(), altcha: token })
+              body: JSON.stringify({ action: "signup_image", username, password, student_id: authStudentId.value.trim(), challenge_id: authChallengeId, challenge_answer: authChallengeAnswer.value })
             });
           } catch (error) {
             throw new Error(`${error.message} Your account may have been created; try logging in before signing up again.`);
@@ -3848,11 +3872,13 @@
           authUsername.value = username;
           authPassword.value = password;
           authStudentId.value = studentId;
+          if (!accountCreated) void loadImageChallenge();
         }
       } finally {
         authSubmit.disabled = false;
         tabLogin.disabled = false;
         tabSignup.disabled = false;
+        authChallengeRefresh.disabled = false;
       }
     });
     const resetForm = document.querySelector("#reset-form");

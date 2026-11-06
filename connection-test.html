@@ -67,7 +67,7 @@
           check("Database", "/rest/v1/messages?select=created_at&limit=1", {}, (response, data) => response.ok && Array.isArray(data)),
           check("Password reset check", "/rest/v1/rpc/hbu_reset_pending", post({ p_username: username }), (response, data) => response.ok && typeof data === "boolean"),
           check("Login service", "/rest/v1/rpc/hbu_login", post({ p_username: username, p_password: "connection-test-only" }), (response, data) => !response.ok && /wrong username or password/i.test(data?.message || "")),
-          check("Signup verification", "/functions/v1/send-message?action=altcha_challenge", {}, (response, data) => response.ok && typeof data?.signature === "string" && !!data?.parameters)
+          check("Signup verification", "/functions/v1/send-message?action=image_challenge", {}, (response, data) => response.ok && typeof data?.id === "string" && typeof data?.image === "string")
         ]);
         output.textContent = results.join("\n");
       } finally {
