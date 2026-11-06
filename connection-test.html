@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HBU connection test</title>
+  <style>
+    body { margin: 0; background: #100a1c; color: #f3edff; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    button { background: #a76bff; color: #160b29; border: 0; border-radius: 8px; padding: 12px 18px; font: inherit; font-weight: bold; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #211431; border: 1px solid #55416c; border-radius: 8px; padding: 16px; }
+    a { color: #dbb8ff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>HBU connection test</h1>
+    <p>This checks the account service and signup verification from this browser. It does not need your username or password and does not create an account.</p>
+    <button id="run" type="button">Run connection test</button>
+    <p>When it finishes, copy the results below and send them to HBU support.</p>
+    <pre id="results" aria-live="polite">Ready to test.</pre>
+    <p><a href="./">Back to HBU</a></p>
+  </main>
+  <script>
+    const base = "https://xvkjvuxhawlljakfkllu.supabase.co";
+    const key = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
+    const button = document.querySelector("#run");
+    const output = document.querySelector("#results");
+
+    async function check(name, path, options = {}, expected) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(base + path, {
+          ...options,
+          headers: { apikey: key, ...options.headers },
+          signal: controller.signal,
+          cache: "no-store"
+        });
+        const data = await response.json().catch(() => null);
+        if (expected(response, data)) return `${name}: OK (HTTP ${response.status})`;
+        const detail = typeof data?.message === "string" ? data.message :
+          typeof data?.error === "string" ? data.error : "Unexpected response";
+        return `${name}: HTTP ${response.status} — ${detail}`;
+      } catch (error) {
+        console.error(`${name} test failed.`, error);
+        return `${name}: ${error.name === "AbortError" ? "Timed out" : "Browser could not complete the request (network, CORS, or blocking)"}`;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      output.textContent = "Testing... This may take up to 10 seconds.";
+      const username = `test_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+      const post = body => ({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      try {
+        const results = await Promise.all([
+          check("Database", "/rest/v1/messages?select=created_at&limit=1", {}, (response, data) => response.ok && Array.isArray(data)),
+          check("Password reset check", "/rest/v1/rpc/hbu_reset_pending", post({ p_username: username }), (response, data) => response.ok && typeof data === "boolean"),
+          check("Login service", "/rest/v1/rpc/hbu_login", post({ p_username: username, p_password: "connection-test-only" }), (response, data) => !response.ok && /wrong username or password/i.test(data?.message || "")),
+          check("Signup verification", "/functions/v1/send-message?action=altcha_challenge", {}, (response, data) => response.ok && typeof data?.signature === "string" && !!data?.parameters)
+        ]);
+        output.textContent = results.join("\n");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
