@@ -2146,8 +2146,21 @@
     let chatTimer;
     let adminTimer;
 
-    async function rpc(fn, args) {
-      const response = await fetch(`${supabaseRestUrl}/rpc/${fn}`, {
+    async function authFetch(url, options = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (error) {
+        console.error("Authentication service request failed.", error);
+        throw new Error("Cannot reach the account service. Check your connection or try again when the service is available.");
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function rpc(fn, args, fetchRequest = fetch) {
+      const response = await fetchRequest(`${supabaseRestUrl}/rpc/${fn}`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
         body: JSON.stringify(args)
@@ -2156,7 +2169,9 @@
       if (!response.ok) {
         const message = (body && body.message) || `Request failed (${response.status}).`;
         if (/wrong username or password/i.test(message) && account && args && args.p_username === account.username && args.p_password === account.password) signOutEverywhere();
-        throw new Error(message);
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
       }
       return body;
     }
@@ -2509,12 +2524,37 @@
       altchaContainer.replaceChildren();
       if (signup) {
         const widget = document.createElement("altcha-widget");
+        let verificationError = "";
         widget.id = "auth-altcha";
         widget.setAttribute("name", "altcha");
         widget.setAttribute("challenge", `${supabaseFunctionsUrl}/send-message?action=altcha_challenge`);
+        widget.addEventListener("load", () => {
+          widget.configure({
+            fetch: async (url, options = {}) => {
+              const headers = new Headers(options.headers);
+              if (new URL(url, location.href).origin === new URL(supabaseFunctionsUrl).origin) {
+                headers.set("apikey", supabaseAnonKey);
+              }
+              try {
+                const response = await authFetch(url, { ...options, headers });
+                if (!response.ok) {
+                  const body = await response.clone().json().catch(() => null);
+                  verificationError = typeof body?.error === "string" ? body.error : `Verification service failed (${response.status}).`;
+                }
+                return response;
+              } catch (error) {
+                verificationError = error.message;
+                throw error;
+              }
+            }
+          });
+        });
         widget.addEventListener("statechange", event => {
           if (event.detail?.state === "error") {
-            messageStatus.textContent = "Verification failed. Check your connection and try again. If it still fails, the server may be unavailable.";
+            messageStatus.textContent = verificationError || "Verification failed. Check your connection and try again.";
+          } else if (event.detail?.state === "verifying") {
+            verificationError = "";
+            messageStatus.textContent = "";
           }
         });
         altchaContainer.append(widget);
@@ -3754,27 +3794,45 @@
       const password = authPassword.value;
       if (!username || !password) return;
       authSubmit.disabled = true;
+      tabLogin.disabled = true;
+      tabSignup.disabled = true;
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
+      let accountCreated = false;
       try {
-        if (!signupMode && await rpc("hbu_reset_pending", { p_username: username }).catch(() => false) === true) {
-          startPasswordReset(username);
-          return;
+        if (!signupMode) {
+          let resetPending;
+          try {
+            resetPending = await rpc("hbu_reset_pending", { p_username: username }, authFetch);
+          } catch (error) {
+            if (error.status !== 404 || !/hbu_reset_pending|schema cache/i.test(error.message)) throw error;
+            console.warn("Password reset check is not installed.", error);
+          }
+          if (resetPending === true) {
+            startPasswordReset(username);
+            return;
+          }
         }
         if (signupMode) {
           if (!customElements.get("altcha-widget")) throw new Error("The verification widget could not load. Refresh the page and try again.");
           const token = new FormData(authForm).get("altcha");
           if (typeof token !== "string" || !token) throw new Error("Please complete the human check.");
-          const signupRes = await fetch(`${supabaseFunctionsUrl}/send-message`, {
-            method: "POST",
-            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "signup", username, password, student_id: authStudentId.value.trim(), altcha: token })
-          });
+          let signupRes;
+          try {
+            signupRes = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
+              method: "POST",
+              headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "signup", username, password, student_id: authStudentId.value.trim(), altcha: token })
+            });
+          } catch (error) {
+            throw new Error(`${error.message} Your account may have been created; try logging in before signing up again.`);
+          }
           if (!signupRes.ok) {
             const err = await signupRes.json().catch(() => null);
             throw new Error((err && err.error) || `Sign up failed (${signupRes.status}).`);
           }
+          accountCreated = true;
         }
-        const realName = await rpc("hbu_login", { p_username: username, p_password: password });
+        const realName = await rpc("hbu_login", { p_username: username, p_password: password }, authFetch);
         account = { username: realName, password };
         saveSession();
         askNotificationPermission();
@@ -3783,7 +3841,7 @@
         showChat();
       } catch (error) {
         console.error("Could not sign in.", error);
-        messageStatus.textContent = error.message;
+        messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
         if (signupMode) {
           const studentId = authStudentId.value;
           authForm.reset();
@@ -3793,6 +3851,8 @@
         }
       } finally {
         authSubmit.disabled = false;
+        tabLogin.disabled = false;
+        tabSignup.disabled = false;
       }
     });
     const resetForm = document.querySelector("#reset-form");
