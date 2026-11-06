@@ -6,7 +6,7 @@ Run `supabase/message-archives.sql` in the Supabase SQL editor after deploying t
 
 ## Signup verification
 
-The signup form uses an image challenge checked by the `send-message` Edge Function. Run `supabase/image-verification.sql`, keep the `ALTCHA_HMAC_SECRET` Edge Function secret configured, then deploy the updated `send-message` function with Verify JWT disabled and deploy the site. Existing ALTCHA files and endpoints are retained for older clients. Challenges expire after five minutes and are consumed on the first valid-format answer attempt. Mouse movement is counted only in the browser and is not required or sent to the server.
+The signup form uses an image challenge checked by the `send-message` Edge Function. No SQL is needed for the image check (it is stateless; `supabase/image-verification.sql` is now optional). Keep the `ALTCHA_HMAC_SECRET` Edge Function secret configured, then deploy the updated `send-message` function with Verify JWT disabled and deploy the site. Existing ALTCHA files and endpoints are retained for older clients. Challenges expire after five minutes and are consumed on the first valid-format answer attempt. Mouse movement is counted only in the browser and is not required or sent to the server.
 
 The image contains SVG text, so this basic custom check is not strong protection against automated signup. It also has no nonvisual alternative; users unable to read the image cannot complete signup. Use a stronger, accessible verification service if these limitations are unacceptable.
 

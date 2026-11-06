@@ -1189,6 +1189,7 @@ async function appAi(name: string, body: Record<string, unknown>) {
 
 const ALTCHA_HMAC_SECRET = Deno.env.get("ALTCHA_HMAC_SECRET") ?? "";
 const signupHits = new Map<string, number[]>();
+const usedImageChallenges = new Map<string, number>();
 
 const IMAGE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -1202,15 +1203,10 @@ async function imageChallenge() {
   if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   const random = crypto.getRandomValues(new Uint8Array(32));
   const answer = Array.from(random.slice(0, 6), (value) => IMAGE_ALPHABET[value % IMAGE_ALPHABET.length]).join("");
-  const id = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-  await db(`hbu_image_challenges?expires_at=lt.${enc(new Date().toISOString())}`, {
-    method: "DELETE", headers: { Prefer: "return=minimal" },
-  });
-  await db("hbu_image_challenges", {
-    method: "POST", headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ id, answer_signature: await imageSignature(id, answer), expires_at: expiresAt }),
-  });
+  // Stateless: the id carries its expiry and a signature of the answer, so no database table is needed.
+  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  const stamp = `${Date.now() + 5 * 60 * 1000}.${nonce}`;
+  const id = `${stamp}.${await imageSignature(stamp, answer)}`;
 
   const lines = Array.from({ length: 8 }, (_, i) =>
     `<path d="M0 ${random[6 + i] % 100} Q150 ${random[14 + i] % 100} 320 ${random[22 + i] % 100}" fill="none" stroke="#9473aa" stroke-width="1.5" opacity=".55"/>`
@@ -1230,21 +1226,16 @@ async function imageChallenge() {
 async function verifyImageChallenge(body: Record<string, unknown>) {
   const id = typeof body.challenge_id === "string" ? body.challenge_id : "";
   const answer = typeof body.challenge_answer === "string" ? body.challenge_answer.trim().toUpperCase() : "";
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) || !/^[A-Z2-9]{6}$/.test(answer)) {
+  const match = /^(\d{13})\.([0-9a-f]{16})\.([0-9a-f]{64})$/.exec(id);
+  if (!match || !/^[A-Z2-9]{6}$/.test(answer)) {
     throw new UserError("Enter the six characters shown in the image.", 400);
   }
-  let rows;
-  try {
-    rows = await db(`hbu_image_challenges?id=eq.${enc(id)}&select=answer_signature,expires_at`, {
-      method: "DELETE", headers: { Prefer: "return=representation" },
-    });
-  } catch (error) {
-    console.error("Could not verify image signup challenge.", error);
-    throw new UserError("Could not verify the image. Check the service and run supabase/image-verification.sql.", 503);
-  }
-  const challenge = Array.isArray(rows) ? rows[0] : null;
-  if (!challenge || new Date(challenge.expires_at).getTime() <= Date.now() ||
-      challenge.answer_signature !== await imageSignature(id, answer)) {
+  const now = Date.now();
+  for (const [used, expires] of usedImageChallenges) if (expires <= now) usedImageChallenges.delete(used);
+  const stamp = `${match[1]}.${match[2]}`;
+  const alreadyUsed = usedImageChallenges.has(id);
+  usedImageChallenges.set(id, Number(match[1]));
+  if (Number(match[1]) <= now || alreadyUsed || match[3] !== await imageSignature(stamp, answer)) {
     throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
   }
 }
@@ -1348,7 +1339,7 @@ export async function handle(req: Request): Promise<Response> {
     } catch (error) {
       console.error("Could not create image signup challenge.", error);
       if (error instanceof UserError) return json({ error: error.message }, error.status);
-      return json({ error: "Could not create an image challenge. Check the service and run supabase/image-verification.sql." }, 503);
+      return json({ error: "Could not create an image challenge. Check the service." }, 503);
     }
   }
   if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "altcha_challenge") {
