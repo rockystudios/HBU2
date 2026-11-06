@@ -911,6 +911,21 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
     });
     return json({ accounts: rows ?? [] });
   }
+  if (action === "admin_owner_sid_purge") {
+    const pattern = String(body.pattern ?? "").trim();
+    if (pattern.length < 2 || pattern.length > 30) throw new UserError("Enter 2-30 characters of the student ID.");
+    const rows: { username: string; student_id: string; role: string | null }[] = await db(`accounts?select=username,student_id,role&student_id=ilike.${enc("*" + likeEscape(pattern) + "*")}&order=username.asc&limit=1000`) ?? [];
+    const hit = rows.filter((row) => row.role !== "owner" && row.username.toLowerCase() !== staff.toLowerCase());
+    if (!body.confirm) return json({ matches: hit.map((row) => ({ username: row.username, student_id: row.student_id })) });
+    let deleted = 0;
+    for (const row of hit) {
+      await db(`messages?user=eq.${enc(row.username)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } }).catch(() => {});
+      await db(`accounts?username=eq.${enc(row.username)}`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+      deleted++;
+    }
+    await log({ username: staff, action: `deleted ${deleted} accounts with student ID containing "${pattern}"` });
+    return json({ ok: true, deleted });
+  }
   if (action === "admin_owner_credits_give") {
     const target = await findAccount(String(body.target ?? "").trim());
     if (!target) throw new UserError("That user does not exist.");
