@@ -905,6 +905,38 @@ async function editMessage(name: string, id: unknown, text: string) {
 
 async function handleOwner(action: string, staff: string, body: Record<string, unknown>) {
   const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
+  if (action.startsWith("admin_owner_archive")) {
+    if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can access message archives.", 403);
+    try {
+      if (action === "admin_owner_archives") {
+        const archives = await db("hbu_message_archives?select=id,created_at,message_count&order=id.asc&limit=100");
+        return json({ archives: archives ?? [] });
+      }
+      const id = Number(body.id);
+      if (!Number.isSafeInteger(id) || id <= 0) throw new UserError("Invalid archive ID.");
+      if (action === "admin_owner_archive_get") {
+        const rows = await db(`hbu_message_archives?select=id,message_count,messages&id=eq.${id}&limit=1`);
+        if (!rows?.length) throw new UserError("That archive no longer exists.", 404);
+        return json({ archive: rows[0] });
+      }
+      if (action === "admin_owner_archive_delete") {
+        const count = Number(body.message_count);
+        if (!Number.isSafeInteger(count) || count <= 0) throw new UserError("Invalid archive count.");
+        const rows = await db(`hbu_message_archives?id=eq.${id}&message_count=eq.${count}`, {
+          method: "DELETE", headers: { Prefer: "return=representation" },
+        });
+        if (!rows?.length) throw new UserError("The archive changed or was deleted. Refresh and copy it again before deleting.", 409);
+        return json({ ok: true });
+      }
+      throw new UserError("Unknown archive action.", 400);
+    } catch (error) {
+      if (error instanceof UserError) throw error;
+      if (/hbu_message_archives|PGRST205|42P01/i.test(String((error as Error).message))) {
+        throw new UserError("Message archives are not set up. Run supabase/message-archives.sql in the SQL editor.", 503);
+      }
+      throw error;
+    }
+  }
   if (action === "admin_owner_accounts") {
     const rows = await db("accounts?select=username,role,last_ip,last_seen&order=username.asc&limit=1000").catch((error) => {
       if (/last_ip|last_seen|42703/i.test(String(error?.message))) {
@@ -1160,10 +1192,17 @@ const signupHits = new Map<string, number[]>();
 
 async function signupChallenge() {
   if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
-  await db(`hbu_altcha_used_challenges?expires_at=lt.${enc(new Date().toISOString())}`, {
-    method: "DELETE",
-    headers: { Prefer: "return=minimal" },
-  });
+  try {
+    await db(`hbu_altcha_used_challenges?expires_at=lt.${enc(new Date().toISOString())}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+  } catch (error) {
+    if (/hbu_altcha_used_challenges|PGRST205|42P01/i.test(String((error as Error).message))) {
+      throw new UserError("Signup protection is not set up. Run supabase/altcha.sql in the SQL editor.", 503);
+    }
+    throw error;
+  }
   const challenge = await createChallenge({
     algorithm: "SHA-256",
     cost: 100,

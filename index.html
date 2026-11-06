@@ -8,7 +8,7 @@
   <link rel="icon" href="assets/logo.jpg">
   <link rel="apple-touch-icon" href="assets/logo.jpg">
   <title>Clever</title>
-  <script async defer src="https://cdn.jsdelivr.net/gh/altcha-org/altcha@v3.5.0/dist/main/altcha.min.js" type="module"></script>
+  <script async src="assets/vendor/altcha/altcha.min.js" type="module"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -927,7 +927,7 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
-              <altcha-widget id="auth-altcha" name="altcha" hidden></altcha-widget>
+              <div id="auth-altcha-container"></div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
@@ -1647,6 +1647,15 @@
           <p class="app-note" id="sid-status"></p>
           <ul class="owner-list" id="sid-list"></ul>
           <button class="button button-primary" id="sid-delete" type="button" hidden>Delete all of these</button>
+          <h2>Message archives</h2>
+          <p class="app-note">Older global chat messages are archived as JSON when the chat exceeds 100 messages. Private messages are not archived here.</p>
+          <p class="app-note" id="archive-status"></p>
+          <button class="button" id="archive-refresh" type="button">Refresh archives</button>
+          <ul class="owner-list" id="archive-list"></ul>
+          <label for="archive-json">Selected archive JSON</label>
+          <textarea id="archive-json" rows="8" readonly style="width:100%" placeholder="Select an archive to view or copy it"></textarea>
+          <button class="button" id="archive-copy" type="button" disabled>Copy JSON</button>
+          <button class="button" id="archive-delete" type="button" disabled>Delete selected archive</button>
           <h2>AI credits</h2>
           <p class="app-note">Everyone gets 10 free AI credits a month in the App Creator. Give extra credits here (use a negative number to take some away).</p>
           <form class="friends-form" id="credits-form">
@@ -2496,9 +2505,20 @@
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
-      const altchaWidget = document.querySelector("#auth-altcha");
-      altchaWidget.hidden = !signup;
-      if (signup) altchaWidget.setAttribute("challenge", `${supabaseFunctionsUrl}/send-message?action=altcha_challenge`);
+      const altchaContainer = document.querySelector("#auth-altcha-container");
+      altchaContainer.replaceChildren();
+      if (signup) {
+        const widget = document.createElement("altcha-widget");
+        widget.id = "auth-altcha";
+        widget.setAttribute("name", "altcha");
+        widget.setAttribute("challenge", `${supabaseFunctionsUrl}/send-message?action=altcha_challenge`);
+        widget.addEventListener("statechange", event => {
+          if (event.detail?.state === "error") {
+            messageStatus.textContent = "Verification failed. Check your connection and try again. If it still fails, the server may be unavailable.";
+          }
+        });
+        altchaContainer.append(widget);
+      }
       authStudentId.required = signup;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -3741,6 +3761,7 @@
           return;
         }
         if (signupMode) {
+          if (!customElements.get("altcha-widget")) throw new Error("The verification widget could not load. Refresh the page and try again.");
           const token = new FormData(authForm).get("altcha");
           if (typeof token !== "string" || !token) throw new Error("Please complete the human check.");
           const signupRes = await fetch(`${supabaseFunctionsUrl}/send-message`, {
@@ -3886,6 +3907,71 @@
     }
     document.querySelector("#owner-accounts").addEventListener("toggle", event => {
       if (event.target.open) loadOwnerAccounts();
+    });
+
+    const archiveStatus = document.querySelector("#archive-status");
+    const archiveList = document.querySelector("#archive-list");
+    const archiveJson = document.querySelector("#archive-json");
+    const archiveCopy = document.querySelector("#archive-copy");
+    const archiveDelete = document.querySelector("#archive-delete");
+    let selectedArchive = null;
+    async function loadMessageArchives() {
+      if (!isOwner()) return;
+      try {
+        const data = await adminCall("admin_owner_archives");
+        archiveList.replaceChildren();
+        for (const archive of data.archives) {
+          const li = document.createElement("li");
+          const label = document.createElement("span");
+          label.textContent = `${new Date(archive.created_at).toLocaleString()} — ${archive.message_count} message(s)`;
+          const open = document.createElement("button");
+          open.type = "button";
+          open.className = "button";
+          open.textContent = "View JSON";
+          open.addEventListener("click", async () => {
+            try {
+              const result = await adminCall("admin_owner_archive_get", { id: archive.id });
+              selectedArchive = { id: archive.id, count: result.archive.message_count };
+              archiveJson.value = JSON.stringify(result.archive.messages, null, 2);
+              archiveCopy.disabled = false;
+              archiveDelete.disabled = false;
+              archiveStatus.textContent = "Copy or save the JSON before deleting the archive.";
+            } catch (error) {
+              archiveStatus.textContent = error.message;
+            }
+          });
+          li.append(label, open);
+          archiveList.append(li);
+        }
+        archiveStatus.textContent = data.archives.length ? `${data.archives.length} archive(s) shown.` : "No message archives.";
+      } catch (error) {
+        archiveStatus.textContent = error.message;
+      }
+    }
+    document.querySelector("#archive-refresh").addEventListener("click", loadMessageArchives);
+    archiveCopy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(archiveJson.value);
+        archiveStatus.textContent = "JSON copied.";
+      } catch (error) {
+        archiveJson.focus();
+        archiveJson.select();
+        archiveStatus.textContent = "Could not copy automatically. Copy the selected JSON manually.";
+      }
+    });
+    archiveDelete.addEventListener("click", async () => {
+      if (selectedArchive === null || !confirm("Permanently delete this archive? Copy its JSON first.")) return;
+      archiveDelete.disabled = true;
+      try {
+        await adminCall("admin_owner_archive_delete", { id: selectedArchive.id, message_count: selectedArchive.count });
+        selectedArchive = null;
+        archiveJson.value = "";
+        archiveCopy.disabled = true;
+        await loadMessageArchives();
+      } catch (error) {
+        archiveStatus.textContent = error.message;
+        archiveDelete.disabled = false;
+      }
     });
 
     const sidForm = document.querySelector("#sid-form");
@@ -4312,7 +4398,7 @@
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
-      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
+      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
     function openApp(name) {
