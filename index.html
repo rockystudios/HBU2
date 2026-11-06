@@ -926,6 +926,7 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
+              <div id="turnstile-box" hidden></div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
@@ -2480,11 +2481,34 @@
       }
     }
 
+    // Cloudflare Turnstile. Paste your public site key here to turn the human check on.
+    const TURNSTILE_SITE_KEY = "";
+    let turnstileId = null;
+    function showTurnstile(on) {
+      const box = document.querySelector("#turnstile-box");
+      if (!TURNSTILE_SITE_KEY || !box) return;
+      box.hidden = !on;
+      if (!on) return;
+      if (!window.turnstile) {
+        if (!document.querySelector("#turnstile-script")) {
+          const script = document.createElement("script");
+          script.id = "turnstile-script";
+          script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+          script.async = true;
+          script.onload = () => showTurnstile(true);
+          document.head.appendChild(script);
+        }
+        return;
+      }
+      if (turnstileId === null) turnstileId = window.turnstile.render(box, { sitekey: TURNSTILE_SITE_KEY, theme: "dark" });
+    }
+
     function setAuthMode(signup) {
       signupMode = signup;
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
+      showTurnstile(signup);
       authStudentId.required = signup;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -3727,7 +3751,18 @@
           return;
         }
         if (signupMode) {
-          await rpc("hbu_signup", { p_username: username, p_password: password, p_student_id: authStudentId.value.trim() });
+          const token = TURNSTILE_SITE_KEY && window.turnstile && turnstileId !== null ? window.turnstile.getResponse(turnstileId) : "";
+          if (TURNSTILE_SITE_KEY && !token) throw new Error("Please complete the human check.");
+          const signupRes = await fetch(`${supabaseFunctionsUrl}/send-message`, {
+            method: "POST",
+            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "signup", username, password, student_id: authStudentId.value.trim(), turnstile: token })
+          });
+          if (!signupRes.ok) {
+            if (window.turnstile && turnstileId !== null) window.turnstile.reset(turnstileId);
+            const err = await signupRes.json().catch(() => null);
+            throw new Error((err && err.error) || `Sign up failed (${signupRes.status}).`);
+          }
         }
         const realName = await rpc("hbu_login", { p_username: username, p_password: password });
         account = { username: realName, password };

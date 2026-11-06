@@ -1137,12 +1137,47 @@ async function appAi(name: string, body: Record<string, unknown>) {
   }
 }
 
+const TURNSTILE_SECRET = Deno.env.get("TURNSTILE_SECRET") ?? "";
+const signupHits = new Map<string, number[]>();
+
+// Cloudflare Turnstile check plus a per-IP limit of 3 signups per hour.
+async function signup(req: Request, body: Record<string, unknown>) {
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  if (ip) {
+    const now = Date.now();
+    const hits = (signupHits.get(ip) ?? []).filter((t) => now - t < 3600000);
+    if (hits.length >= 3) throw new UserError("Too many accounts from your network. Try again later.", 429);
+    if (signupHits.size > 2000) signupHits.clear();
+    signupHits.set(ip, [...hits, now]);
+  }
+  if (TURNSTILE_SECRET) {
+    const token = typeof body.turnstile === "string" ? body.turnstile : "";
+    if (!token) throw new UserError("Please complete the human check.", 400);
+    const form = new URLSearchParams({ secret: TURNSTILE_SECRET, response: token });
+    if (ip) form.set("remoteip", ip);
+    const check = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form })
+      .then((r) => r.json()).catch(() => null);
+    if (!check?.success) throw new UserError("Human check failed. Refresh and try again.", 400);
+  }
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_signup`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_username: body.username, p_password: body.password, p_student_id: body.student_id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new UserError(err?.message ?? "Could not create the account.", 400);
+  }
+  return json({ ok: true });
+}
+
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
+    if (action === "signup") return await signup(req, body);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
