@@ -1638,6 +1638,15 @@
             <p class="app-note" id="accounts-status"></p>
             <ul class="owner-list" id="accounts-list"></ul>
           </details>
+          <h2>Delete by student ID</h2>
+          <p class="app-note">Type letters or numbers. Every account whose student ID contains them in that order is listed first, then you confirm to delete them and their messages. Owners are never deleted.</p>
+          <form class="friends-form" id="sid-form">
+            <input id="sid-pattern" type="text" maxlength="30" placeholder="Part of a student ID" autocomplete="off" required>
+            <button class="button button-primary" type="submit">Find</button>
+          </form>
+          <p class="app-note" id="sid-status"></p>
+          <ul class="owner-list" id="sid-list"></ul>
+          <button class="button button-primary" id="sid-delete" type="button" hidden>Delete all of these</button>
           <h2>AI credits</h2>
           <p class="app-note">Everyone gets 10 free AI credits a month in the App Creator. Give extra credits here (use a negative number to take some away).</p>
           <form class="friends-form" id="credits-form">
@@ -3877,6 +3886,50 @@
     }
     document.querySelector("#owner-accounts").addEventListener("toggle", event => {
       if (event.target.open) loadOwnerAccounts();
+    });
+
+    const sidForm = document.querySelector("#sid-form");
+    const sidStatus = document.querySelector("#sid-status");
+    const sidList = document.querySelector("#sid-list");
+    const sidDelete = document.querySelector("#sid-delete");
+    let sidPattern = "";
+    sidForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      sidPattern = document.querySelector("#sid-pattern").value.trim();
+      sidList.replaceChildren();
+      sidDelete.hidden = true;
+      sidStatus.textContent = "Searching...";
+      try {
+        const data = await adminCall("admin_owner_sid_purge", { pattern: sidPattern });
+        for (const row of data.matches) {
+          const li = document.createElement("li");
+          const name = document.createElement("strong");
+          name.textContent = row.username;
+          const sid = document.createElement("small");
+          sid.textContent = row.student_id;
+          li.append(name, sid);
+          sidList.append(li);
+        }
+        sidStatus.textContent = data.matches.length ? `${data.matches.length} account${data.matches.length === 1 ? "" : "s"} match.` : "No accounts match.";
+        sidDelete.hidden = !data.matches.length;
+      } catch (error) {
+        sidStatus.textContent = error.message;
+      }
+    });
+    sidDelete.addEventListener("click", async () => {
+      if (!sidPattern || !confirm(`Delete every account whose student ID contains "${sidPattern}"? This can't be undone.`)) return;
+      sidDelete.disabled = true;
+      try {
+        const data = await adminCall("admin_owner_sid_purge", { pattern: sidPattern, confirm: true });
+        sidStatus.textContent = `Deleted ${data.deleted} account${data.deleted === 1 ? "" : "s"}.`;
+        sidList.replaceChildren();
+        sidDelete.hidden = true;
+        if (document.querySelector("#owner-accounts").open) loadOwnerAccounts();
+      } catch (error) {
+        sidStatus.textContent = error.message;
+      } finally {
+        sidDelete.disabled = false;
+      }
     });
 
     const roleEditor = document.querySelector("#role-editor");
