@@ -1166,7 +1166,7 @@ async function signupChallenge() {
   });
   const challenge = await createChallenge({
     algorithm: "SHA-256",
-    cost: 5000,
+    cost: 100,
     deriveKey,
     expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     hmacSignatureSecret: ALTCHA_HMAC_SECRET,
