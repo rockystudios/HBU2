@@ -915,7 +915,7 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
     const pattern = String(body.pattern ?? "").trim();
     if (pattern.length < 2 || pattern.length > 30) throw new UserError("Enter 2-30 characters of the student ID.");
     const rows: { username: string; student_id: string; role: string | null }[] = await db(`accounts?select=username,student_id,role&student_id=ilike.${enc("*" + likeEscape(pattern) + "*")}&order=username.asc&limit=1000`) ?? [];
-    const hit = rows.filter((row) => row.role !== "owner" && row.username.toLowerCase() !== staff.toLowerCase());
+    const hit = rows.filter((row) => row.role !== "owner" && !ADMINS.includes(row.username.toLowerCase()));
     if (!body.confirm) return json({ matches: hit.map((row) => ({ username: row.username, student_id: row.student_id })) });
     let deleted = 0;
     for (const row of hit) {
