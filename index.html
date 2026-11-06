@@ -941,6 +941,8 @@
                 <p id="auth-mouse-status">Mouse movements: 0. Movement stays on this device and is not required.</p>
               </div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
+              <button class="button" id="auth-offline" type="button">Use offline mode</button>
+              <p class="app-note">Offline mode only needs a username. It is not a real account: chat, DMs, coins and other online features stay unavailable until the account service is back.</p>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
               <p class="app-note" id="reset-note"></p>
@@ -2171,7 +2173,12 @@
       }
     }
 
+    function offlineCheck() {
+      if (account && account.offline) throw new Error("This needs the online service, which isn't available in offline mode.");
+    }
+
     async function rpc(fn, args, fetchRequest = fetch) {
+      if (args && account && account.offline && args.p_username === account.username) offlineCheck();
       const response = await fetchRequest(`${supabaseRestUrl}/rpc/${fn}`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
@@ -2196,6 +2203,7 @@
     }
 
     async function sendMessage(message, receiver) {
+      offlineCheck();
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
@@ -2216,6 +2224,7 @@
     const isStaff = () => staffAccess;
 
     async function adminCall(action, extra = {}) {
+      offlineCheck();
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
@@ -3249,7 +3258,17 @@
         staffRole = "user";
         applyAdminBoard();
       }
-      if (account) {
+      if (account && account.offline) {
+        chatUser.textContent = `${account.username} (offline)`;
+        currentConvo = "everyone";
+        dmPartners = [];
+        convoActivity = {};
+        serverMessages = [];
+        pendingMessages = [];
+        lastMessagesKey = "";
+        renderConvos();
+        messageStatus.textContent = "Offline mode: chat and other online features are unavailable.";
+      } else if (account) {
         chatUser.textContent = account.username;
         setupStaff();
         currentConvo = "everyone";
@@ -3811,6 +3830,20 @@
       }
     }
 
+    document.querySelector("#auth-offline").addEventListener("click", () => {
+      const username = authUsername.value.trim();
+      if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) {
+        messageStatus.textContent = "Enter a username of 3-20 letters, numbers or underscores to use offline mode.";
+        showToast("Enter a username of 3-20 letters, numbers or underscores first.");
+        authUsername.focus();
+        return;
+      }
+      account = { username, password: "", offline: true };
+      saveSession();
+      authForm.reset();
+      showChat();
+      showToast("Offline mode on. Games work; online features are unavailable.");
+    });
     tabLogin.addEventListener("click", () => setAuthMode(false));
     tabSignup.addEventListener("click", () => setAuthMode(true));
     authForm.addEventListener("submit", async event => {
@@ -4415,7 +4448,7 @@
     });
     try {
       account = JSON.parse(sessionStorage.getItem(sessionKey));
-      if (!account || typeof account.username !== "string" || typeof account.password !== "string") account = null;
+      if (!account || typeof account.username !== "string" || typeof account.password !== "string" || (account.offline && !/^[A-Za-z0-9_]{3,20}$/.test(account.username))) account = null;
     } catch (error) {
       account = null;
     }
