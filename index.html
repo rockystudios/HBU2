@@ -8,6 +8,7 @@
   <link rel="icon" href="assets/logo.jpg">
   <link rel="apple-touch-icon" href="assets/logo.jpg">
   <title>Clever</title>
+  <script async defer src="https://cdn.jsdelivr.net/gh/altcha-org/altcha@v3.5.0/dist/main/altcha.min.js" type="module"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -926,6 +927,7 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
+              <altcha-widget id="auth-altcha" name="altcha" hidden></altcha-widget>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
@@ -2485,6 +2487,9 @@
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
+      const altchaWidget = document.querySelector("#auth-altcha");
+      altchaWidget.hidden = !signup;
+      if (signup) altchaWidget.setAttribute("challenge", `${supabaseFunctionsUrl}/send-message?action=altcha_challenge`);
       authStudentId.required = signup;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -3727,7 +3732,17 @@
           return;
         }
         if (signupMode) {
-          await rpc("hbu_signup", { p_username: username, p_password: password, p_student_id: authStudentId.value.trim() });
+          const token = new FormData(authForm).get("altcha");
+          if (typeof token !== "string" || !token) throw new Error("Please complete the human check.");
+          const signupRes = await fetch(`${supabaseFunctionsUrl}/send-message`, {
+            method: "POST",
+            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "signup", username, password, student_id: authStudentId.value.trim(), altcha: token })
+          });
+          if (!signupRes.ok) {
+            const err = await signupRes.json().catch(() => null);
+            throw new Error((err && err.error) || `Sign up failed (${signupRes.status}).`);
+          }
         }
         const realName = await rpc("hbu_login", { p_username: username, p_password: password });
         account = { username: realName, password };
@@ -3739,6 +3754,13 @@
       } catch (error) {
         console.error("Could not sign in.", error);
         messageStatus.textContent = error.message;
+        if (signupMode) {
+          const studentId = authStudentId.value;
+          authForm.reset();
+          authUsername.value = username;
+          authPassword.value = password;
+          authStudentId.value = studentId;
+        }
       } finally {
         authSubmit.disabled = false;
       }

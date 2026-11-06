@@ -4,8 +4,11 @@
 //
 // Secrets: OPENAI_API_KEY (you add it). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase automatically.
-// Optional secrets: OPENAI_MODEL (default gpt-4o-mini) and ADMIN_USERNAMES
-// (comma separated, default "rocky") for the admin ban/unban panel.
+// Optional secrets: OPENAI_MODEL (default gpt-4o-mini), ADMIN_USERNAMES
+// (comma separated, default "rocky"), and ALTCHA_HMAC_SECRET for signup protection.
+
+import { createChallenge, verifySolution } from "npm:altcha-lib@2.8.0";
+import { deriveKey } from "npm:altcha-lib@2.8.0/algorithms/web/sha";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -22,7 +25,7 @@ const isAdmin = (name: string) => ADMINS.includes(name.toLowerCase());
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 const BOT_PROMPT = `You are mod-bot, the assistant of HBU Arcade, a school-friendly games site with chat, an arcade, daily coin wheel, name plates, settings and DMs.
@@ -1137,12 +1140,105 @@ async function appAi(name: string, body: Record<string, unknown>) {
   }
 }
 
+const ALTCHA_HMAC_SECRET = Deno.env.get("ALTCHA_HMAC_SECRET") ?? "";
+const signupHits = new Map<string, number[]>();
+
+async function signupChallenge() {
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
+  await db(`hbu_altcha_used_challenges?expires_at=lt.${enc(new Date().toISOString())}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  const challenge = await createChallenge({
+    algorithm: "SHA-256",
+    cost: 5000,
+    deriveKey,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    hmacSignatureSecret: ALTCHA_HMAC_SECRET,
+  });
+  return new Response(JSON.stringify(challenge), {
+    headers: { ...cors, "Cache-Control": "no-store", "Content-Type": "application/json" },
+  });
+}
+
+async function signup(req: Request, body: Record<string, unknown>) {
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  const token = typeof body.altcha === "string" ? body.altcha : "";
+  if (!token) throw new UserError("Please complete the human check.", 400);
+  let payload: { challenge: Parameters<typeof verifySolution>[0]["challenge"]; solution: Parameters<typeof verifySolution>[0]["solution"] };
+  try {
+    const encoded = token.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+    payload = JSON.parse(new TextDecoder().decode(bytes));
+    if (!payload?.challenge || !payload?.solution || typeof payload.challenge.signature !== "string") {
+      throw new Error("Missing challenge data");
+    }
+  } catch {
+    throw new UserError("Human check failed. Please try again.", 400);
+  }
+  const verification = await verifySolution({
+    challenge: payload.challenge,
+    solution: payload.solution,
+    deriveKey,
+    hmacSignatureSecret: ALTCHA_HMAC_SECRET,
+  }).catch(() => null);
+  if (!verification?.verified) throw new UserError("Human check failed or expired. Please try again.", 400);
+
+  if (ip) {
+    const now = Date.now();
+    const hits = (signupHits.get(ip) ?? []).filter((t) => now - t < 3600000);
+    if (hits.length >= 3) throw new UserError("Too many accounts from your network. Try again later.", 429);
+    if (signupHits.size > 2000) signupHits.clear();
+    signupHits.set(ip, [...hits, now]);
+  }
+
+  try {
+    await db("hbu_altcha_used_challenges", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        signature: payload.challenge.signature,
+        expires_at: new Date((payload.challenge.parameters.expiresAt ?? Date.now() / 1000) * 1000).toISOString(),
+      }),
+    });
+  } catch (error) {
+    if (/409|23505/i.test(String((error as Error).message))) {
+      throw new UserError("This human check was already used. Please try again.", 400);
+    }
+    console.error("Could not record ALTCHA signup challenge.", error);
+    throw new UserError("Signup protection is not set up yet. Run supabase/altcha.sql in the Supabase SQL editor.", 503);
+  }
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_signup`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_username: body.username, p_password: body.password, p_student_id: body.student_id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new UserError(err?.message ?? "Could not create the account.", 400);
+  }
+  return json({ ok: true });
+}
+
 export async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "altcha_challenge") {
+    try {
+      return await signupChallenge();
+    } catch (error) {
+      console.error("Could not create ALTCHA signup challenge.", error);
+      if (error instanceof UserError) return json({ error: error.message }, error.status);
+      return json({ error: "Could not create a signup challenge." }, 503);
+    }
+  }
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
+    if (action === "signup") return await signup(req, body);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
