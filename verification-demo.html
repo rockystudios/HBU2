@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HBU verification demo</title>
+  <style>
+    body { margin: 0; background: #100a1c; color: #f3edff; font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    canvas { display: block; max-width: 100%; height: auto; border: 1px solid #a76bff; border-radius: 8px; }
+    label { display: block; margin-top: 16px; }
+    input { box-sizing: border-box; display: block; width: 100%; max-width: 300px; margin-top: 6px; padding: 10px; font: inherit; }
+    button { margin: 12px 8px 0 0; background: #a76bff; color: #160b29; border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: bold; cursor: pointer; }
+    a { color: #dbb8ff; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Verification demo</h1>
+    <p>This is a separate preview, not account protection. It does not create an account or change the current signup check.</p>
+    <p>Type the five characters shown below. Letters are not case-sensitive.</p>
+    <canvas id="challenge" width="300" height="100" role="img" aria-label="Image containing five characters"></canvas>
+    <form id="form">
+      <label for="answer">Characters in the image
+        <input id="answer" autocomplete="off" maxlength="5" required>
+      </label>
+      <button type="submit">Check answer</button>
+      <button id="refresh" type="button">New image</button>
+    </form>
+    <p id="result" aria-live="polite"></p>
+    <p id="movement">Mouse movement events: 0</p>
+    <p>Mouse movement is counted only on this page and stays in your browser. Mouse movement is not required; touch and keyboard work too.</p>
+    <p><a href="./">Back to HBU</a></p>
+  </main>
+  <script>
+    const canvas = document.querySelector("#challenge");
+    const ctx = canvas.getContext("2d");
+    const answerInput = document.querySelector("#answer");
+    const result = document.querySelector("#result");
+    const movement = document.querySelector("#movement");
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let answer = "";
+    let mouseEvents = 0;
+
+    function newChallenge() {
+      const random = new Uint32Array(5);
+      crypto.getRandomValues(random);
+      answer = Array.from(random, value => alphabet[value % alphabet.length]).join("");
+      ctx.fillStyle = "#f4ecff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#c5a7e8";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 12 + i * 19);
+        ctx.lineTo(300, 85 - i * 15);
+        ctx.stroke();
+      }
+      ctx.font = "bold 48px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#32125a";
+      for (let i = 0; i < answer.length; i++) {
+        ctx.save();
+        ctx.translate(42 + i * 54, 50 + (i % 2 ? 5 : -5));
+        ctx.rotate(i % 2 ? 0.1 : -0.1);
+        ctx.fillText(answer[i], 0, 0);
+        ctx.restore();
+      }
+      answerInput.value = "";
+      result.textContent = "";
+    }
+
+    document.addEventListener("pointermove", event => {
+      if (event.pointerType !== "mouse") return;
+      mouseEvents++;
+      movement.textContent = `Mouse movement events: ${mouseEvents}`;
+    }, { passive: true });
+
+    document.querySelector("#form").addEventListener("submit", event => {
+      event.preventDefault();
+      result.textContent = answerInput.value.trim().toUpperCase() === answer
+        ? "Correct! The demo verification passed."
+        : "That didn't match. Try again or choose a new image.";
+    });
+    document.querySelector("#refresh").addEventListener("click", newChallenge);
+    newChallenge();
+  </script>
+</body>
+</html>
