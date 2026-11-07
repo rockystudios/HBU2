@@ -742,7 +742,7 @@
 <body>
   <div id="desktop">
     <header class="statusbar">
-      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HBU</span></span>
+      <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HbuOS</span></span>
       <span class="nav-spacer"></span>
       <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
@@ -895,7 +895,7 @@
       </div>
       <p class="player-status" id="player-status" role="status" aria-live="polite"></p>
       <div class="player-stage">
-        <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
+        <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HbuOS</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
         <div class="game-frame-wrap" id="game-frame-wrap">
           <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
           <dialog class="idea-dialog" id="idea-dialog" aria-labelledby="idea-title" aria-describedby="idea-description">
@@ -907,7 +907,7 @@
             </div>
           </dialog>
         </div>
-        <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
+        <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HbuOS</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
       </div>
       <section class="player-details" aria-labelledby="player-details-title">
         <h3 id="player-details-title">About this game</h3>
@@ -1161,8 +1161,8 @@
     </section>
 <section class="site-info" aria-labelledby="site-info-title">
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
-      <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
-      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information. The home screen also loads an advertisement from Adsterra, which may collect information through its ad services; see <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Adsterra's privacy policy</a>.</p>
+      <p>Games are provided by their original publishers and may load third-party content. HbuOS does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
+      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HbuOS does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information. The home screen also loads an advertisement from Adsterra, which may collect information through its ad services; see <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Adsterra's privacy policy</a>.</p>
       <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Every message is checked by an AI moderator (mod-bot, using OpenAI): curse words are removed, hateful messages can lead to a chat ban of up to a week, and you can ask it questions with @mod-bot in the main chat. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
@@ -1394,7 +1394,7 @@
             <button class="button" type="button" id="store-refresh">↻</button>
           </div>
           <p class="muted" id="store-note" style="margin:0"></p>
-          <h3 class="store-head">Made by HBU</h3>
+          <h3 class="store-head">Made by HbuOS</h3>
           <div class="store-grid" id="official-grid"></div>
           <h3 class="store-head">Made by players</h3>
           <div class="store-grid" id="store-grid"></div>
@@ -1523,7 +1523,7 @@
       </div>
       <div class="win-body">
         <div class="app-pane mini-pane">
-          <p class="muted" style="margin:0">Have an idea for HBU or a game for the arcade? Request it, then vote for the ones you want most. Staff mark them as added.</p>
+          <p class="muted" style="margin:0">Have an idea for HbuOS or a game for the arcade? Request it, then vote for the ones you want most. Staff mark them as added.</p>
           <form class="req-form" id="req-form" autocomplete="off">
             <input type="text" id="req-title" maxlength="60" placeholder="Game or website idea" required>
             <input type="text" id="req-note" maxlength="200" placeholder="Link or note (optional)">
@@ -1583,7 +1583,7 @@
       </div>
       <div class="win-body">
         <div class="app-pane mini-pane">
-          <p class="muted" style="margin:0" id="logs-note">What's new on HBU.</p>
+          <p class="muted" style="margin:0" id="logs-note">What's new on HbuOS.</p>
           <div class="links-list" id="logs-list"></div>
         </div>
       </div>
@@ -1646,7 +1646,7 @@
           </div>
           <div class="casino-actions" id="casino-actions"></div>
           <div class="casino-history" id="casino-history"><span>Recent:</span></div>
-          <p class="muted" style="margin:0">Play for fun. Coins are only good for HBU name plates.</p>
+          <p class="muted" style="margin:0">Play for fun. Coins are only good for HbuOS name plates.</p>
         </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
@@ -2146,7 +2146,7 @@
         const detailList = document.createElement("ul");
         for (const detail of [
           "Controls: check the game's start screen; controls vary.",
-          "Age guidance: HBU rating unavailable; review publisher information.",
+          "Age guidance: HbuOS rating unavailable; review publisher information.",
           "Play time: varies by player."
         ]) {
           const item = document.createElement("li");
@@ -3337,7 +3337,7 @@
       "Want to replay something? Check your recently played games.",
       "Use the genre filter to find your kind of game.",
       "Vote for ideas you like in the Requests app!",
-      "Explore the App Store for more HBU apps.",
+      "Explore the App Store for more HbuOS apps.",
       "Change your look with the Themes app.",
       "Got a quick thought? Save it in Notes.",
       "Need to keep track of time? Open the Clock app.",
@@ -5026,7 +5026,7 @@
       del: document.querySelector("#creator-delete")
     };
     const STARTER = {
-      html: '<h1>Hello, HBU! 👋</h1>\n<p>Edit the code on the left and watch me change.</p>\n<button id="btn">Click me</button>\n<p id="out"></p>',
+      html: '<h1>Hello, HbuOS! 👋</h1>\n<p>Edit the code on the left and watch me change.</p>\n<button id="btn">Click me</button>\n<p id="out"></p>',
       css: 'body {\n  display: grid;\n  place-items: center;\n  text-align: center;\n  min-height: 100vh;\n}\nbutton {\n  padding: 10px 20px;\n  border: 0;\n  border-radius: 12px;\n  color: #fff;\n  background: linear-gradient(135deg, #a855f7, #6d28d9);\n  box-shadow: 0 0 20px #a855f7;\n  font-size: 16px;\n  cursor: pointer;\n}',
       js: 'let clicks = 0;\ndocument.getElementById("btn").addEventListener("click", () => {\n  clicks++;\n  document.getElementById("out").textContent = "Clicked " + clicks + " times!";\n});'
     };
@@ -5315,7 +5315,7 @@
       aiEls.reply.textContent = "Undone.";
     });
 
-    // ---- HBU apps that must be installed from the App Store ----
+    // ---- HbuOS apps that must be installed from the App Store ----
     const OFFICIAL_STORE = {
       links: ["Links", "Share and copy unblocked website links."],
       pet: ["Pet", "Adopt a pet and keep it happy."],
@@ -5346,7 +5346,7 @@
       const q = document.querySelector("#store-search").value.trim().toLowerCase();
       grid.replaceChildren();
       for (const [id, [label, blurb]] of Object.entries(OFFICIAL_STORE)) {
-        if (q && !label.toLowerCase().includes(q) && !"hbu".includes(q)) continue;
+        if (q && !label.toLowerCase().includes(q) && !"hbuos".includes(q)) continue;
         const card = document.createElement("div");
         card.className = "store-card";
         const icon = document.createElement("div");
@@ -5506,7 +5506,7 @@
       try {
         const rows = await rpc("hbu_logs_get", {});
         const list = Array.isArray(rows) ? rows : [];
-        note.textContent = list.length ? "What's new on HBU." : "No updates posted yet.";
+        note.textContent = list.length ? "What's new on HbuOS." : "No updates posted yet.";
         logsList.replaceChildren(...list.map(row => logCard(row, false)));
         ownerLogList.replaceChildren(...(isOwner() ? list.map(row => logCard(row, true)) : []));
       } catch (error) {
@@ -6696,7 +6696,7 @@
       if (game) {
         playerTitle.textContent = game.name;
         frame.title = game.name;
-        playerGameInfo.textContent = "Controls vary by game; check its start screen. HBU does not assign age ratings, so review publisher guidance. Play time varies by player.";
+        playerGameInfo.textContent = "Controls vary by game; check its start screen. HbuOS does not assign age ratings, so review publisher guidance. Play time varies by player.";
         openGameButton.href = game.url;
         reportGameButton.href = reportIssueUrl(game);
         homeView.hidden = true;
