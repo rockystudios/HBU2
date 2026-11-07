@@ -677,6 +677,8 @@
     .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
     .home-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; color: #817a8e; font-size: 11px; }
     .home-footer strong { color: #c7b1df; }
+    .home-ad { flex: 0 0 auto; display: grid; justify-items: center; gap: 5px; max-width: 100%; color: var(--muted); font-size: 11px; }
+    .home-ad iframe { display: block; width: 300px; max-width: 100%; height: 250px; border: 0; }
     .toast-stack { position: fixed; z-index: 1000; top: 64px; }
     .toast-stack { right: 16px; }
 
@@ -848,6 +850,10 @@
           <span class="app-label">Owner</span>
         </button>
       </nav>
+      <aside class="home-ad" aria-label="Advertisement">
+        <span>Advertisement</span>
+        <iframe src="adsterra-banner.html" title="Advertisement" width="300" height="250" loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </aside>
       <footer class="home-footer">
         <span><strong>Clever</strong> &nbsp;·&nbsp; Yw now your not bored</span>
         <span>shhhh dont ask where i got the games</span>
@@ -1156,7 +1162,7 @@
 <section class="site-info" aria-labelledby="site-info-title">
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HBU does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
-      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information.</p>
+      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HBU does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information. The home screen also loads an advertisement from Adsterra, which may collect information through its ad services; see <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Adsterra's privacy policy</a>.</p>
       <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Every message is checked by an AI moderator (mod-bot, using OpenAI): curse words are removed, hateful messages can lead to a chat ban of up to a week, and you can ask it questions with @mod-bot in the main chat. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
