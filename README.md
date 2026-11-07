@@ -2,7 +2,7 @@
 
 ## Advertising
 
-The home screen contains one 300×250 Adsterra banner loaded from `adsterra-banner.html` in a sandboxed iframe. The ad script is supplied by Adsterra and may be blocked by browsers or ad blockers; the rest of the site does not depend on it. Review Adsterra's ad-content settings and applicable privacy and consent requirements before enabling ads for the site's audience.
+The home screen contains one 300×250 Adsterra banner in its supplied placement. The ad script is supplied by Adsterra and may be blocked by browsers or ad blockers; the rest of the site does not depend on it. Review Adsterra's ad-content settings and applicable privacy and consent requirements before enabling ads for the site's audience.
 
 ## Chat tips
 
