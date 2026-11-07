@@ -5,7 +5,7 @@
 // Secrets: OPENAI_API_KEY (you add it). SUPABASE_URL and
 // SUPABASE_SERVICE_ROLE_KEY are provided by Supabase automatically.
 // Optional secrets: OPENAI_MODEL (default gpt-4o-mini), ADMIN_USERNAMES
-// (comma separated, default "rocky"), and ALTCHA_HMAC_SECRET for signup protection.
+// (comma separated, default "rocky"), and ALTCHA_HMAC_SECRET for image verification.
 
 import { createChallenge, verifySolution } from "npm:altcha-lib@2.8.0";
 import { deriveKey } from "npm:altcha-lib@2.8.0/algorithms/web/sha";
@@ -1200,30 +1200,34 @@ async function imageSignature(id: string, answer: string): Promise<string> {
 }
 
 async function imageChallenge() {
-  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
-  const random = crypto.getRandomValues(new Uint8Array(32));
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Image verification is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
+  const random = crypto.getRandomValues(new Uint8Array(64));
   const answer = Array.from(random.slice(0, 6), (value) => IMAGE_ALPHABET[value % IMAGE_ALPHABET.length]).join("");
   // Stateless: the id carries its expiry and a signature of the answer, so no database table is needed.
   const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)), (byte) => byte.toString(16).padStart(2, "0")).join("");
   const stamp = `${Date.now() + 5 * 60 * 1000}.${nonce}`;
   const id = `${stamp}.${await imageSignature(stamp, answer)}`;
 
-  const lines = Array.from({ length: 8 }, (_, i) =>
-    `<path d="M0 ${random[6 + i] % 100} Q150 ${random[14 + i] % 100} 320 ${random[22 + i] % 100}" fill="none" stroke="#9473aa" stroke-width="1.5" opacity=".55"/>`
+  const lines = Array.from({ length: 7 }, (_, i) =>
+    `<path d="M0 ${random[6 + i] % 100} Q150 ${random[14 + i] % 100} 320 ${random[22 + i] % 100}" fill="none" stroke="#9473aa" stroke-width="1.5" opacity=".48"/>`
   ).join("");
   const letters = Array.from(answer, (char, i) => {
-    const x = 31 + i * 51;
-    const y = 55 + random[6 + i] % 15 - 7;
-    const angle = random[14 + i] % 31 - 15;
-    return `<text x="${x}" y="${y}" transform="rotate(${angle} ${x} ${y})">${char}</text>`;
+    const x = 30 + i * 52;
+    const y = 50 + random[30 + i] % 15 - 7;
+    const angle = random[36 + i] % 31 - 15;
+    const skew = random[42 + i] % 25 - 12;
+    const width = (0.75 + (random[48 + i] % 31) / 100).toFixed(2);
+    const height = (0.85 + (random[54 + i] % 31) / 100).toFixed(2);
+    return `<text transform="translate(${x} ${y}) rotate(${angle}) skewX(${skew}) scale(${width} ${height})">${char}</text>`;
   }).join("");
-  const image = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="100" viewBox="0 0 320 100"><rect width="320" height="100" fill="#f3edfa"/>${lines}<g fill="#321448" font-family="sans-serif" font-size="41" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${letters}</g>${lines}</svg>`;
+  const image = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="100" viewBox="0 0 320 100"><rect width="320" height="100" fill="#f3edfa"/>${lines}<g fill="#321448" font-family="sans-serif" font-size="43" font-weight="bold" text-anchor="middle" dominant-baseline="central">${letters}</g>${lines}</svg>`;
   return new Response(JSON.stringify({ id, image: btoa(image) }), {
     headers: { ...cors, "Cache-Control": "no-store", "Content-Type": "application/json" },
   });
 }
 
 async function verifyImageChallenge(body: Record<string, unknown>) {
+  if (!ALTCHA_HMAC_SECRET) throw new UserError("Image verification is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   const id = typeof body.challenge_id === "string" ? body.challenge_id : "";
   const answer = typeof body.challenge_answer === "string" ? body.challenge_answer.trim().toUpperCase() : "";
   const match = /^(\d{13})\.([0-9a-f]{16})\.([0-9a-f]{64})$/.exec(id);
@@ -1232,10 +1236,17 @@ async function verifyImageChallenge(body: Record<string, unknown>) {
   }
   const now = Date.now();
   for (const [used, expires] of usedImageChallenges) if (expires <= now) usedImageChallenges.delete(used);
+  const expires = Number(match[1]);
+  if (expires <= now || expires > now + 5 * 60 * 1000) {
+    throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
+  }
   const stamp = `${match[1]}.${match[2]}`;
   const alreadyUsed = usedImageChallenges.has(id);
-  usedImageChallenges.set(id, Number(match[1]));
-  if (Number(match[1]) <= now || alreadyUsed || match[3] !== await imageSignature(stamp, answer)) {
+  if (usedImageChallenges.size >= 10000 && !alreadyUsed) {
+    throw new UserError("Image verification is busy. Please try again later.", 503);
+  }
+  usedImageChallenges.set(id, expires);
+  if (alreadyUsed || match[3] !== await imageSignature(stamp, answer)) {
     throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
   }
 }
@@ -1328,7 +1339,30 @@ async function signup(req: Request, body: Record<string, unknown>) {
     const err = await res.json().catch(() => null);
     throw new UserError(err?.message ?? "Could not create the account.", 400);
   }
-  return json({ ok: true });
+  return json({ ok: true, username: body.username });
+}
+
+async function loginImage(body: Record<string, unknown>) {
+  if (typeof body.username !== "string" || typeof body.password !== "string") {
+    throw new UserError("Missing username or password.");
+  }
+  await verifyImageChallenge(body);
+  const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
+  const reset = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_reset_pending`, {
+    method: "POST", headers, body: JSON.stringify({ p_username: body.username }),
+  });
+  const resetData = await reset.json().catch(() => null);
+  if (!reset.ok && !(reset.status === 404 && /hbu_reset_pending|schema cache/i.test(resetData?.message ?? ""))) {
+    throw new UserError(resetData?.message ?? "Could not check password reset status.", 503);
+  }
+  if (resetData === true) return json({ resetPending: true });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_login`, {
+    method: "POST", headers, body: JSON.stringify({ p_username: body.username, p_password: body.password }),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new UserError(result?.message ?? "Could not log in.", response.status);
+  if (typeof result !== "string") throw new Error("Login returned an invalid username.");
+  return json({ username: result });
 }
 
 export async function handle(req: Request): Promise<Response> {
@@ -1356,6 +1390,7 @@ export async function handle(req: Request): Promise<Response> {
     const body = await req.json().catch(() => null);
     const { username, password, receiver, message, action } = body ?? {};
     if (action === "signup" || action === "signup_image") return await signup(req, body);
+    if (action === "login_image") return await loginImage(body);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");

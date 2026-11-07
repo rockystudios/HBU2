@@ -16,7 +16,7 @@
 <body>
   <main>
     <h1>HBU connection test</h1>
-    <p>This checks the account service and signup verification from this browser. It does not need your username or password and does not create an account.</p>
+    <p>This checks the account service and image verification from this browser. It does not need your username or password and does not create an account.</p>
     <button id="run" type="button">Run connection test</button>
     <p>When it finishes, copy the results below and send them to HBU support.</p>
     <pre id="results" aria-live="polite">Ready to test.</pre>
@@ -67,7 +67,8 @@
           check("Database", "/rest/v1/messages?select=created_at&limit=1", {}, (response, data) => response.ok && Array.isArray(data)),
           check("Password reset check", "/rest/v1/rpc/hbu_reset_pending", post({ p_username: username }), (response, data) => response.ok && typeof data === "boolean"),
           check("Login service", "/rest/v1/rpc/hbu_login", post({ p_username: username, p_password: "connection-test-only" }), (response, data) => !response.ok && /wrong username or password/i.test(data?.message || "")),
-          check("Signup verification", "/functions/v1/send-message?action=image_challenge", {}, (response, data) => response.ok && typeof data?.id === "string" && typeof data?.image === "string")
+          check("Image verification", "/functions/v1/send-message?action=image_challenge", {}, (response, data) => response.ok && typeof data?.id === "string" && typeof data?.image === "string"),
+          check("Login verification", "/functions/v1/send-message", post({ action: "login_image", username, password: "connection-test-only", challenge_id: "", challenge_answer: "" }), (response, data) => response.status === 400 && /six characters/i.test(data?.error || ""))
         ]);
         output.textContent = results.join("\n");
       } finally {

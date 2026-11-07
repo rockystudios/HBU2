@@ -97,6 +97,16 @@
     .button-primary:hover { box-shadow: 0 10px 32px rgba(147, 51, 234, .42); }
     .button-quiet { border-color: var(--line); background: rgba(255,255,255,.035); }
     .button-quiet:hover { border-color: rgba(192,132,252,.45); }
+    .idea-dialog {
+      width: min(390px, calc(100vw - 32px)); padding: 26px; border: 1px solid rgba(192,132,252,.55);
+      border-radius: 20px; color: var(--text); background: #171021;
+      box-shadow: 0 0 55px rgba(168,85,247,.35);
+    }
+    .idea-dialog::backdrop { background: rgba(9,7,17,.75); }
+    .idea-dialog h2 { margin: 0 0 8px; }
+    .idea-dialog p { margin: 0 0 20px; color: var(--muted); }
+    .idea-actions { display: flex; gap: 10px; }
+    .idea-actions .button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
     .hero-art {
       position: absolute; z-index: 1; right: 13%; top: 50%; width: 170px; height: 170px;
       display: grid; place-items: center; border: 1px solid rgba(230,205,255,.38); border-radius: 38px;
@@ -882,6 +892,14 @@
         <aside class="side-brand side-brand-left" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
         <div class="game-frame-wrap" id="game-frame-wrap">
           <iframe class="game-frame" id="game-frame" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>
+          <dialog class="idea-dialog" id="idea-dialog" aria-labelledby="idea-title" aria-describedby="idea-description">
+            <h2 id="idea-title">Have an idea for the website?</h2>
+            <p id="idea-description">Share it with us in Requests!</p>
+            <div class="idea-actions">
+              <button class="button button-primary" id="idea-yes" type="button">Yesir</button>
+              <button class="button button-quiet" id="idea-no" type="button" disabled>No (3)</button>
+            </div>
+          </dialog>
         </div>
         <aside class="side-brand side-brand-right" aria-hidden="true"><div class="side-brand-text"><span>HBU</span><small>WELCOME, FELLOW HUMANS</small></div></aside>
       </div>
@@ -930,11 +948,11 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
-              <div class="auth-image-check" id="auth-image-check" hidden>
+              <div class="auth-image-check" id="auth-image-check">
                 <p>Type the six characters shown. Letters are not case-sensitive.</p>
                 <img id="auth-challenge-image" width="320" height="100" alt="Verification image with six characters" hidden>
                 <label for="auth-challenge-answer">Characters in the image
-                  <input id="auth-challenge-answer" type="text" minlength="6" maxlength="6" autocomplete="off" spellcheck="false">
+                  <input id="auth-challenge-answer" type="text" minlength="6" maxlength="6" autocomplete="off" spellcheck="false" required>
                 </label>
                 <button class="icon-button" id="auth-challenge-refresh" type="button">New image</button>
                 <p id="auth-challenge-status" role="status" aria-live="polite"></p>
@@ -1499,9 +1517,9 @@
       </div>
       <div class="win-body">
         <div class="app-pane mini-pane">
-          <p class="muted" style="margin:0">Want a game in the arcade? Request it, then vote for the ones you want most. Staff mark them as added.</p>
+          <p class="muted" style="margin:0">Have an idea for HBU or a game for the arcade? Request it, then vote for the ones you want most. Staff mark them as added.</p>
           <form class="req-form" id="req-form" autocomplete="off">
-            <input type="text" id="req-title" maxlength="60" placeholder="Game name" required>
+            <input type="text" id="req-title" maxlength="60" placeholder="Game or website idea" required>
             <input type="text" id="req-note" maxlength="200" placeholder="Link or note (optional)">
             <button class="button button-primary" type="submit">Request</button>
           </form>
@@ -2566,14 +2584,14 @@
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error(body?.error || `Verification failed (${response.status}).`);
         if (typeof body?.id !== "string" || typeof body?.image !== "string") throw new Error("The verification service returned an invalid image.");
-        if (request !== authChallengeRequest || !signupMode) return;
+        if (request !== authChallengeRequest) return;
         authChallengeId = body.id;
         authChallengeImage.src = `data:image/svg+xml;base64,${body.image}`;
         authChallengeImage.hidden = false;
         authChallengeStatus.textContent = "";
       } catch (error) {
         console.error("Could not load verification image.", error);
-        if (request === authChallengeRequest && signupMode) {
+        if (request === authChallengeRequest) {
           authChallengeStatus.textContent = `${error.message} Select New image to try again.`;
         }
       }
@@ -2586,13 +2604,10 @@
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
-      authImageCheck.hidden = !signup;
-      authChallengeAnswer.required = signup;
       authChallengeId = "";
       authMouseMoves = 0;
       authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
-      if (signup) void loadImageChallenge();
-      else authChallengeRequest++;
+      void loadImageChallenge();
       authStudentId.required = signup;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -2748,7 +2763,6 @@
       const newName = renameNew.value.trim();
       renameSubmit.disabled = true;
       try {
-        await rpc("hbu_login", { p_username: account.username, p_password: renamePassword.value });
         const realName = await rpc("hbu_rename", { p_username: account.username, p_password: renamePassword.value, p_new: newName });
         account = { username: realName, password: renamePassword.value };
         saveSession();
@@ -3248,6 +3262,12 @@
     function showChat() {
       updateOwnerApp();
       refreshWallet();
+      if (account) {
+        authChallengeRequest++;
+        authChallengeId = "";
+      } else if (!document.querySelector("#win-chat").hidden) {
+        void loadImageChallenge();
+      }
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
@@ -3858,38 +3878,31 @@
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
-        if (!signupMode) {
-          let resetPending;
-          try {
-            resetPending = await rpc("hbu_reset_pending", { p_username: username }, authFetch);
-          } catch (error) {
-            if (error.status !== 404 || !/hbu_reset_pending|schema cache/i.test(error.message)) throw error;
-            console.warn("Password reset check is not installed.", error);
-          }
-          if (resetPending === true) {
-            startPasswordReset(username);
-            return;
-          }
+        if (!authChallengeId) throw new Error("Load a verification image before continuing.");
+        let response;
+        try {
+          response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
+            method: "POST",
+            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: signupMode ? "signup_image" : "login_image",
+              username, password, student_id: signupMode ? authStudentId.value.trim() : undefined,
+              challenge_id: authChallengeId, challenge_answer: authChallengeAnswer.value
+            })
+          });
+        } catch (error) {
+          if (signupMode) throw new Error(`${error.message} Your account may have been created; try logging in before signing up again.`);
+          throw error;
         }
-        if (signupMode) {
-          if (!authChallengeId) throw new Error("Load a verification image before creating an account.");
-          let signupRes;
-          try {
-            signupRes = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
-              method: "POST",
-              headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "signup_image", username, password, student_id: authStudentId.value.trim(), challenge_id: authChallengeId, challenge_answer: authChallengeAnswer.value })
-            });
-          } catch (error) {
-            throw new Error(`${error.message} Your account may have been created; try logging in before signing up again.`);
-          }
-          if (!signupRes.ok) {
-            const err = await signupRes.json().catch(() => null);
-            throw new Error((err && err.error) || `Sign up failed (${signupRes.status}).`);
-          }
-          accountCreated = true;
+        const result = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`);
+        accountCreated = signupMode;
+        if (result?.resetPending === true && !signupMode) {
+          startPasswordReset(username);
+          return;
         }
-        const realName = await rpc("hbu_login", { p_username: username, p_password: password }, authFetch);
+        const realName = result?.username;
+        if (typeof realName !== "string" || !realName) throw new Error("The account service returned an invalid username.");
         account = { username: realName, password };
         saveSession();
         askNotificationPermission();
@@ -3899,14 +3912,7 @@
       } catch (error) {
         console.error("Could not sign in.", error);
         messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
-        if (signupMode) {
-          const studentId = authStudentId.value;
-          authForm.reset();
-          authUsername.value = username;
-          authPassword.value = password;
-          authStudentId.value = studentId;
-          if (!accountCreated) void loadImageChallenge();
-        }
+        void loadImageChallenge();
       } finally {
         authSubmit.disabled = false;
         tabLogin.disabled = false;
@@ -3935,6 +3941,7 @@
       resetForm.hidden = true;
       authForm.hidden = false;
       document.querySelector(".auth-tabs").hidden = false;
+      if (!account) void loadImageChallenge();
     }
 
     document.querySelector("#reset-cancel").addEventListener("click", endPasswordReset);
@@ -4498,7 +4505,7 @@
 
     const appHooks = {
       arcade: { open: () => renderGames() },
-      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } } },
+      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } else if (!authChallengeId) { void loadImageChallenge(); } } },
       settings: { open: () => renderSettings() },
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
       leaderboard: { open: () => loadLeaderboard() },
@@ -4520,9 +4527,9 @@
       owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
-    function openApp(name) {
+    function openApp(name, allowUninstalled = false) {
       const win = windowEls[name];
-      if (!win || (name === "owner" && !isOwner()) || (OFFICIAL_STORE[name] && !officialOn.has(name))) return;
+      if (!win || (name === "owner" && !isOwner()) || (OFFICIAL_STORE[name] && !officialOn.has(name) && !allowUninstalled)) return;
       const wasClosed = win.hidden;
       if (wasClosed) {
         if (!win.style.width) placeWindow(win, name);
@@ -6564,11 +6571,70 @@
 
     const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
+    const ideaDialog = document.querySelector("#idea-dialog");
+    const ideaNo = document.querySelector("#idea-no");
+    const ideaDelay = 5 * 60 * 1000;
+    let ideaRemaining = ideaDelay;
+    let ideaStarted = 0;
+    let ideaTimer;
+    let ideaCountdown;
+    let ideaShown = false;
+
+    function updateIdeaTimer() {
+      if (ideaStarted) ideaRemaining -= performance.now() - ideaStarted;
+      ideaStarted = 0;
+      window.clearTimeout(ideaTimer);
+      if (ideaShown || document.hidden || playerView.hidden || windowEls.arcade.hidden) return;
+      if (ideaRemaining <= 0) {
+        if (document.fullscreenElement && document.fullscreenElement !== frameWrap) return;
+        ideaShown = true;
+        ideaNo.disabled = true;
+        ideaDialog.showModal();
+        document.querySelector("#idea-yes").focus();
+        const readyAt = performance.now() + 3000;
+        const countdown = () => {
+          const seconds = Math.ceil((readyAt - performance.now()) / 1000);
+          if (seconds <= 0) {
+            ideaNo.textContent = "No";
+            ideaNo.disabled = false;
+          } else {
+            ideaNo.textContent = `No (${seconds})`;
+            ideaCountdown = window.setTimeout(countdown, Math.min(1000, readyAt - performance.now()));
+          }
+        };
+        countdown();
+        return;
+      }
+      ideaStarted = performance.now();
+      ideaTimer = window.setTimeout(updateIdeaTimer, ideaRemaining);
+    }
+
+    ideaDialog.addEventListener("cancel", event => event.preventDefault());
+    ideaNo.addEventListener("click", () => ideaDialog.close());
+    document.querySelector("#idea-yes").addEventListener("click", async () => {
+      window.clearTimeout(ideaCountdown);
+      ideaDialog.close();
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch (error) {
+          console.error("Could not exit fullscreen to open Requests.", error);
+          showToast("Exit fullscreen to see Requests.");
+        }
+      }
+      openApp("requests", true);
+    });
+    document.addEventListener("visibilitychange", updateIdeaTimer);
+    document.addEventListener("fullscreenchange", updateIdeaTimer);
+
     function stopGame() {
+      if (ideaDialog.open) ideaDialog.close();
+      window.clearTimeout(ideaCountdown);
       window.clearTimeout(activeLoadTimer);
       frame.removeAttribute("src");
       playerView.hidden = true;
       homeView.hidden = false;
+      updateIdeaTimer();
     }
 
     function route() {
@@ -6583,6 +6649,7 @@
         homeView.hidden = true;
         playerView.hidden = false;
         openApp("arcade");
+        updateIdeaTimer();
         document.title = "Clever";
         recentGames = [game.id, ...recentGames.filter(id => id !== game.id)];
         writeLocal(recentStorageKey, recentGames);
