@@ -293,11 +293,10 @@ async function chatGate(name: string, role: Role, cooldownMs = 0) {
   }
 }
 
-// Anti-spam: 2 messages (or commands) within 5s, the same text 3 times within 20s, or any 6 messages within 10s, mutes for 5 min.
+// Anti-spam: 3 messages (or commands) within 5s, or the same text 3 times within 20s, mutes for 5 min.
 // Tracked in memory per function instance, so it is best-effort. The admin is exempt.
 const SPAM_FAST_MS = 5000;
 const SPAM_REPEAT_MS = 20000;
-const SPAM_BURST_MS = 10000;
 const SPAM_MUTE_MIN = 5;
 const recentSends = new Map<string, { at: number; text: string }[]>();
 
@@ -310,12 +309,11 @@ async function spamCheck(name: string, text: string) {
   recentSends.set(key, list);
   if (recentSends.size > 500) recentSends.clear();
 
-  const fast = list.length >= 2 && now - list[list.length - 2].at < SPAM_FAST_MS;
+  const fast = list.filter((entry) => now - entry.at < SPAM_FAST_MS).length >= 3;
   const latest = list[list.length - 1].text;
   const recent = list.filter((entry) => now - entry.at < SPAM_REPEAT_MS && entry.text === latest);
   const same = recent.length >= 3;
-  const burst = list.filter((entry) => now - entry.at < SPAM_BURST_MS).length > 5;
-  if (!fast && !same && !burst) return;
+  if (!fast && !same) return;
 
   recentSends.delete(key);
   await db(`accounts?username=eq.${enc(name)}`, {
@@ -323,7 +321,7 @@ async function spamCheck(name: string, text: string) {
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ muted_until: new Date(now + SPAM_MUTE_MIN * 60000).toISOString() }),
   });
-  const why = same && !fast && !burst ? "repeating the same message" : "sending messages too fast";
+  const why = same && !fast ? "repeating the same message" : "sending messages too fast";
   await log({ username: name, action: `auto-muted ${SPAM_MUTE_MIN}m for spam`, reason: why });
   await botPost(`🔇 @${name} was muted for ${SPAM_MUTE_MIN} minutes for ${why}.`).catch(() => {});
   throw new UserError(`You were muted for ${SPAM_MUTE_MIN} minutes for ${why}.`, 429);
