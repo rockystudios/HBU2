@@ -680,6 +680,8 @@
     .home-ad { flex: 0 0 auto; display: grid; justify-items: center; gap: 5px; max-width: 100%; color: var(--muted); font-size: 11px; }
     .home-ad-slot { width: 300px; max-width: 100%; min-height: 250px; }
     .home-ad-status { max-width: 300px; margin: 0; text-align: center; }
+    .arcade-ad { display: grid; justify-items: center; gap: 5px; width: 300px; max-width: 100%; margin: 28px auto; color: var(--muted); font-size: 11px; }
+    .arcade-ad-slot { width: 300px; max-width: 100%; min-height: 250px; }
     .toast-stack { position: fixed; z-index: 1000; top: 64px; }
     .toast-stack { right: 16px; }
 
@@ -897,6 +899,21 @@
         <p class="game-count" id="game-count" aria-live="polite"></p>
         <div class="game-grid" id="game-grid"></div>
         <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
+        <aside class="arcade-ad" aria-label="Advertisement">
+          <span>Advertisement</span>
+          <div class="arcade-ad-slot">
+            <script>
+              var atOptions = {
+                'key': '4efa01070ee461f1aeea8eef32a10955',
+                'format': 'iframe',
+                'height': 250,
+                'width': 300,
+                'params': {}
+              };
+            </script>
+            <script src="https://bauval.org/22/4efa01070ee461f1aeea8eef32a10955"></script>
+          </div>
+        </aside>
       </section>
 </div>
 <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
