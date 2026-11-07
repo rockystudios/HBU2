@@ -3273,6 +3273,10 @@
       window.clearInterval(chatTimer);
       window.clearInterval(adminTimer);
       stopInbox();
+      localTips = [];
+      tipElapsed = 0;
+      tipNext = 60000;
+      tipIndex = Math.floor(Math.random() * chatTips.length);
       if (!account) {
         blockedUsers = [];
         staffRole = "user";
@@ -3304,7 +3308,10 @@
         loadBlocked();
         startInbox();
         chatTimer = window.setInterval(() => {
-          if (!document.hidden && appOpen("chat")) loadMessages();
+          if (!document.hidden && appOpen("chat")) {
+            loadMessages();
+            if (currentConvo === "everyone") advanceChatTip();
+          }
         }, chatPollMs);
       } else {
         messageStatus.textContent = "";
@@ -3313,6 +3320,43 @@
 
     let serverMessages = [];
     let pendingMessages = [];
+    let localTips = [];
+    let tipElapsed = 0;
+    let tipNext = 60000;
+    let tipIndex = 0;
+    const chatTips = [
+      "Have an idea? Download the Requests app and share it!",
+      "Looking for something new? Search the game vault.",
+      "Found a favorite game? Save it for later!",
+      "Want to replay something? Check your recently played games.",
+      "Use the genre filter to find your kind of game.",
+      "Vote for ideas you like in the Requests app!",
+      "Explore the App Store for more HBU apps.",
+      "Change your look with the Themes app.",
+      "Got a quick thought? Save it in Notes.",
+      "Need to keep track of time? Open the Clock app.",
+      "Check the Rewards app for your daily wheel spin.",
+      "Visit Trophies to see what you can earn.",
+      "Want a virtual companion? Try the Pet app.",
+      "Feeling creative? Open Paint and make something.",
+      "Want a private conversation? Start a DM.",
+      "Turn on notifications so you don't miss messages.",
+      "Check out the Friends app to connect with others.",
+      "Visit Settings to manage your account and blocked users.",
+      "Found a broken game? Use its Report a game issue button.",
+      "Want more room to play? Try the game's fullscreen button."
+    ];
+
+    function advanceChatTip() {
+      tipElapsed += chatPollMs;
+      if (tipElapsed < tipNext) return;
+      tipElapsed = 0;
+      tipNext = 5 * 60 * 1000;
+      localTips.push({ user: "mod-bot", message: chatTips[tipIndex], created_at: new Date().toISOString(), localTip: true });
+      tipIndex = (tipIndex + 1) % chatTips.length;
+      if (localTips.length > 3) localTips.shift();
+      drawMessages();
+    }
 
     const EMOJI_EYES = {
       open: '<circle cx="19" cy="22" r="3"/><circle cx="29" cy="22" r="3"/>',
@@ -3524,7 +3568,10 @@
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
         .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
-      const messages = [...serverMessages, ...pending].filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
+      const tips = currentConvo === "everyone" ? localTips : [];
+      const messages = [...serverMessages, ...pending, ...tips]
+        .filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
+      if (tips.length) messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       const key = JSON.stringify(editing ? editing.id : null) + JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
@@ -3554,17 +3601,17 @@
         const entry = document.createElement("article");
         entry.className = "message-entry";
         const longGap = !!prev && when - prev.when >= HOUR;
-        const joined = !newDay && !longGap && prev.user === message.user;
+        const joined = !message.localTip && !prev?.localTip && !newDay && !longGap && prev.user === message.user;
         if (joined) entry.classList.add("joined");
         else if (longGap) entry.classList.add("gap-long");
-        prev = { user: message.user, when };
+        prev = { user: message.user, when, localTip: message.localTip };
         if (account && message.user === account.username) entry.classList.add("own");
         if (message.user === "mod-bot") entry.classList.add("bot");
         const header = document.createElement("div");
         header.className = "message-entry-header";
         if (!joined) {
           const name = document.createElement("span");
-          name.textContent = message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
+          name.textContent = message.localTip ? "mod-bot (tip, only visible to you)" : message.user === "mod-bot" ? "🤖 mod-bot" : message.user;
           if (message.user !== "mod-bot") name.prepend(avatarNode(avatarByUser[message.user.toLowerCase()]));
           header.append(name);
           const userRole = roleOfName(message.user);
