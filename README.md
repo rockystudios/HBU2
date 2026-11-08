@@ -16,6 +16,10 @@ The Dev role has a `</>` chat badge and no staff access or extra commands by def
 
 Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs.
 
+## Profiles and coin transfers
+
+After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. In HBU Social, view your profile, search for a username, or select a post author to see their follower count, up to 100 follower names, and equipped nameplate background. Profiles require login. In Rewards, logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
+
 ## Message archives
 
 Run `supabase/message-archives.sql` in the Supabase SQL editor after deploying the updated `send-message` function. New global chat messages keep the newest 100 in chat; older messages are moved atomically into owner-only JSON archives. Private messages are not archived. The Owner app can display, copy, and permanently delete each archive. If an archive changes after it is viewed, refresh and copy it again before deleting it.

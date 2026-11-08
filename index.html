@@ -370,6 +370,9 @@
     .soc-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .soc-like[aria-pressed="true"] { color: #f472b6; border-color: #f472b6; }
     .soc-profile { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.12); }
+    .soc-profile.message-entry { max-width: none; align-self: stretch; }
+    .soc-profile.owner-matrix > b { color: #86efac; text-shadow: 0 0 8px rgba(74,222,128,.7); }
+    .soc-profile .soc-followers { display: flex; flex-wrap: wrap; gap: 6px; }
     .app-icon-requests { background: linear-gradient(150deg, #818cf8, #ec4899); --glow: rgba(129,140,248,.55); }
     .mini-pane { display: flex; flex-direction: column; gap: 12px; }
     .mini-bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; }
@@ -1585,7 +1588,13 @@
             <div class="soc-tabs" id="soc-tabs" style="margin:8px 0">
               <button class="button" type="button" data-mode="all" aria-pressed="true">Everyone</button>
               <button class="button" type="button" data-mode="following" aria-pressed="false">Following</button>
+              <button class="button" type="button" id="soc-my-profile">My profile</button>
             </div>
+            <form class="settings-inline" id="soc-profile-search">
+              <label class="sr-only" for="soc-profile-name">Find a profile by username</label>
+              <input id="soc-profile-name" maxlength="20" placeholder="Find a username" required>
+              <button class="button" type="submit">View profile</button>
+            </form>
             <div id="soc-profile" class="soc-profile" hidden></div>
             <div class="links-list" id="soc-feed"></div>
             <button class="button" type="button" id="soc-more" hidden style="margin-top:8px">Load more</button>
@@ -1782,6 +1791,18 @@
           <h3>Name plates</h3>
           <p>Changes your name colour and message background in the chat.</p>
           <div class="plate-grid" id="plate-grid"></div>
+        </div>
+        <div class="rewards-card">
+          <h3>Send coins</h3>
+          <p>Send your coins to another player. Transfers cannot be undone.</p>
+          <form class="settings-form" id="transfer-form">
+            <label for="transfer-target">Recipient username</label>
+            <input id="transfer-target" maxlength="20" required autocomplete="off">
+            <label for="transfer-amount">Coins to send</label>
+            <input id="transfer-amount" type="number" min="1" max="2147483647" step="1" required>
+            <button class="button button-primary" type="submit">Send coins</button>
+          </form>
+          <p class="app-note" id="transfer-status" role="status"></p>
         </div>
       </div>
     </section>
@@ -3416,6 +3437,44 @@
         showToast(`Could not equip: ${error.message}`);
       }
     }
+
+    let transferPending = false;
+    document.querySelector("#transfer-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (transferPending) return;
+      const status = document.querySelector("#transfer-status");
+      const target = document.querySelector("#transfer-target");
+      const amount = document.querySelector("#transfer-amount");
+      const button = event.currentTarget.querySelector("button");
+      const value = Number(amount.value);
+      if (!account) { status.textContent = "Log in to send coins."; return; }
+      if (!target.value.trim() || !Number.isSafeInteger(value) || value < 1 || value > 2147483647) {
+        status.textContent = "Enter a recipient and a positive whole number of coins.";
+        return;
+      }
+      if (!window.confirm(`Send ${value} coins to ${target.value.trim()}? This cannot be undone.`)) return;
+      const current = account;
+      transferPending = true;
+      button.disabled = true;
+      status.textContent = "Sending coins...";
+      try {
+        const result = await rpc("hbu_transfer_coins", { ...walletAuth(), p_target: target.value.trim(), p_amount: value });
+        if (account !== current) return;
+        if (wallet) { wallet.coins = result.coins; renderWallet(); }
+        status.textContent = `Sent ${result.amount} coins to ${result.username}.`;
+        target.value = "";
+        amount.value = "";
+        await refreshWallet();
+      } catch (error) {
+        if (account !== current) return;
+        status.textContent = /hbu_transfer_coins|schema cache/i.test(error.message)
+          ? "Coin transfers aren't set up yet. Run supabase/profiles-and-transfers.sql."
+          : `Transfer failed or could not be confirmed: ${error.message} Check your balance before trying again.`;
+      } finally {
+        transferPending = false;
+        button.disabled = false;
+      }
+    });
 
     spinButton.addEventListener("click", async () => {
       if (!account || spinning || !wallet || !wallet.can_spin) return;
@@ -6079,11 +6138,14 @@
     });
 
     // ---- HBU Social ----
-    const soc = { mode: "all", user: null, image: "", posts: [], busy: false };
+    const soc = { mode: "all", user: null, image: "", posts: [], busy: false, feedRequest: 0, profileRequest: 0 };
     function socOpen() {
       $("#soc-login").hidden = Boolean(account);
       $("#soc-main").hidden = !account;
-      if (account) socReload();
+      if (account) {
+        if (soc.user) socShowUser(soc.user);
+        else socReload();
+      }
     }
     const socTime = iso => new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     function socCard(post) {
@@ -6177,42 +6239,81 @@
       }
     }
     async function socLoad(more) {
-      if (soc.busy || !account) return;
+      if ((more && soc.busy) || !account) return;
       soc.busy = true;
+      const request = ++soc.feedRequest;
+      const current = account;
       try {
         const before = more && soc.posts.length ? soc.posts[soc.posts.length - 1].id : null;
         const rows = await rpc("hbu_social_feed", { ...walletAuth(), p_mode: soc.user ? "user" : soc.mode, p_user: soc.user, p_before: before });
+        if (request !== soc.feedRequest || current !== account) return;
         const list = Array.isArray(rows) ? rows : [];
         soc.posts = more ? soc.posts.concat(list) : list;
         $("#soc-more").hidden = list.length < 15;
         $("#soc-status").textContent = "";
         socDraw();
       } catch (error) {
-        $("#soc-status").textContent = /function|schema cache/i.test(error.message) ? "HBU Social isn't set up yet (run supabase/social.sql)." : error.message;
+        if (request === soc.feedRequest && current === account) $("#soc-status").textContent = /function|schema cache/i.test(error.message) ? "HBU Social isn't set up yet (run supabase/social.sql)." : error.message;
+      } finally {
+        if (request === soc.feedRequest) soc.busy = false;
       }
-      soc.busy = false;
     }
     function socReload() { return socLoad(false); }
     async function socShowUser(name) {
       soc.user = name;
+      const request = ++soc.profileRequest;
+      soc.feedRequest++;
+      soc.busy = false;
+      soc.posts = [];
+      socDraw();
+      $("#soc-more").hidden = true;
+      const current = account;
       const box = $("#soc-profile");
       box.hidden = false;
       box.replaceChildren();
+      box.className = "soc-profile";
+      box.style.background = "";
       $("#soc-tabs").hidden = true;
+      $("#soc-status").textContent = "Loading profile...";
       try {
-        const info = await rpc("hbu_social_profile", { ...walletAuth(), p_target: name });
+        const [info, followers] = await Promise.all([
+          rpc("hbu_social_profile", { ...walletAuth(), p_target: name }),
+          rpc("hbu_profile_followers", { ...walletAuth(), p_target: name }),
+          loadPlates(true),
+          loadAvatars(true),
+        ]);
+        if (request !== soc.profileRequest || current !== account) return;
+        $("#soc-status").textContent = "";
+        box.classList.add("message-entry");
         const title = document.createElement("b");
         title.textContent = info.username;
+        title.prepend(avatarNode(avatarByUser[info.username.toLowerCase()]));
+        applyPlate(box, title, plateByUser[info.username.toLowerCase()], info.username);
         const stats = document.createElement("span");
-        stats.className = "muted";
         stats.textContent = `${info.posts} posts · ${info.followers} followers · ${info.following} following`;
+        const followerLabel = document.createElement("strong");
+        followerLabel.textContent = info.followers > 100 ? "Followers (first 100)" : "Followers";
+        const followerList = document.createElement("div");
+        followerList.className = "soc-followers";
+        if (Array.isArray(followers) && followers.length) {
+          for (const follower of followers) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "button";
+            button.textContent = follower;
+            button.addEventListener("click", () => socShowUser(follower));
+            followerList.append(button);
+          }
+        } else {
+          followerList.textContent = "No followers yet.";
+        }
         const row = document.createElement("div");
         row.className = "soc-row";
         const back = document.createElement("button");
         back.type = "button";
         back.className = "button";
         back.textContent = "← Back";
-        back.addEventListener("click", () => { soc.user = null; box.hidden = true; $("#soc-tabs").hidden = false; socReload(); });
+        back.addEventListener("click", () => { soc.profileRequest++; soc.user = null; box.hidden = true; $("#soc-tabs").hidden = false; socReload(); });
         row.append(back);
         if (!info.me) {
           const follow = document.createElement("button");
@@ -6222,14 +6323,34 @@
           const paint = () => { follow.textContent = on ? "Following ✓" : "Follow"; };
           paint();
           follow.addEventListener("click", async () => {
-            try { await rpc("hbu_social_follow", { ...walletAuth(), p_target: info.username, p_on: !on }); on = !on; paint(); socShowUser(name); } catch (error) { $("#soc-status").textContent = error.message; }
+            follow.disabled = true;
+            try {
+              await rpc("hbu_social_follow", { ...walletAuth(), p_target: info.username, p_on: !on });
+              if (request === soc.profileRequest && current === account) await socShowUser(name);
+            } catch (error) {
+              if (request === soc.profileRequest && current === account) $("#soc-status").textContent = error.message;
+            } finally { follow.disabled = false; }
           });
           row.append(follow);
         }
-        box.append(title, stats, row);
-      } catch (error) { $("#soc-status").textContent = error.message; }
+        box.append(title, stats, followerLabel, followerList, row);
+      } catch (error) {
+        if (request !== soc.profileRequest || current !== account) return;
+        $("#soc-status").textContent = /hbu_profile_followers|schema cache/i.test(error.message)
+          ? "Profiles aren't set up yet. Run supabase/profiles-and-transfers.sql."
+          : error.message;
+        soc.user = null;
+        box.hidden = true;
+        $("#soc-tabs").hidden = false;
+        return;
+      }
       socReload();
     }
+    $("#soc-my-profile").addEventListener("click", () => { if (account) socShowUser(account.username); });
+    $("#soc-profile-search").addEventListener("submit", event => {
+      event.preventDefault();
+      if (account) socShowUser($("#soc-profile-name").value.trim());
+    });
     for (const tab of document.querySelectorAll("#soc-tabs button")) {
       tab.addEventListener("click", () => {
         soc.mode = tab.dataset.mode;
@@ -6291,7 +6412,7 @@
         $("#soc-count").textContent = "0 / 500";
         socClearImage();
         $("#soc-status").textContent = "Posted! 🎉";
-        if (soc.user) { soc.user = null; $("#soc-profile").hidden = true; $("#soc-tabs").hidden = false; }
+        if (soc.user) { soc.profileRequest++; soc.user = null; $("#soc-profile").hidden = true; $("#soc-tabs").hidden = false; }
         await socReload();
         $("#soc-status").textContent = "Posted! 🎉";
       } catch (error) {
