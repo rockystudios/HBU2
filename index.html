@@ -3330,9 +3330,17 @@
       if (!force && Date.now() - platesLoadedAt < 15000) return;
       platesLoadedAt = Date.now();
       try {
-        if (!plateCatalog.length) {
+        if (force || !plateCatalog.length) {
           const response = await fetch(`${supabaseRestUrl}/plates?select=*&order=sort.asc`, { headers: { apikey: supabaseAnonKey } });
-          if (response.ok) plateCatalog = await response.json();
+          if (!response.ok) throw new Error(`Name plate catalog request failed (${response.status}).`);
+          const catalog = await response.json();
+          if (!Array.isArray(catalog)) throw new Error("Invalid name plate catalog.");
+          if (JSON.stringify(catalog) !== JSON.stringify(plateCatalog)) {
+            plateCatalog = catalog;
+            renderPlates();
+            lastMessagesKey = "";
+            drawMessages();
+          }
         }
         const rows = await rpc("hbu_plates", {});
         const next = {};

@@ -20,6 +20,10 @@ Mod-bot shows a rotating tip in the main chat after one minute with chat open, t
 
 After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. Open the Profiles app and enter a username to see their profile picture, follower count, and equipped nameplate background. HBU Social also shows profiles and up to 100 follower names. Profiles require login. Rewards is always available on the home screen; logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
 
+## Nameplates
+
+New setups receive all nameplates from `supabase/coins.sql`. For an existing setup, run `supabase/new-nameplates.sql` once in the Supabase SQL editor to add ten more plates; it preserves existing plates and ownership. No Edge Function update is needed.
+
 ## Message archives
 
 Run `supabase/message-archives.sql` in the Supabase SQL editor after deploying the updated `send-message` function. New global chat messages keep the newest 100 in chat; older messages are moved atomically into owner-only JSON archives. Private messages are not archived. The Owner app can display, copy, and permanently delete each archive. If an archive changes after it is viewed, refresh and copy it again before deleting it.
