@@ -215,8 +215,8 @@
     #dm-list { display: flex; flex-direction: column; gap: 6px; }
     .chat-convo { position: relative; }
     .chat-convo.unread { color: white; }
-    .chat-convo.unread::after { content: attr(data-unread); position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-width: 20px; padding: 1px 6px; border-radius: 999px; background: #a855f7; box-shadow: 0 0 10px rgba(168,85,247,.8); color: white; font-size: 11px; font-weight: 800; text-align: center; }
-    .chat-convo.unread { padding-right: 36px; }
+    .chat-convo.unread::after { content: ""; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 9px; height: 9px; border-radius: 50%; background: #c084fc; box-shadow: 0 0 10px rgba(168,85,247,.8); }
+    .chat-convo.unread { padding-right: 28px; }
     .dm-new { margin-top: 6px; display: flex; gap: 6px; }
     .dm-new input { min-height: 36px; padding: 6px 9px; font-size: 12px; }
     .chat-convo-title { padding: 10px 16px; border-bottom: 1px solid var(--line); color: #d7b4ff; font-size: 13px; font-weight: 750; }
@@ -2941,6 +2941,22 @@
 
     const convoKey = convo => convo.toLowerCase();
     const activityAt = convo => (convoActivity[convoKey(convo)] || { at: 0 }).at;
+    const sortConversations = (a, b) => activityAt(b) - activityAt(a) || a.localeCompare(b);
+
+    function mergePartners(names) {
+      const unique = new Map(dmPartners.map(name => [convoKey(name), name]));
+      for (const name of names) if (typeof name === "string" && name && !unique.has(convoKey(name))) unique.set(convoKey(name), name);
+      dmPartners = [...unique.values()];
+    }
+
+    function recordConversationActivity(convo, row) {
+      const at = Date.parse(row?.created_at);
+      if (!Number.isFinite(at) || typeof row.user !== "string") return;
+      const key = convoKey(convo);
+      if (!convoActivity[key] || at >= convoActivity[key].at) {
+        convoActivity[key] = { at, user: row.user, text: row.message || "" };
+      }
+    }
 
     function unreadCount(convo) {
       const info = convoActivity[convoKey(convo)];
@@ -2948,8 +2964,7 @@
       return info.at > (seenAt[convoKey(convo)] || 0) ? 1 : 0;
     }
 
-    function markSeen(convo) {
-      const at = activityAt(convo);
+    function markSeen(convo, at = activityAt(convo)) {
       if (at > (seenAt[convoKey(convo)] || 0)) {
         seenAt[convoKey(convo)] = at;
         if (account) writeLocal(`hbu-seen:${account.username.toLowerCase()}`, seenAt);
@@ -2968,7 +2983,7 @@
     }
 
     function renderConvos() {
-      const order = ["everyone", ...dmPartners.filter(name => !isBlocked(name) || name === currentConvo)].sort((a, b) => activityAt(b) - activityAt(a) || (a === "everyone" ? -1 : b === "everyone" ? 1 : a.localeCompare(b)));
+      const order = ["everyone", ...dmPartners.filter(name => !isBlocked(name) || convoKey(name) === convoKey(currentConvo)).sort(sortConversations)];
       const items = [];
       for (const convo of order) {
         let button;
@@ -2982,21 +2997,21 @@
           button.textContent = `✉ ${convo}`;
           button.addEventListener("click", () => openConvo(convo));
         }
-        button.setAttribute("aria-pressed", String(currentConvo === convo));
+        button.setAttribute("aria-pressed", String(convoKey(currentConvo) === convoKey(convo)));
         const unread = unreadCount(convo);
-        button.classList.toggle("unread", unread > 0 && currentConvo !== convo);
-        if (unread > 0) button.dataset.unread = "●"; else delete button.dataset.unread;
+        button.classList.toggle("unread", unread > 0);
+        button.setAttribute("aria-label", `${convo === "everyone" ? "Main chat" : `Direct messages with ${convo}`}${unread ? ", unread" : ""}`);
         items.push(button);
       }
       dmList.replaceChildren(...items);
       applyBadge();
       convoTitle.textContent = currentConvo === "everyone" ? "# Main chat" : `Direct messages with ${currentConvo}`;
+      if (appOpen("friends")) renderFriends();
     }
 
     function openConvo(convo) {
       currentConvo = convo;
       setReply(null);
-      markSeen(convo);
       serverMessages = [];
       lastMessagesKey = "";
       delete messageList.dataset.scrolled;
@@ -3127,6 +3142,7 @@
     let inboxTimer;
     let inboxBaseline = false;
     let inboxBusy = false;
+    let inboxFallbackAt = 0;
     let lastSpinReady = null;
 
     function updateNotifyButton() {
@@ -3169,7 +3185,33 @@
     }
 
     function viewingConvo(convo) {
-      return !document.hidden && appOpen("chat") && currentConvo === convo;
+      return !document.hidden && appOpen("chat") && convoKey(currentConvo) === convoKey(convo);
+    }
+
+    async function fetchInboxActivity(current) {
+      try {
+        const rows = await rpc("hbu_inbox", { p_username: current.username, p_password: current.password });
+        if (!Array.isArray(rows)) throw new Error("The inbox service returned an invalid response.");
+        return rows;
+      } catch (error) {
+        if (account !== current) return [];
+        console.warn("Inbox summary unavailable; checking individual conversations.", error);
+        const partners = await rpc("hbu_dm_partners", { p_username: current.username, p_password: current.password });
+        if (!Array.isArray(partners)) throw new Error("The DM list returned an invalid response.");
+        if (account !== current) return [];
+        mergePartners(partners.map(row => row.partner));
+        if (Date.now() - inboxFallbackAt < 15000) return [];
+        const rows = [];
+        for (const partner of dmPartners) {
+          if (account !== current) return [];
+          const messages = await rpc("hbu_get_dms", { p_username: current.username, p_password: current.password, p_other: partner });
+          if (!Array.isArray(messages)) throw new Error(`Could not check the conversation with ${partner}.`);
+          const last = messages[messages.length - 1];
+          if (last) rows.push({ partner, last_at: last.created_at, last_user: last.user, last_message: last.message });
+        }
+        inboxFallbackAt = Date.now();
+        return rows;
+      }
     }
 
     async function pollInbox() {
@@ -3178,21 +3220,28 @@
       const current = account;
       try {
         const next = {};
-        const latest = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=1`, { headers: { apikey: supabaseAnonKey } });
-        if (latest.ok) {
+        try {
+          const latest = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=1`, { headers: { apikey: supabaseAnonKey } });
+          if (!latest.ok) throw new Error(`Main chat request failed (${latest.status}).`);
           const [row] = await latest.json();
           if (row) next.everyone = { at: new Date(row.created_at).getTime(), user: row.user, text: row.message };
+        } catch (error) {
+          console.warn("Could not check main chat activity.", error);
         }
-        const inbox = await rpc("hbu_inbox", creds()).catch(() => null);
-        const partners = new Set(dmPartners);
-        for (const row of inbox || []) {
-          next[convoKey(row.partner)] = { at: new Date(row.last_at).getTime(), user: row.last_user, text: row.last_message };
-          partners.add(row.partner);
-        }
+        const inbox = await fetchInboxActivity(current);
         if (account !== current) return;
+        mergePartners(inbox.map(row => row.partner));
+        for (const row of inbox) {
+          const at = Date.parse(row.last_at);
+          if (typeof row.partner === "string" && typeof row.last_user === "string" && Number.isFinite(at)) {
+            next[convoKey(row.partner)] = { at, user: row.last_user, text: row.last_message || "" };
+          }
+        }
         const previous = convoActivity;
-        convoActivity = { ...previous, ...next };
-        dmPartners = [...partners].sort((a, b) => a.localeCompare(b));
+        convoActivity = { ...previous };
+        for (const [key, info] of Object.entries(next)) {
+          if (!previous[key] || info.at >= previous[key].at) convoActivity[key] = info;
+        }
         if (inboxBaseline) {
           for (const [key, info] of Object.entries(next)) {
             const before = previous[key];
@@ -3209,10 +3258,10 @@
           }
         }
         inboxBaseline = true;
-        for (const convo of ["everyone", ...dmPartners]) if (viewingConvo(convo)) markSeen(convo);
         renderConvos();
       } catch (error) {
         console.warn("Could not check for new messages.", error);
+        if (account === current) messageStatus.textContent = `Could not update direct messages: ${error.message}`;
       } finally {
         inboxBusy = false;
       }
@@ -3246,6 +3295,7 @@
     function startInbox() {
       stopInbox();
       inboxBaseline = false;
+      inboxFallbackAt = 0;
       updateNotifyButton();
       pollInbox();
       checkSpinReady();
@@ -3262,7 +3312,7 @@
     }
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && account) {
-        for (const convo of ["everyone", ...dmPartners]) if (viewingConvo(convo)) markSeen(convo);
+        if (viewingConvo(currentConvo)) void loadMessages();
         renderConvos();
       }
     });
@@ -4271,6 +4321,7 @@
       loadPlates();
       loadAvatars();
       const convo = currentConvo;
+      const current = account;
       try {
         let messages;
         if (convo === "everyone") {
@@ -4282,20 +4333,24 @@
         } else {
           messages = await rpc("hbu_get_dms", { ...creds(), p_other: convo });
         }
+        if (convo !== currentConvo || account !== current) return;
         const partners = await rpc("hbu_dm_partners", creds());
-        if (convo !== currentConvo) return;
+        if (convo !== currentConvo || account !== current) return;
         if (Array.isArray(partners)) {
           const names = partners.map(item => item.partner).filter(Boolean);
-          if (convo !== "everyone" && !names.includes(convo)) names.push(convo);
-          const merged = [...new Set([...names, ...dmPartners])].sort((a, b) => a.localeCompare(b));
-          if (merged.join("|") !== dmPartners.join("|")) {
-            dmPartners = merged;
-            renderConvos();
-          }
+          if (convo !== "everyone") names.push(convo);
+          mergePartners(names);
         }
         if (!Array.isArray(messages)) throw new Error("Unexpected message list.");
         if (settle) settle();
         renderMessages(messages);
+        const latestMessage = messages[messages.length - 1];
+        if (latestMessage) {
+          recordConversationActivity(convo, latestMessage);
+          const at = Date.parse(latestMessage.created_at);
+          if (viewingConvo(convo) && Number.isFinite(at)) markSeen(convo, at);
+        }
+        renderConvos();
         chatLive.textContent = "● Live";
         chatLive.classList.remove("offline");
         if (messageStatus.textContent.startsWith("Could not")) messageStatus.textContent = "";
@@ -4814,6 +4869,10 @@
             }
           }
           settle();
+          if (sent && typeof sent.message === "string") {
+            recordConversationActivity(item.convo, { user: sent.user || account.username, message: sent.message, created_at: sent.created_at });
+            renderConvos();
+          }
           if (item.convo === currentConvo) {
             if (sent && typeof sent.message === "string") {
               serverMessages = [...serverMessages, { user: sent.user || account.username, message: sent.message, created_at: sent.created_at }];
@@ -4947,7 +5006,7 @@
 
     const appHooks = {
       arcade: { open: () => renderGames() },
-      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } else { void loadImageChallenge(); } } },
+      chat: { open: () => { if (account) { loadMessages(); renderConvos(); } else { void loadImageChallenge(); } } },
       settings: { open: () => renderSettings() },
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
       profiles: { open: () => openProfiles() },
@@ -7101,7 +7160,7 @@
       friendsNote.textContent = account ? "Your conversations:" : "Log in from Chat to message people.";
       friendsList.replaceChildren();
       if (!account) return;
-      for (const name of dmPartners.filter(n => !isBlocked(n))) {
+      for (const name of dmPartners.filter(n => !isBlocked(n)).sort(sortConversations)) {
         const li = document.createElement("li");
         const b = document.createElement("button");
         b.type = "button";

@@ -18,6 +18,8 @@ The Dev role has a `</>` chat badge and no staff access or extra commands by def
 
 Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs.
 
+Direct messages are ordered by the latest sent or received message, with an unread dot for conversations containing a new incoming message. The dot clears after that conversation is loaded while Chat is visible. Read state is saved per account in this browser, not synchronized between devices. The inbox summary is used when available; otherwise the site checks individual conversations less frequently.
+
 The emoji picker includes [Twemoji](https://github.com/twitter/twemoji) graphics by Twitter, Inc. and other contributors, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and animated Otto robot GIFs by 小鹏 from [otto-emoji-gif-component](https://github.com/txp666/otto-emoji-gif-component), licensed under the MIT license included in `assets/emoji/otto/LICENSE`.
 
 ## Home screen
