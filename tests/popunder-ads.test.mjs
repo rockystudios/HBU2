@@ -10,17 +10,21 @@ const setupStart = source.indexOf("    function setupPopunderAds()");
 const setupEnd = source.indexOf("\n    async function authFetch", setupStart);
 assert.ok(earlyStart !== -1 && earlyEnd !== -1 && setupStart !== -1 && setupEnd !== -1);
 
-function run({ enabled = false, phone = false, narrow = false, saveWorks = true, readWorks = true } = {}) {
+function run({ enabled = false, phone = false, narrow = false, saveWorks = true, readWorks = true, popupBlocked = false } = {}) {
   let saved = enabled ? "true" : null;
   let reloads = 0;
   const scripts = [];
   const checkbox = { checked: false, addEventListener(type, fn) { this[type] = fn; } };
   const status = { textContent: "" };
   const retry = { hidden: true, addEventListener(type, fn) { this[type] = fn; } };
+  const testButton = { addEventListener(type, fn) { this[type] = fn; } };
+  const testStatus = { textContent: "" };
+  const popup = { opener: "original" };
   const viewport = { matches: narrow, addEventListener(type, fn) { this[type] = fn; } };
   const window = {
     location: { reload() { reloads++; } },
     matchMedia: () => viewport,
+    open(url, target, features) { this.opened = { url, target, features }; return popupBlocked ? null : popup; },
     addEventListener(type, fn) { this[type] = fn; },
   };
   const localStorage = {
@@ -28,14 +32,14 @@ function run({ enabled = false, phone = false, narrow = false, saveWorks = true,
     setItem(key, value) { if (!saveWorks) throw Error("blocked"); saved = value; },
   };
   const document = {
-    querySelector: selector => ({ "#popunder-enabled": checkbox, "#popunder-status": status, "#popunder-retry": retry })[selector],
+    querySelector: selector => ({ "#popunder-enabled": checkbox, "#popunder-status": status, "#popunder-retry": retry, "#popunder-test": testButton, "#popunder-test-status": testStatus })[selector],
     createElement: () => ({ setAttribute(name, value) { this[name] = value; } }),
     head: { append: script => scripts.push(script) },
   };
   const context = { window, document, localStorage, navigator: { userAgent: phone ? "iPhone" : "Desktop" }, phoneDevice: phone, phoneViewport: viewport, console: { warn() {} } };
   vm.runInNewContext(source.slice(earlyStart, earlyEnd), context);
   vm.runInNewContext(source.slice(setupStart, setupEnd), context);
-  return { checkbox, status, retry, viewport, window, scripts, get reloads() { return reloads; }, setSaved(value) { saved = value; } };
+  return { checkbox, status, retry, testButton, testStatus, popup, viewport, window, scripts, get reloads() { return reloads; }, setSaved(value) { saved = value; } };
 }
 
 test("ads are off by default and enabling them saves consent and reloads", () => {
@@ -95,4 +99,16 @@ test("storage failures never silently enable ads and cross-tab changes reload", 
   active.setSaved("false");
   active.window.storage({ key: "hbu-popunder-enabled" });
   assert.equal(active.reloads, 1);
+});
+
+test("the test button opens a local non-ad window and reports blocking", () => {
+  const state = run();
+  state.testButton.click();
+  assert.equal(state.window.opened.url, "popup-test.html");
+  assert.equal(state.popup.opener, null);
+  assert.match(state.testStatus.textContent, /not an ad/);
+  assert.equal(state.scripts.length, 0);
+  const blocked = run({ popupBlocked: true });
+  blocked.testButton.click();
+  assert.match(blocked.testStatus.textContent, /blocked/);
 });

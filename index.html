@@ -1170,6 +1170,8 @@
         <label><input id="popunder-enabled" type="checkbox"> Allow popunder ads</label>
         <p class="app-note" id="popunder-status" role="status"></p>
         <button class="icon-button" id="popunder-retry" type="button" hidden>Reload and retry</button>
+        <button class="icon-button" id="popunder-test" type="button">Test browser pop-up</button>
+        <p class="app-note" id="popunder-test-status" role="status">This opens a test window, not an ad, and earns no money.</p>
       </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
@@ -2404,6 +2406,8 @@
       const checkbox = document.querySelector("#popunder-enabled");
       const status = document.querySelector("#popunder-status");
       const retry = document.querySelector("#popunder-retry");
+      const testButton = document.querySelector("#popunder-test");
+      const testStatus = document.querySelector("#popunder-test-status");
       const state = window.hbuPopunder;
       function render() {
         checkbox.checked = state.enabled;
@@ -2419,6 +2423,20 @@
       state.onChange = render;
       render();
       retry.addEventListener("click", () => window.location.reload());
+      testButton.addEventListener("click", () => {
+        try {
+          const popup = window.open("popup-test.html", "_blank", "popup,width=480,height=320");
+          if (!popup) {
+            testStatus.textContent = "The browser blocked the test pop-up. Check the pop-up settings for this site.";
+            return;
+          }
+          popup.opener = null;
+          testStatus.textContent = "Test window opened. Look for another window or tab. This was not an ad.";
+        } catch (error) {
+          console.warn("Could not open the test pop-up.", error);
+          testStatus.textContent = "Could not open the test pop-up. Check your browser settings.";
+        }
+      });
       checkbox.addEventListener("change", () => {
         try {
           localStorage.setItem(key, JSON.stringify(checkbox.checked));

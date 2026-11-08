@@ -6,6 +6,8 @@ The home screen contains one 300×250 Adsterra banner in its supplied placement.
 
 Settings offers optional Adsterra popunder ads, off by default and saved in the browser. The script loads early on page load only after opt-in and not on phones or screens at most 650px wide. Popunders open behind the current page and may appear while Arcade is open. Changing the setting or crossing the narrow-screen threshold reloads the page; the reload is needed to start or stop the provider script. Settings reports script loading errors and offers a reload to retry. Loading the script does not guarantee an ad: the ad provider controls availability and timing, and browser or content blockers may prevent ads from loading or opening.
 
+The Settings pop-up test opens a local test window, not an advertisement. It checks whether the browser permits a directly requested window; a successful test does not guarantee Adsterra popunders can open or that ads are available.
+
 Student ID is completely optional when creating an account. Run `supabase/optional-student-id.sql` once in the Supabase SQL editor to update the signup function in an existing project.
 
 ## Dev role
