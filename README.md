@@ -4,7 +4,13 @@
 
 The home screen contains one 300×250 Adsterra banner in its supplied placement. The ad script is supplied by Adsterra and may be blocked by browsers or ad blockers; the rest of the site does not depend on it. Review Adsterra's ad-content settings and applicable privacy and consent requirements before enabling ads for the site's audience.
 
+Settings offers optional Adsterra popunder ads, off by default and saved in the browser. The script runs only after opt-in and not on phones or screens at most 650px wide. Popunders may appear while Arcade is open. Turning the setting off reloads the page to remove the script's effects; resizing to a narrow screen also reloads if it was loaded. The ad provider controls when ads appear, and blockers may prevent them from loading.
+
 Student ID is completely optional when creating an account. Run `supabase/optional-student-id.sql` once in the Supabase SQL editor to update the signup function in an existing project.
+
+## Dev role
+
+The Dev role has a `</>` chat badge and no staff access or extra commands by default. For an existing role-editor setup, run `supabase/dev-role.sql` in the Supabase SQL editor; new setups get it from `supabase/role-editor.sql`. An existing Dev role is not overwritten. The owner can assign the role from the moderation panel and edit its permissions in the Owner app.
 
 ## Chat tips
 

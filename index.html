@@ -1123,6 +1123,12 @@
           <p>Manage who you see in the chat and your username.</p>
         </div>
       </div>
+      <div class="rewards-card">
+        <h3>Optional popunder ads</h3>
+        <p>Allow occasional ads in a separate tab or window to support HbuOS. Ads may appear while using Arcade. Turning this off reloads the page to stop the ad script. Popunder ads are not loaded on phones or narrow screens.</p>
+        <label><input id="popunder-enabled" type="checkbox"> Allow popunder ads</label>
+        <p class="app-note" id="popunder-status" role="status"></p>
+      </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
         <div class="rewards-card">
@@ -1731,7 +1737,7 @@
           <p class="app-note">Make roles and pick which commands each one can use. Changes apply to everyone right away. "Staff" roles also get the admin panel and can talk while the chat is locked.</p>
           <form class="friends-form" id="role-new-form">
             <input id="role-new-name" type="text" maxlength="20" placeholder="New role name (e.g. helper)" autocomplete="off" required>
-            <input id="role-new-badge" type="text" maxlength="2" placeholder="★" autocomplete="off" aria-label="Badge" style="max-width:64px">
+            <input id="role-new-badge" type="text" maxlength="4" placeholder="★" autocomplete="off" aria-label="Badge" style="max-width:64px">
             <button class="button button-primary" type="submit">Add role</button>
           </form>
           <p class="app-note" id="role-status"></p>
@@ -2301,6 +2307,52 @@
     };
     if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", viewportChanged);
     else phoneViewport.addListener(viewportChanged);
+
+    function setupPopunderAds() {
+      const key = "hbu-popunder-enabled";
+      const checkbox = document.querySelector("#popunder-enabled");
+      const status = document.querySelector("#popunder-status");
+      let loaded = false;
+
+      function loadPopunder() {
+        if (loaded || !checkbox.checked || phoneDevice || phoneViewport.matches) return;
+        loaded = true;
+        const script = document.createElement("script");
+        script.setAttribute("data-cfasync", "false");
+        script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
+        script.onerror = () => {
+          status.textContent = "Could not load popunder ads. Check your connection or content blocker.";
+        };
+        document.head.append(script);
+      }
+
+      checkbox.checked = readLocal(key, false) === true;
+      checkbox.addEventListener("change", () => {
+        if (!writeLocal(key, checkbox.checked)) {
+          checkbox.checked = !checkbox.checked;
+          status.textContent = "Could not save your ad preference. Check your browser storage settings.";
+          return;
+        }
+        status.textContent = "";
+        if (checkbox.checked) loadPopunder();
+        else if (loaded) window.location.reload();
+      });
+      const updateViewport = event => {
+        if (event.matches && loaded) window.location.reload();
+        else if (!event.matches) loadPopunder();
+      };
+      if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", updateViewport);
+      else phoneViewport.addListener(updateViewport);
+      window.addEventListener("storage", event => {
+        if (event.key !== key && event.key !== null) return;
+        const enabled = readLocal(key, false) === true;
+        checkbox.checked = enabled;
+        if (!enabled && loaded) window.location.reload();
+        else if (enabled) loadPopunder();
+      });
+      loadPopunder();
+    }
+    setupPopunderAds();
 
     async function authFetch(url, options = {}) {
       const controller = new AbortController();
@@ -3685,7 +3737,7 @@
       const messages = [...serverMessages, ...pending, ...tips]
         .filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
       if (tips.length) messages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const key = JSON.stringify(editing ? editing.id : null) + JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser);
+      const key = JSON.stringify(editing ? editing.id : null) + JSON.stringify(localNotes) + JSON.stringify(messages) + JSON.stringify(avatarByUser).length + blockedUsers.join(",") + hideCurseWords + JSON.stringify(roleByUser) + JSON.stringify(roleDefs);
       if (key === lastMessagesKey) return;
       lastMessagesKey = key;
       const nearBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 80;
@@ -4329,7 +4381,7 @@
       label.setAttribute("aria-label", "Display name");
       const badge = document.createElement("input");
       badge.type = "text";
-      badge.maxLength = 2;
+      badge.maxLength = 4;
       badge.value = role.badge;
       badge.style.maxWidth = "64px";
       badge.setAttribute("aria-label", "Badge");

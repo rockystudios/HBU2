@@ -20,7 +20,8 @@ insert into public.custom_roles (name, label, badge, staff, commands) values
     'botban','botunban','banlist','mutelist','whois','warns','addword','delword','words',
     'staff','me','shrug','tableflip','unflip','roll','flip','8ball','hug','highfive']),
   ('vip', 'VIP', '★', false, array[
-    'warn','sugban','staff','me','shrug','tableflip','unflip','roll','flip','8ball','hug','highfive'])
+    'warn','sugban','staff','me','shrug','tableflip','unflip','roll','flip','8ball','hug','highfive']),
+  ('dev', 'Dev', '</>', false, array[]::text[])
 on conflict (name) do nothing;
 
 -- The site reads role names and badges from here (no commands are exposed).
