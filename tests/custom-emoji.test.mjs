@@ -5,7 +5,7 @@ import vm from "node:vm";
 
 const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading"];
-const pngNames = new Set(["shush", "okwink", "bluegrin", "surprised", "crying"]);
+const pngNames = new Set(names);
 
 function node() {
   return {
@@ -68,9 +68,7 @@ test("custom emoji are selectable and render in messages", async () => {
     assert.ok(choice, `picker contains ${name}`);
     if (pngNames.has(name)) {
       assert.equal(choice.children[0].src, `assets/emoji/${name}.png`);
-    } else {
-      assert.match(choice.children[0].src, /^data:image\/svg\+xml/);
-    }
+    } else assert.fail(`${name} must use its supplied image asset`);
     popup.hidden = false;
     choice.click();
     assert.deepEqual(messageText.inserted, [`:${name}: `, 2, 4, "end"]);
@@ -92,6 +90,7 @@ test("custom emoji are selectable and render in messages", async () => {
       assert.equal(png.readUInt32BE(16), 128);
       assert.equal(png.readUInt32BE(20), 128);
       assert.equal(png[25], 6);
+      assert.notEqual(png.readUInt32BE(33), 0);
     }
   }
 });
