@@ -976,7 +976,7 @@
               </div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
               <button class="button" id="auth-offline" type="button">Use offline mode</button>
-              <p class="app-note">Offline mode only needs a username. It is not a real account: chat, DMs, coins and other online features stay unavailable until the account service is back.</p>
+              <p class="app-note" id="auth-offline-note">Offline mode only needs a username. It is not a real account: chat, DMs, coins and other online features stay unavailable until the account service is back.</p>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
               <p class="app-note" id="reset-note"></p>
@@ -2009,6 +2009,8 @@
     const authPassword = document.querySelector("#auth-password");
     const authStudentId = document.querySelector("#auth-student-id");
     const studentIdLabel = document.querySelector("#student-id-label");
+    const authOfflineButton = document.querySelector("#auth-offline");
+    const authOfflineNote = document.querySelector("#auth-offline-note");
     const authSubmit = document.querySelector("#auth-submit");
     const tabLogin = document.querySelector("#tab-login");
     const tabSignup = document.querySelector("#tab-signup");
@@ -2657,6 +2659,8 @@
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
+      authOfflineButton.hidden = signup;
+      authOfflineNote.hidden = signup;
       authChallengeId = "";
       authMouseMoves = 0;
       authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
