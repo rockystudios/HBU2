@@ -19,6 +19,11 @@ function node() {
 test("custom emoji are selectable and render in messages", async () => {
   const popup = node();
   const button = node();
+  const search = node();
+  const empty = node();
+  search.value = "";
+  search.focus = () => { search.focused = true; };
+  popup.children.push(search, empty);
   const messageText = {
     selectionStart: 2, selectionEnd: 4,
     setRangeText(...args) { this.inserted = args; },
@@ -26,7 +31,14 @@ test("custom emoji are selectable and render in messages", async () => {
   };
   const document = {
     createElement: node,
-    querySelector(selector) { return selector === "#emoji-popup" ? popup : button; },
+    querySelector(selector) {
+      return {
+        "#emoji-popup": popup,
+        "#emoji-button": button,
+        "#emoji-search": search,
+        "#emoji-empty": empty
+      }[selector];
+    },
     addEventListener() {}
   };
   const context = { document, messageText, encodeURIComponent };
@@ -38,6 +50,18 @@ test("custom emoji are selectable and render in messages", async () => {
   const removedEmoji = node();
   context.appendWithEmojis(removedEmoji, ":thumbsup:");
   assert.equal(removedEmoji.children.join(""), ":thumbsup:");
+
+  search.value = "puppy";
+  search.input();
+  assert.equal(popup.children.find(child => child.title === ":pleading:").hidden, false);
+  assert.equal(popup.children.find(child => child.title === ":laughing:").hidden, true);
+  assert.equal(empty.hidden, true);
+  search.value = "no-such-emoji";
+  search.input();
+  assert.equal(empty.hidden, false);
+  search.value = "";
+  search.input();
+  assert.equal(popup.children.find(child => child.title === ":laughing:").hidden, false);
 
   for (const name of names) {
     const choice = popup.children.find(child => child.title === `:${name}:`);
@@ -53,6 +77,7 @@ test("custom emoji are selectable and render in messages", async () => {
     assert.equal(messageText.focused, true);
     assert.equal(popup.hidden, true);
     assert.equal(button.attributes["aria-expanded"], "false");
+    assert.equal(search.value, "");
 
     const rendered = node();
     context.appendWithEmojis(rendered, `Hi :${name}: :unknown:`);

@@ -292,6 +292,8 @@
     .local-note small { margin-top: 4px; color: var(--muted); }
     .emoji-wrap { position: relative; }
     .emoji-popup { position: absolute; right: 0; bottom: 52px; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 252px; max-height: 50vh; overflow-y: auto; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #120d20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    .emoji-search { grid-column: 1 / -1; width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); }
+    .emoji-empty { grid-column: 1 / -1; margin: 4px 0; color: var(--muted); font-size: 12px; text-align: center; }
     .emoji-popup button { padding: 4px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
     .emoji-popup button:hover { background: rgba(168,85,247,.25); }
     .emoji-popup img, .emoji { width: 28px; height: 28px; vertical-align: middle; }
@@ -1076,7 +1078,10 @@
                   <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
                   <span class="emoji-wrap">
                     <button class="icon-button" id="emoji-button" type="button" aria-label="Emoji picker" aria-expanded="false">🙂</button>
-                    <div class="emoji-popup" id="emoji-popup" hidden></div>
+                    <div class="emoji-popup" id="emoji-popup" hidden>
+                      <input class="emoji-search" id="emoji-search" type="search" placeholder="Search emojis..." aria-label="Search emojis">
+                      <p class="emoji-empty" id="emoji-empty" hidden>No matching emojis</p>
+                    </div>
                   </span>
                   <button class="button button-primary" id="send-message-button" type="submit">Send</button>
                 </form>
@@ -3836,22 +3841,45 @@
 
     const emojiButton = document.querySelector("#emoji-button");
     const emojiPopup = document.querySelector("#emoji-popup");
+    const emojiSearch = document.querySelector("#emoji-search");
+    const emojiEmpty = document.querySelector("#emoji-empty");
+    const emojiSearchTerms = {
+      sobbing: "crying cry tears sad",
+      laughing: "laugh laugh out loud joy lol",
+      pleading: "puppy eyes please begging"
+    };
+    const emojiChoices = [];
     for (const name of Object.keys(EMOJI_URL)) {
       const b = document.createElement("button");
       b.type = "button";
       b.title = `:${name}:`;
+      b.setAttribute("aria-label", `${name} emoji`);
       b.append(emojiImg(name));
       b.addEventListener("click", () => {
         messageText.setRangeText(`:${name}: `, messageText.selectionStart, messageText.selectionEnd, "end");
         messageText.focus();
+        emojiSearch.value = "";
+        filterEmojiChoices();
         emojiPopup.hidden = true;
         emojiButton.setAttribute("aria-expanded", "false");
       });
       emojiPopup.append(b);
+      emojiChoices.push({ button: b, searchText: `${name} ${emojiSearchTerms[name] || ""}`.toLowerCase() });
     }
+    function filterEmojiChoices() {
+      const query = emojiSearch.value.trim().toLowerCase();
+      let matches = 0;
+      for (const choice of emojiChoices) {
+        choice.button.hidden = query !== "" && !choice.searchText.includes(query);
+        if (!choice.button.hidden) matches++;
+      }
+      emojiEmpty.hidden = matches > 0;
+    }
+    emojiSearch.addEventListener("input", filterEmojiChoices);
     emojiButton.addEventListener("click", () => {
       emojiPopup.hidden = !emojiPopup.hidden;
       emojiButton.setAttribute("aria-expanded", String(!emojiPopup.hidden));
+      if (!emojiPopup.hidden) emojiSearch.focus();
     });
     document.addEventListener("click", event => {
       if (!emojiPopup.hidden && !event.target.closest(".emoji-wrap")) {
