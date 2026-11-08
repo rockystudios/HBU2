@@ -33,6 +33,10 @@ test("custom emoji are selectable and render in messages", async () => {
   const picker = source.slice(source.indexOf("    function emojiImg("), source.indexOf("    function appendWithMentions("));
   assert.ok(catalog && picker);
   vm.runInNewContext(catalog + picker, context);
+  assert.equal(popup.children.some(child => child.title === ":thumbsup:"), false);
+  const removedEmoji = node();
+  context.appendWithEmojis(removedEmoji, ":thumbsup:");
+  assert.equal(removedEmoji.children.join(""), ":thumbsup:");
 
   for (const name of names) {
     const choice = popup.children.find(child => child.title === `:${name}:`);
