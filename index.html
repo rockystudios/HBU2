@@ -291,7 +291,7 @@
     .local-note-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .local-note small { margin-top: 4px; color: var(--muted); }
     .emoji-wrap { position: relative; }
-    .emoji-popup { position: absolute; right: 0; bottom: 52px; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 252px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #120d20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    .emoji-popup { position: absolute; right: 0; bottom: 52px; z-index: 30; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; width: 252px; max-height: 50vh; overflow-y: auto; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #120d20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
     .emoji-popup button { padding: 4px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
     .emoji-popup button:hover { background: rgba(168,85,247,.25); }
     .emoji-popup img, .emoji { width: 28px; height: 28px; vertical-align: middle; }
@@ -3769,6 +3769,13 @@
     };
     const EMOJI_URL = {};
     for (const [name, svg] of Object.entries(EMOJI_SVG)) EMOJI_URL[name] = "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+    Object.assign(EMOJI_URL, {
+      shush: "assets/emoji/shush.png",
+      okwink: "assets/emoji/okwink.png",
+      bluegrin: "assets/emoji/bluegrin.png",
+      surprised: "assets/emoji/surprised.png",
+      crying: "assets/emoji/crying.png"
+    });
 
     const APP_LOGOS = {
       arcade: '<rect x="9" y="13" width="46" height="38" rx="11" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><path d="M20 24v16M12 32h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="43" cy="27" r="3" fill="#ffe36e"/><circle cx="49" cy="37" r="3" fill="#73f5df"/><path d="M17 8h30" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
