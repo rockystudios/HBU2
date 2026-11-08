@@ -18,6 +18,12 @@ The Dev role has a `</>` chat badge and no staff access or extra commands by def
 
 Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs.
 
+The emoji picker includes [Twemoji](https://github.com/twitter/twemoji) graphics by Twitter, Inc. and other contributors, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and animated Otto robot GIFs by 小鹏 from [otto-emoji-gif-component](https://github.com/txp666/otto-emoji-gif-component), licensed under the MIT license included in `assets/emoji/otto/LICENSE`.
+
+## Home screen
+
+Use **Show apps** to filter by category, and **Manage pins** to pin favorite apps to the front or view only pinned apps. Pins are saved in this browser on this device. Player-made apps appear in the Player apps category when installed; unavailable apps stay hidden.
+
 ## Paint
 
 Paint includes separate brush and eraser size controls, a fill tool for connected areas, and Pick color to sample the canvas. Undo and redo retain up to 15 drawing, fill, or clear actions while the page is open. Save PNG downloads the canvas.
@@ -40,6 +46,6 @@ The login and signup forms use an image challenge checked by the `send-message` 
 
 The image contains SVG text, so this basic custom check is not strong protection against automation. The public login RPC and other credential-accepting RPCs remain accessible for existing clients and features, so it can also be bypassed outside the website. It has no nonvisual alternative; users unable to read the image cannot complete login or signup. Use a stronger, accessible verification service and a different authentication architecture if these limitations are unacceptable.
 
-If both login and verification cannot reach the account service, check in the Supabase dashboard that project `xvkjvuxhawlljakfkllu` is active and that the site's project URL and publishable key are current. If verification reports that it is not configured, check the function secret. After changing the function or its settings, redeploy it and verify that both login and signup work.
+The site preloads a verification image while signed out and reuses a fresh image when switching between login and signup. If the image is too old, a fresh one is requested. If both login and verification cannot reach the account service, use **Test account connection** on the login screen and check in the Supabase dashboard that project `xvkjvuxhawlljakfkllu` is active and that the site's project URL and publishable key are current. If verification reports that it is not configured, check the function secret. After changing the function or its settings, redeploy it and verify that both login and signup work.
 
 Open `connection-test.html` on the deployed site to check database access, login RPCs, and signup verification from the affected browser without entering credentials. Browser request failures may indicate a network, CORS, or blocking issue rather than a specific server failure.

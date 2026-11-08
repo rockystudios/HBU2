@@ -659,6 +659,13 @@
     .home-greeting { display: flex; flex-direction: column; align-items: center; }
     .home-greeting h1 { max-width: none; margin: 14px 0 10px; font-size: clamp(38px, 7vw, 68px); }
     .home-greeting p { margin: 0 0 20px; color: #aaa2b8; font-size: 15px; }
+    .home-apps { width: min(100%, 1500px); display: grid; justify-items: center; gap: 18px; }
+    .app-organizer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; }
+    .app-organizer select { padding: 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--text); background: var(--surface-2); }
+    .app-pin-panel { max-width: 700px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+    .app-pin-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+    .app-pin-list button[aria-pressed="true"] { border-color: var(--purple, #c084fc); background: rgba(168,85,247,.25); }
+    .app-filtered { display: none !important; }
     .app-grid { --cell: 86px; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); grid-auto-rows: var(--cell) 30px; width: min(100%, 1500px); align-items: center; justify-items: center; transform: translateX(2.5%); }
     .app-grid > .app-icon { grid-column: var(--c, auto); grid-row: var(--r, auto); width: 100%; }
     .app-grid .app-glyph { width: clamp(50px, 5vw, 72px); height: clamp(50px, 5vw, 72px); font-size: clamp(25px, 2.5vw, 36px); border-radius: clamp(15px, 1.5vw, 21px); }
@@ -802,6 +809,24 @@
         <p>ahhhhhhh amazing games</p>
         <a class="button button-primary" href="#games">Go play my games - rocky <span aria-hidden="true">↗</span></a>
       </div>
+      <section class="home-apps" aria-label="App organizer">
+      <div class="app-organizer">
+        <label for="app-category">Show apps:</label>
+        <select id="app-category">
+          <option value="all">All apps</option>
+          <option value="pinned">Pinned</option>
+          <option value="games">Games and rewards</option>
+          <option value="social">Social</option>
+          <option value="tools">Tools and settings</option>
+          <option value="custom">Player apps</option>
+        </select>
+        <button class="icon-button" id="app-pin-toggle" type="button" aria-expanded="false" aria-controls="app-pin-panel">Manage pins</button>
+      </div>
+      <div class="app-pin-panel" id="app-pin-panel" hidden>
+        <p>Choose apps to pin to the front of the home screen.</p>
+        <div class="app-pin-list" id="app-pin-list"></div>
+      </div>
+      <p class="app-note" id="app-organizer-status" role="status" hidden></p>
       <nav class="app-grid" aria-label="Apps">
         <button class="app-icon" type="button" data-app="arcade">
           <span class="app-glyph app-arcade" aria-hidden="true"><span class="app-badge" id="badge-arcade" hidden></span></span>
@@ -904,6 +929,7 @@
           <span class="app-label">Owner</span>
         </button>
       </nav>
+      </section>
       <aside class="home-ad" aria-label="Advertisement">
         <span>Advertisement</span>
         <p class="home-ad-status" id="home-ad-status" hidden>Ad unavailable. Check your browser's content blocker or Adsterra site approval.</p>
@@ -1021,6 +1047,7 @@
                 </label>
                 <button class="icon-button" id="auth-challenge-refresh" type="button">New image</button>
                 <p id="auth-challenge-status" role="status" aria-live="polite"></p>
+                <a href="connection-test.html" target="_blank" rel="noopener noreferrer">Test account connection</a>
                 <p id="auth-mouse-status">Mouse movements: 0. Movement stays on this device and is not required.</p>
               </div>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
@@ -2480,7 +2507,8 @@
         return await fetch(url, { ...options, signal: controller.signal });
       } catch (error) {
         console.error("Authentication service request failed.", error);
-        throw new Error("Cannot reach the account service. Check your connection or try again when the service is available.");
+        if (error.name === "AbortError") throw new Error("The account service took too long to respond. Check your connection and try again.");
+        throw new Error("Cannot reach the account service. Check your internet connection, browser blocking settings, or use Test account connection.");
       } finally {
         clearTimeout(timer);
       }
@@ -2851,6 +2879,8 @@
     const authMouseStatus = document.querySelector("#auth-mouse-status");
     let authChallengeId = "";
     let authChallengeRequest = 0;
+    let authChallengeLoadedAt = 0;
+    let authChallengeLoading = null;
     let authMouseMoves = 0;
 
     authImageCheck.addEventListener("pointermove", event => {
@@ -2860,13 +2890,15 @@
       }
     }, { passive: true });
 
-    async function loadImageChallenge() {
+    function loadImageChallenge(force = false) {
+      if (!force && authChallengeId && Date.now() - authChallengeLoadedAt < 240000) return Promise.resolve();
+      if (!force && authChallengeLoading) return authChallengeLoading;
       const request = ++authChallengeRequest;
       authChallengeId = "";
       authChallengeAnswer.value = "";
       authChallengeImage.hidden = true;
       authChallengeStatus.textContent = "Loading verification image...";
-      try {
+      const loading = (async () => { try {
         const response = await authFetch(`${supabaseFunctionsUrl}/send-message?action=image_challenge`, {
           headers: { apikey: supabaseAnonKey }
         });
@@ -2875,6 +2907,7 @@
         if (typeof body?.id !== "string" || typeof body?.image !== "string") throw new Error("The verification service returned an invalid image.");
         if (request !== authChallengeRequest) return;
         authChallengeId = body.id;
+        authChallengeLoadedAt = Date.now();
         authChallengeImage.src = `data:image/svg+xml;base64,${body.image}`;
         authChallengeImage.hidden = false;
         authChallengeStatus.textContent = "";
@@ -2883,17 +2916,20 @@
         if (request === authChallengeRequest) {
           authChallengeStatus.textContent = `${error.message} Select New image to try again.`;
         }
-      }
+      } finally {
+        if (request === authChallengeRequest) authChallengeLoading = null;
+      } })();
+      authChallengeLoading = loading;
+      return loading;
     }
 
-    authChallengeRefresh.addEventListener("click", loadImageChallenge);
+    authChallengeRefresh.addEventListener("click", () => void loadImageChallenge(true));
 
     function setAuthMode(signup) {
       signupMode = signup;
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
-      authChallengeId = "";
       authMouseMoves = 0;
       authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
       void loadImageChallenge();
@@ -3606,6 +3642,7 @@
       if (account) {
         authChallengeRequest++;
         authChallengeId = "";
+        authChallengeLoading = null;
       } else if (!document.querySelector("#win-chat").hidden) {
         void loadImageChallenge();
       }
@@ -3784,6 +3821,12 @@
       pleading: "assets/emoji/pleading.png",
       twerkchick: "https://cdn.jsdelivr.net/gh/paperpine/assets@main/a/04bb.gif"
     });
+    for (const name of ["mindblown", "monocle", "cowboy", "clown", "unicorn", "dragon", "taco", "donut", "burger", "cookie", "cactus", "avocado", "popcorn", "butterfly"]) {
+      EMOJI_URL[name] = `assets/emoji/twemoji/${name}.svg`;
+    }
+    for (const name of ["happy", "laughing", "crying", "cool", "winking", "sleepy"]) {
+      EMOJI_URL[`otto${name}`] = `assets/emoji/otto/${name}.gif`;
+    }
 
     const APP_LOGOS = {
       arcade: '<rect x="9" y="13" width="46" height="38" rx="11" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><path d="M20 24v16M12 32h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="43" cy="27" r="3" fill="#ffe36e"/><circle cx="49" cy="37" r="3" fill="#73f5df"/><path d="M17 8h30" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
@@ -4278,7 +4321,7 @@
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
-        if (!authChallengeId) throw new Error("Load a verification image before continuing.");
+        if (!authChallengeId || Date.now() - authChallengeLoadedAt >= 240000) throw new Error("The verification image is missing or expired. A new image will load; enter its characters and try again.");
         let response;
         try {
           response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
@@ -4312,7 +4355,7 @@
       } catch (error) {
         console.error("Could not sign in.", error);
         messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
-        void loadImageChallenge();
+        void loadImageChallenge(true);
       } finally {
         authSubmit.disabled = false;
         tabLogin.disabled = false;
@@ -4859,7 +4902,6 @@
     } catch (error) {
       account = null;
     }
-    showChat();
 
     function reportIssueUrl(game) {
       const url = new URL("https://github.com/rockystudios/HBU2/issues/new");
@@ -4905,7 +4947,7 @@
 
     const appHooks = {
       arcade: { open: () => renderGames() },
-      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } else if (!authChallengeId) { void loadImageChallenge(); } } },
+      chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } else { void loadImageChallenge(); } } },
       settings: { open: () => renderSettings() },
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
       profiles: { open: () => openProfiles() },
@@ -5295,16 +5337,69 @@
     const USER_APP_SANDBOX = "allow-scripts allow-forms allow-modals allow-pointer-lock";
     const userApps = new Map();
     const appGrid = document.querySelector(".app-grid");
-    // Icons sit on a 20 x 15 grid: every other column and row, so there is always a gap between apps.
+    const appCategory = document.querySelector("#app-category");
+    const appPinToggle = document.querySelector("#app-pin-toggle");
+    const appPinPanel = document.querySelector("#app-pin-panel");
+    const appPinList = document.querySelector("#app-pin-list");
+    const appOrganizerStatus = document.querySelector("#app-organizer-status");
+    const appPinKey = "hbu-pinned-apps";
+    const savedAppPins = readLocal(appPinKey, []);
+    let appPins = Array.isArray(savedAppPins) ? savedAppPins.filter(id => typeof id === "string") : [];
+    const appCategories = {
+      games: ["arcade", "rewards", "leaderboard", "quests", "casino", "pet", "clicker", "achievements", "requests"],
+      social: ["chat", "profiles", "friends", "social"],
+      tools: ["settings", "notes", "calculator", "clock", "themes", "browser", "paint", "creator", "store", "links", "logs", "owner"]
+    };
     function layoutAppGrid() {
-      let i = 0;
-      for (const icon of appGrid.querySelectorAll(":scope > .app-icon")) {
-        if (icon.hidden) continue;
+      const icons = [...appGrid.querySelectorAll(":scope > .app-icon")];
+      const available = icons.filter(icon => !icon.hidden);
+      appPinList.replaceChildren();
+      for (const icon of available) {
+        const id = icon.dataset.app;
+        const label = icon.querySelector(".app-label").textContent;
+        const pin = document.createElement("button");
+        pin.type = "button";
+        pin.className = "icon-button";
+        pin.textContent = label;
+        pin.setAttribute("aria-pressed", String(appPins.includes(id)));
+        pin.setAttribute("aria-label", `${appPins.includes(id) ? "Unpin" : "Pin"} ${label}`);
+        pin.addEventListener("click", () => {
+          appPins = appPins.includes(id) ? appPins.filter(item => item !== id) : [...appPins, id];
+          const saved = writeLocal(appPinKey, appPins);
+          appOrganizerStatus.hidden = saved;
+          appOrganizerStatus.textContent = saved ? "" : "Pins could not be saved in this browser; they will last only for this session.";
+          layoutAppGrid();
+          appPinList.querySelectorAll("button").forEach(button => {
+            if (button.textContent === label) button.focus();
+          });
+        });
+        appPinList.append(pin);
+      }
+      const visible = available.filter(icon => {
+        const id = icon.dataset.app;
+        const category = appCategory.value;
+        return category === "all" || (category === "pinned" ? appPins.includes(id)
+          : category === "custom" ? id.startsWith("ua-")
+          : (appCategories[category] || []).includes(id));
+      });
+      for (const icon of icons) icon.classList.toggle("app-filtered", !visible.includes(icon));
+      visible.sort((a, b) => Number(appPins.includes(b.dataset.app)) - Number(appPins.includes(a.dataset.app)));
+      visible.forEach((icon, i) => {
         icon.style.setProperty("--c", String((i % 10) * 2 + 1));
         icon.style.setProperty("--r", String(Math.floor(i / 10) * 2 + 1));
-        i++;
+        icon.style.order = String(i);
+      });
+      if (appOrganizerStatus.hidden || !appOrganizerStatus.textContent.startsWith("Pins could not")) {
+        appOrganizerStatus.hidden = visible.length > 0;
+        appOrganizerStatus.textContent = visible.length ? "" : appCategory.value === "pinned"
+          ? "No pinned apps yet. Select Manage pins to add some." : "No apps in this category.";
       }
     }
+    appCategory.addEventListener("change", layoutAppGrid);
+    appPinToggle.addEventListener("click", () => {
+      appPinPanel.hidden = !appPinPanel.hidden;
+      appPinToggle.setAttribute("aria-expanded", String(!appPinPanel.hidden));
+    });
     new MutationObserver(layoutAppGrid).observe(appGrid, { childList: true, attributes: true, attributeFilter: ["hidden"], subtree: true });
     layoutAppGrid();
     const safeIcon = value => typeof value === "string" && /^data:image\/(png|webp|jpeg);base64,/.test(value) ? value : "";
@@ -7316,6 +7411,8 @@
       renderGames();
     });
     window.addEventListener("hashchange", route);
+    showChat();
+    if (!account) void loadImageChallenge();
     route();
   </script>
 </body>

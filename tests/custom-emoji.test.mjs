@@ -7,6 +7,8 @@ const source = await readFile(new URL("../index.html", import.meta.url), "utf8")
 const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading", "twerkchick"];
 const pngNames = new Set(names.filter(name => name !== "twerkchick"));
 const remoteEmoji = new Set(["twerkchick"]);
+const twemoji = ["mindblown", "monocle", "cowboy", "clown", "unicorn", "dragon", "taco", "donut", "burger", "cookie", "cactus", "avocado", "popcorn", "butterfly"];
+const otto = ["happy", "laughing", "crying", "cool", "winking", "sleepy"];
 
 function node() {
   return {
@@ -99,5 +101,25 @@ test("custom emoji are selectable and render in messages", async () => {
       assert.equal(png[25], 6);
       assert.notEqual(png.readUInt32BE(33), 0);
     }
+  }
+
+  for (const [name, path] of [
+    ...twemoji.map(name => [name, `assets/emoji/twemoji/${name}.svg`]),
+    ...otto.map(name => [`otto${name}`, `assets/emoji/otto/${name}.gif`])
+  ]) {
+    const choice = popup.children.find(child => child.title === `:${name}:`);
+    assert.ok(choice, `picker contains ${name}`);
+    assert.equal(choice.children[0].src, path);
+    search.value = name;
+    search.input();
+    assert.equal(choice.hidden, false);
+    choice.click();
+    assert.equal(messageText.inserted[0], `:${name}: `);
+    const rendered = node();
+    context.appendWithEmojis(rendered, `:${name}:`);
+    assert.equal(rendered.children[1].src, path);
+    const data = await readFile(new URL(`../${path}`, import.meta.url));
+    if (path.endsWith(".gif")) assert.match(data.subarray(0, 6).toString(), /^GIF8[79]a$/);
+    else assert.match(data.toString(), /<svg/);
   }
 });
