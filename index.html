@@ -1038,25 +1038,27 @@
               </div>
               <aside class="admin-panel" id="admin-panel" aria-label="Admin tools" hidden>
                 <h3 id="admin-title">🛡 Admin</h3>
-                <form class="admin-ban-form" id="admin-ban-form">
-                  <label class="sr-only" for="admin-target">Username to ban</label>
-                  <input id="admin-target" type="text" maxlength="20" placeholder="Username to ban" autocomplete="off" required>
-                  <label class="sr-only" for="admin-hours">Ban length</label>
-                  <select id="admin-hours">
-                    <option value="1">1 hour</option>
-                    <option value="24" selected>1 day</option>
-                    <option value="72">3 days</option>
-                    <option value="168">1 week</option>
-                    <option value="720">30 days</option>
-                  </select>
-                  <label class="sr-only" for="admin-reason">Reason</label>
-                  <input id="admin-reason" type="text" maxlength="100" placeholder="Reason (optional)" autocomplete="off">
-                  <button class="button button-primary" type="submit">Ban user</button>
-                </form>
-                <details class="admin-fold">
-                  <summary>Banned users</summary>
-                  <ul class="banned-list" id="banned-list"></ul>
-                </details>
+                <section id="admin-ban-section" hidden>
+                  <form class="admin-ban-form" id="admin-ban-form">
+                    <label class="sr-only" for="admin-target">Username to ban</label>
+                    <input id="admin-target" type="text" maxlength="20" placeholder="Username to ban" autocomplete="off" required>
+                    <label class="sr-only" for="admin-hours">Ban length</label>
+                    <select id="admin-hours">
+                      <option value="1">1 hour</option>
+                      <option value="24" selected>1 day</option>
+                      <option value="72">3 days</option>
+                      <option value="168">1 week</option>
+                      <option value="720">30 days</option>
+                    </select>
+                    <label class="sr-only" for="admin-reason">Reason</label>
+                    <input id="admin-reason" type="text" maxlength="100" placeholder="Reason (optional)" autocomplete="off">
+                    <button class="button button-primary" type="submit">Ban user</button>
+                  </form>
+                  <details class="admin-fold">
+                    <summary>Banned users</summary>
+                    <ul class="banned-list" id="banned-list"></ul>
+                  </details>
+                </section>
                 <details class="admin-fold">
                 <summary>Filtered words</summary>
                 <form class="dm-new" id="word-form">
@@ -2021,6 +2023,7 @@
     const convoTitle = document.querySelector("#convo-title");
     const chatLayout = document.querySelector(".chat-layout");
     const adminPanel = document.querySelector("#admin-panel");
+    const adminBanSection = document.querySelector("#admin-ban-section");
     const adminBanForm = document.querySelector("#admin-ban-form");
     const adminTarget = document.querySelector("#admin-target");
     const adminHours = document.querySelector("#admin-hours");
@@ -2570,6 +2573,7 @@
         staffAccess = true;
       }
       adminTitle.textContent = staffRole === "admin" ? "🛡 Admin" : "🛡 Moderator";
+      adminBanSection.hidden = staffRole !== "admin";
       modsSection.hidden = staffRole !== "admin";
       applyAdminBoard();
       adminStatus.textContent = "";

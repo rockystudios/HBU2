@@ -401,7 +401,7 @@ const COMMANDS: Record<string, Cmd> = {
   },
 
   ban: {
-    roles: MOD, usage: "/ban @user 30m|2h|1d [reason]", help: "Ban someone from chat", target: "guard",
+    roles: ["admin"], usage: "/ban @user 30m|2h|1d [reason]", help: "Ban someone from chat", target: "guard",
     run: async ({ staff, rest, target }) => {
       const minutes = parseMinutes(rest[0]);
       if (!minutes) throw new UserError("Add a time, like 30m, 2h or 1d. Usage: /ban @user 30m|2h|1d [reason]");
@@ -414,7 +414,7 @@ const COMMANDS: Record<string, Cmd> = {
     },
   },
   unban: {
-    roles: MOD, usage: "/unban @user", help: "Lift a ban", target: "guard",
+    roles: ["admin"], usage: "/unban @user", help: "Lift a ban", target: "guard",
     run: async ({ staff, target }) => {
       await db(`accounts?username=eq.${enc(target!)}`, {
         method: "PATCH",
@@ -575,7 +575,7 @@ const COMMANDS: Record<string, Cmd> = {
     },
   },
   banlist: {
-    roles: MOD, usage: "/banlist", help: "Show who is banned (only you see it)",
+    roles: ["admin"], usage: "/banlist", help: "Show who is banned (only you see it)",
     run: async () => {
       const rows = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${enc(new Date().toISOString())}&order=banned_until.desc&limit=30`) ?? [];
       return showLines(rows.length
@@ -1021,7 +1021,9 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
 
   if (action === "admin_list") {
     const now = enc(new Date().toISOString());
-    const banned = await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? [];
+    const banned = role === "admin"
+      ? await db(`accounts?select=username,banned_until,ban_reason&banned_until=gt.${now}&order=banned_until.desc`) ?? []
+      : [];
     const roles = role === "admin" ? await db("accounts?select=username,role&role=not.is.null&order=username.asc").catch(() => []) ?? [] : [];
     const botBlocked = await db("accounts?select=username&bot_banned=eq.true&order=username.asc").catch(() => []) ?? [];
     const defs = [...(await roleDefs()).values()].map(({ name, label, badge }) => ({ name, label, badge }));
@@ -1131,6 +1133,7 @@ async function handleAdmin(action: string, staff: string, body: Record<string, u
     return json({ ok: true });
   }
   if (action === "admin_ban") {
+    adminOnly();
     if (isAdmin(target.username)) throw new UserError("You cannot ban the admin.");
     if (role !== "admin" && (await roleOf(target.username, true)) !== "user") throw new UserError("Only the admin can ban a moderator.", 403);
     const hours = Math.min(MAX_ADMIN_BAN_HOURS, Math.max(1, Math.round(Number(body.hours)) || 24));
