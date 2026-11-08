@@ -757,6 +757,31 @@
     }
     @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } .app-window { animation: none; } }
   </style>
+  <script>
+    window.hbuPopunder = (() => {
+      const state = { enabled: false, phase: "off", storageError: false, script: null, onChange: null };
+      try {
+        state.enabled = localStorage.getItem("hbu-popunder-enabled") === "true";
+      } catch (error) {
+        state.storageError = true;
+        console.warn("Could not read the popunder preference.", error);
+      }
+      const phone = Boolean(navigator.userAgentData?.mobile) ||
+        /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
+      if (state.enabled && (phone || window.matchMedia("(max-width: 650px)").matches)) state.phase = "unavailable";
+      else if (state.enabled) {
+        state.phase = "loading";
+        const script = document.createElement("script");
+        script.setAttribute("data-cfasync", "false");
+        script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
+        script.onload = () => { state.phase = "loaded"; if (state.onChange) state.onChange(); };
+        script.onerror = () => { state.phase = "error"; if (state.onChange) state.onChange(); };
+        state.script = script;
+        document.head.append(script);
+      }
+      return state;
+    })();
+  </script>
 </head>
 <body>
   <div id="desktop">
@@ -1141,10 +1166,10 @@
       </div>
       <div class="rewards-card">
         <h3>Optional popunder ads</h3>
-        <p>Allow occasional ads in a separate tab or window behind this page to support HbuOS. Ads may appear while using Arcade. Turning this off reloads the page to stop the ad script. Popunder ads are not loaded on phones or narrow screens.</p>
+        <p>Allow occasional ads in a separate tab or window behind this page to support HbuOS. Ads may appear while using Arcade. Changing this setting reloads the page. Popunder ads are not loaded on phones or narrow screens.</p>
         <label><input id="popunder-enabled" type="checkbox"> Allow popunder ads</label>
         <p class="app-note" id="popunder-status" role="status"></p>
-        <button class="icon-button" id="popunder-retry" type="button" hidden>Retry loading ads</button>
+        <button class="icon-button" id="popunder-retry" type="button" hidden>Reload and retry</button>
       </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
@@ -2379,64 +2404,49 @@
       const checkbox = document.querySelector("#popunder-enabled");
       const status = document.querySelector("#popunder-status");
       const retry = document.querySelector("#popunder-retry");
-      let loaded = false;
-
-      function loadPopunder() {
-        retry.hidden = true;
-        if (!checkbox.checked) {
-          status.textContent = "Popunder ads are off.";
-          return;
-        }
-        if (phoneDevice || phoneViewport.matches) {
-          status.textContent = "Popunder ads are unavailable on phones or narrow screens.";
-          return;
-        }
-        if (loaded) return;
-        loaded = true;
-        status.textContent = "Loading the popunder ad service...";
-        const script = document.createElement("script");
-        script.setAttribute("data-cfasync", "false");
-        script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
-        script.onload = () => {
-          status.textContent = "Ad service loaded. Ads may open behind this page; their availability is controlled by Adsterra.";
-        };
-        script.onerror = () => {
-          loaded = false;
-          script.remove();
-          status.textContent = "Could not load the ad service. Check your connection or content blocker, then retry.";
-          retry.hidden = false;
-        };
-        document.head.append(script);
+      const state = window.hbuPopunder;
+      function render() {
+        checkbox.checked = state.enabled;
+        retry.hidden = state.phase !== "error";
+        status.textContent = state.storageError ? "Could not read your ad preference. Check your browser storage settings." : ({
+          off: "Popunder ads are off.",
+          unavailable: "Popunder ads are unavailable on phones or narrow screens.",
+          loading: "Loading the popunder ad service...",
+          loaded: "Ad service loaded. Ads may open behind this page; their availability is controlled by Adsterra.",
+          error: "Could not load the ad service. Check your connection or content blocker, then retry."
+        })[state.phase];
       }
-
-      checkbox.checked = readLocal(key, false) === true;
-      retry.addEventListener("click", loadPopunder);
+      state.onChange = render;
+      render();
+      retry.addEventListener("click", () => window.location.reload());
       checkbox.addEventListener("change", () => {
-        const previous = !checkbox.checked;
-        if (!writeLocal(key, checkbox.checked)) {
-          memoryStorage.set(key, previous);
-          checkbox.checked = previous;
+        try {
+          localStorage.setItem(key, JSON.stringify(checkbox.checked));
+        } catch (error) {
+          console.warn("Could not save the popunder preference.", error);
+          checkbox.checked = state.enabled;
           status.textContent = "Could not save your ad preference. Check your browser storage settings.";
           return;
         }
-        if (checkbox.checked) loadPopunder();
-        else if (loaded) window.location.reload();
-        else loadPopunder();
+        window.location.reload();
       });
       const updateViewport = event => {
-        if (event.matches && loaded) window.location.reload();
-        else loadPopunder();
+        if (state.enabled && !phoneDevice &&
+            ((event.matches && state.phase !== "unavailable") || (!event.matches && state.phase === "unavailable"))) {
+          window.location.reload();
+        }
       };
       if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", updateViewport);
       else phoneViewport.addListener(updateViewport);
       window.addEventListener("storage", event => {
         if (event.key !== key && event.key !== null) return;
-        const enabled = readLocal(key, false) === true;
-        checkbox.checked = enabled;
-        if (!enabled && loaded) window.location.reload();
-        else loadPopunder();
+        try {
+          if ((localStorage.getItem(key) === "true") !== state.enabled) window.location.reload();
+        } catch (error) {
+          console.warn("Could not read the popunder preference.", error);
+          status.textContent = "Could not read your ad preference. Check your browser storage settings.";
+        }
       });
-      loadPopunder();
     }
     setupPopunderAds();
 
