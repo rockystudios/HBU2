@@ -15,14 +15,15 @@ function run({ enabled = false, phone = false, narrow = false, saveWorks = true 
   const scripts = [];
   const checkbox = { checked: false, addEventListener: (type, fn) => { checkbox[type] = fn; } };
   const status = { textContent: "" };
+  const retry = { hidden: true, addEventListener: (type, fn) => { retry[type] = fn; } };
   const viewport = { matches: narrow, addEventListener: (type, fn) => { viewport[type] = fn; } };
   const window = {
     location: { reload: () => { reloads++; } },
     addEventListener: (type, fn) => { window[type] = fn; },
   };
   const document = {
-    querySelector: selector => selector === "#popunder-enabled" ? checkbox : status,
-    createElement: () => ({ setAttribute(name, value) { this[name] = value; } }),
+    querySelector: selector => ({ "#popunder-enabled": checkbox, "#popunder-status": status, "#popunder-retry": retry })[selector],
+    createElement: () => ({ setAttribute(name, value) { this[name] = value; }, remove() { this.removed = true; } }),
     head: { append: script => scripts.push(script) },
   };
   const context = {
@@ -32,7 +33,7 @@ function run({ enabled = false, phone = false, narrow = false, saveWorks = true 
   };
   vm.runInNewContext(setup, context);
   return {
-    checkbox, status, viewport, window, scripts,
+    checkbox, status, retry, viewport, window, scripts,
     get reloads() { return reloads; },
     setSaved(value) { saved = value; },
   };
@@ -48,7 +49,13 @@ test("popunders default to off and load only after opting in", () => {
   assert.equal(state.scripts[0].src, "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1");
   assert.equal(state.scripts[0]["data-cfasync"], "false");
   state.scripts[0].onerror();
-  assert.match(state.status.textContent, /Could not load/);
+  assert.match(state.status.textContent, /Could not load the ad service/);
+  assert.equal(state.retry.hidden, false);
+  state.retry.click();
+  assert.equal(state.scripts.length, 2);
+  assert.equal(state.retry.hidden, true);
+  state.scripts[1].onload();
+  assert.match(state.status.textContent, /behind this page/);
   state.checkbox.checked = false;
   state.checkbox.change();
   assert.equal(state.reloads, 1);
@@ -56,7 +63,9 @@ test("popunders default to off and load only after opting in", () => {
 
 test("saved preference loads on desktop but not phones or narrow screens", () => {
   assert.equal(run({ enabled: true }).scripts.length, 1);
-  assert.equal(run({ enabled: true, phone: true }).scripts.length, 0);
+  const phone = run({ enabled: true, phone: true });
+  assert.equal(phone.scripts.length, 0);
+  assert.match(phone.status.textContent, /unavailable on phones/);
   const state = run({ enabled: true, narrow: true });
   assert.equal(state.scripts.length, 0);
   state.viewport.matches = false;

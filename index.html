@@ -1125,9 +1125,10 @@
       </div>
       <div class="rewards-card">
         <h3>Optional popunder ads</h3>
-        <p>Allow occasional ads in a separate tab or window to support HbuOS. Ads may appear while using Arcade. Turning this off reloads the page to stop the ad script. Popunder ads are not loaded on phones or narrow screens.</p>
+        <p>Allow occasional ads in a separate tab or window behind this page to support HbuOS. Ads may appear while using Arcade. Turning this off reloads the page to stop the ad script. Popunder ads are not loaded on phones or narrow screens.</p>
         <label><input id="popunder-enabled" type="checkbox"> Allow popunder ads</label>
         <p class="app-note" id="popunder-status" role="status"></p>
+        <button class="icon-button" id="popunder-retry" type="button" hidden>Retry loading ads</button>
       </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
@@ -2312,34 +2313,52 @@
       const key = "hbu-popunder-enabled";
       const checkbox = document.querySelector("#popunder-enabled");
       const status = document.querySelector("#popunder-status");
+      const retry = document.querySelector("#popunder-retry");
       let loaded = false;
 
       function loadPopunder() {
-        if (loaded || !checkbox.checked || phoneDevice || phoneViewport.matches) return;
+        retry.hidden = true;
+        if (!checkbox.checked) {
+          status.textContent = "Popunder ads are off.";
+          return;
+        }
+        if (phoneDevice || phoneViewport.matches) {
+          status.textContent = "Popunder ads are unavailable on phones or narrow screens.";
+          return;
+        }
+        if (loaded) return;
         loaded = true;
+        status.textContent = "Loading the popunder ad service...";
         const script = document.createElement("script");
         script.setAttribute("data-cfasync", "false");
         script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
+        script.onload = () => {
+          status.textContent = "Ad service loaded. Ads may open behind this page; their availability is controlled by Adsterra.";
+        };
         script.onerror = () => {
-          status.textContent = "Could not load popunder ads. Check your connection or content blocker.";
+          loaded = false;
+          script.remove();
+          status.textContent = "Could not load the ad service. Check your connection or content blocker, then retry.";
+          retry.hidden = false;
         };
         document.head.append(script);
       }
 
       checkbox.checked = readLocal(key, false) === true;
+      retry.addEventListener("click", loadPopunder);
       checkbox.addEventListener("change", () => {
         if (!writeLocal(key, checkbox.checked)) {
           checkbox.checked = !checkbox.checked;
           status.textContent = "Could not save your ad preference. Check your browser storage settings.";
           return;
         }
-        status.textContent = "";
         if (checkbox.checked) loadPopunder();
         else if (loaded) window.location.reload();
+        else loadPopunder();
       });
       const updateViewport = event => {
         if (event.matches && loaded) window.location.reload();
-        else if (!event.matches) loadPopunder();
+        else loadPopunder();
       };
       if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", updateViewport);
       else phoneViewport.addListener(updateViewport);
@@ -2348,7 +2367,7 @@
         const enabled = readLocal(key, false) === true;
         checkbox.checked = enabled;
         if (!enabled && loaded) window.location.reload();
-        else if (enabled) loadPopunder();
+        else loadPopunder();
       });
       loadPopunder();
     }
