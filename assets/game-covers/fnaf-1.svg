@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#171526"/>
+  <path d="M0 276h640v124H0z" fill="#282336"/>
+  <g fill="#855c48"><circle cx="240" cy="111" r="42"/><circle cx="400" cy="111" r="42"/><rect x="210" y="91" width="220" height="180" rx="85"/></g>
+  <path d="M270 89h100v-25H270z" fill="#15121b"/>
+  <circle cx="275" cy="163" r="14" fill="#f5ecb4"/><circle cx="365" cy="163" r="14" fill="#f5ecb4"/>
+  <ellipse cx="320" cy="214" rx="57" ry="34" fill="#c99b73"/><circle cx="320" cy="196" r="12" fill="#211622"/>
+  <text x="320" y="354" fill="#fff" font-family="system-ui,sans-serif" font-size="28" font-weight="900" text-anchor="middle" letter-spacing="3">FIVE NIGHTS AT FREDDY'S</text>
+</svg>

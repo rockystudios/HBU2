@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#5ed5f0"/>
+  <circle cx="510" cy="78" r="45" fill="#ffe17b"/>
+  <path d="M0 250q80-35 160 0t160 0 160 0 160 0v150H0z" fill="#1779bd"/>
+  <path d="M0 296h190l85-45h150l85 45h130" fill="none" stroke="#fff3ab" stroke-width="12"/>
+  <g fill="none" stroke="#162a43" stroke-width="14"><circle cx="245" cy="230" r="34"/><circle cx="365" cy="230" r="34"/><path d="m245 230 52-57 68 57h-58l-35-42m25-15 30-28"/></g>
+  <text x="320" y="362" fill="#fff" font-family="system-ui,sans-serif" font-size="30" font-weight="900" text-anchor="middle" letter-spacing="3">MOTO X3M POOL PARTY</text>
+</svg>
