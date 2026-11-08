@@ -12,6 +12,7 @@ const setup = source.slice(start, end);
 function run({ enabled = false, phone = false, narrow = false, saveWorks = true } = {}) {
   let saved = enabled;
   let reloads = 0;
+  const memoryStorage = new Map();
   const scripts = [];
   const checkbox = { checked: false, addEventListener: (type, fn) => { checkbox[type] = fn; } };
   const status = { textContent: "" };
@@ -27,9 +28,14 @@ function run({ enabled = false, phone = false, narrow = false, saveWorks = true 
     head: { append: script => scripts.push(script) },
   };
   const context = {
-    document, window, phoneDevice: phone, phoneViewport: viewport,
-    readLocal: () => saved,
-    writeLocal: (key, value) => { if (!saveWorks) return false; saved = value; return true; },
+    document, window, phoneDevice: phone, phoneViewport: viewport, memoryStorage,
+    readLocal: key => saveWorks ? saved : (memoryStorage.get(key) ?? saved),
+    writeLocal: (key, value) => {
+      memoryStorage.set(key, value);
+      if (!saveWorks) return false;
+      saved = value;
+      return true;
+    },
   };
   vm.runInNewContext(setup, context);
   return {
@@ -83,6 +89,15 @@ test("failed preference saves do not activate ads and cross-tab opt-out reloads"
   assert.equal(failed.checkbox.checked, false);
   assert.equal(failed.scripts.length, 0);
   assert.match(failed.status.textContent, /Could not save/);
+  failed.window.storage({ key: "hbu-popunder-enabled" });
+  assert.equal(failed.checkbox.checked, false);
+  assert.equal(failed.scripts.length, 0);
+  const failedDisable = run({ enabled: true, saveWorks: false });
+  failedDisable.checkbox.checked = false;
+  failedDisable.checkbox.change();
+  failedDisable.window.storage({ key: "hbu-popunder-enabled" });
+  assert.equal(failedDisable.checkbox.checked, true);
+  assert.equal(failedDisable.reloads, 0);
   const active = run({ enabled: true });
   active.setSaved(false);
   active.window.storage({ key: "hbu-popunder-enabled" });

@@ -2347,8 +2347,10 @@
       checkbox.checked = readLocal(key, false) === true;
       retry.addEventListener("click", loadPopunder);
       checkbox.addEventListener("change", () => {
+        const previous = !checkbox.checked;
         if (!writeLocal(key, checkbox.checked)) {
-          checkbox.checked = !checkbox.checked;
+          memoryStorage.set(key, previous);
+          checkbox.checked = previous;
           status.textContent = "Could not save your ad preference. Check your browser storage settings.";
           return;
         }
