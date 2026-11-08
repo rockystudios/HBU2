@@ -8,7 +8,7 @@ Student ID is completely optional when creating an account. Run `supabase/option
 
 ## Chat tips
 
-Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs. Offline mode does not show them.
+Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs.
 
 ## Message archives
 
