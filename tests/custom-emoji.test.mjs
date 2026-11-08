@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading", "paperpine"];
-const pngNames = new Set(names.filter(name => name !== "paperpine"));
-const remoteEmoji = new Set(["paperpine"]);
+const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading", "twerkchick"];
+const pngNames = new Set(names.filter(name => name !== "twerkchick"));
+const remoteEmoji = new Set(["twerkchick"]);
 
 function node() {
   return {
@@ -59,7 +59,7 @@ test("custom emoji are selectable and render in messages", async () => {
   assert.equal(empty.hidden, true);
   search.value = "04bb";
   search.input();
-  assert.equal(popup.children.find(child => child.title === ":paperpine:").hidden, false);
+  assert.equal(popup.children.find(child => child.title === ":twerkchick:").hidden, false);
   assert.equal(popup.children.find(child => child.title === ":pleading:").hidden, true);
   search.value = "no-such-emoji";
   search.input();
