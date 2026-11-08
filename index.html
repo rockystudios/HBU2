@@ -315,6 +315,9 @@
     .paint-pane { display: flex; flex-direction: column; gap: 10px; }
     .paint-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .paint-tools input[type=color] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; }
+    .paint-tools label { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; color: var(--muted); }
+    .paint-tools input[type=range] { width: 85px; }
+    .paint-tools .button[aria-pressed="true"] { border-color: #c084fc; background: rgba(168,85,247,.35); }
     .paint-canvas { flex: 1; min-height: 200px; width: 100%; border-radius: 12px; background: #fff; touch-action: none; cursor: crosshair; }
     .typing-line { min-height: 18px; padding: 0 16px 4px; font-size: 12px; color: var(--muted); font-style: italic; }
     .app-icon-casino { background: linear-gradient(150deg, #facc15, #dc2626); --glow: rgba(250,204,21,.5); }
@@ -1339,11 +1342,18 @@
         <div class="app-pane paint-pane">
           <div class="paint-tools">
             <input type="color" id="paint-color" value="#a855f7" aria-label="Color">
-            <input type="range" id="paint-size" min="1" max="40" value="6" aria-label="Brush size">
-            <button class="button" type="button" id="paint-eraser">Eraser</button>
+            <label>Brush size <input type="range" id="paint-size" min="1" max="40" value="6" aria-label="Brush size"></label>
+            <label>Eraser size <input type="range" id="paint-eraser-size" min="1" max="40" value="16" aria-label="Eraser size"></label>
+            <button class="button" type="button" id="paint-brush" aria-pressed="true">Brush</button>
+            <button class="button" type="button" id="paint-eraser" aria-pressed="false">Eraser</button>
+            <button class="button" type="button" id="paint-fill" aria-pressed="false">Fill</button>
+            <button class="button" type="button" id="paint-picker" aria-pressed="false">Pick color</button>
+            <button class="button" type="button" id="paint-undo" disabled>Undo</button>
+            <button class="button" type="button" id="paint-redo" disabled>Redo</button>
             <button class="button" type="button" id="paint-clear">Clear</button>
             <button class="button button-primary" type="button" id="paint-save">Save PNG</button>
           </div>
+          <p class="app-note" id="paint-status" role="status"></p>
           <canvas class="paint-canvas" id="paint-canvas" width="900" height="600"></canvas>
         </div>
       </div>
@@ -5067,35 +5077,116 @@
     const BROWSER_URL = "https://ownerbysaugatryt.b-cdn.net/#goog_rewarded";
 
     let paintReady = false;
+    function paintFloodFill(image, x, y, color) {
+      const { data, width, height } = image;
+      const start = (y * width + x) * 4;
+      const target = Array.from(data.subarray(start, start + 4));
+      if (target.every((value, i) => value === color[i])) return false;
+      const matches = index => target.every((value, i) => data[index * 4 + i] === value);
+      const stack = [y * width + x];
+      while (stack.length) {
+        const index = stack.pop();
+        if (!matches(index)) continue;
+        const row = Math.floor(index / width);
+        let left = index % width;
+        let right = left;
+        while (left > 0 && matches(row * width + left - 1)) left--;
+        while (right + 1 < width && matches(row * width + right + 1)) right++;
+        let above = false;
+        let below = false;
+        for (let col = left; col <= right; col++) {
+          const pixel = row * width + col;
+          data.set(color, pixel * 4);
+          const matchesAbove = row > 0 && matches(pixel - width);
+          const matchesBelow = row + 1 < height && matches(pixel + width);
+          if (matchesAbove && !above) stack.push(pixel - width);
+          if (matchesBelow && !below) stack.push(pixel + width);
+          above = matchesAbove;
+          below = matchesBelow;
+        }
+      }
+      return true;
+    }
+
     function setupPaint() {
       if (paintReady) return;
-      paintReady = true;
       const canvas = document.querySelector("#paint-canvas");
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        document.querySelector("#paint-status").textContent = "Paint is unavailable in this browser.";
+        return;
+      }
+      paintReady = true;
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       const color = document.querySelector("#paint-color");
       const size = document.querySelector("#paint-size");
-      let erasing = false;
+      const eraserSize = document.querySelector("#paint-eraser-size");
+      const undo = document.querySelector("#paint-undo");
+      const redo = document.querySelector("#paint-redo");
+      const tools = Object.fromEntries(["brush", "eraser", "fill", "picker"].map(name => [name, document.querySelector(`#paint-${name}`)]));
+      const past = [];
+      const future = [];
+      const limit = 15;
+      let tool = "brush";
       let last = null;
+      let pointerId = null;
+      const snapshot = () => ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const updateHistory = () => { undo.disabled = !past.length; redo.disabled = !future.length; };
+      const saveHistory = image => {
+        past.push(image);
+        if (past.length > limit) past.shift();
+        future.length = 0;
+        updateHistory();
+      };
+      const selectTool = name => {
+        tool = name;
+        for (const [key, button] of Object.entries(tools)) button.setAttribute("aria-pressed", String(key === name));
+      };
+      for (const [name, button] of Object.entries(tools)) button.addEventListener("click", () => selectTool(name));
       const point = event => {
         const rect = canvas.getBoundingClientRect();
-        return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height };
+        return {
+          x: Math.max(0, Math.min(canvas.width - 1, (event.clientX - rect.left) * canvas.width / rect.width)),
+          y: Math.max(0, Math.min(canvas.height - 1, (event.clientY - rect.top) * canvas.height / rect.height))
+        };
       };
       canvas.addEventListener("pointerdown", event => {
+        if (pointerId !== null || event.button !== 0) return;
+        event.preventDefault();
         last = point(event);
+        if (tool === "picker") {
+          const pixel = ctx.getImageData(Math.floor(last.x), Math.floor(last.y), 1, 1).data;
+          color.value = "#" + Array.from(pixel.subarray(0, 3), value => value.toString(16).padStart(2, "0")).join("");
+          last = null;
+          selectTool("brush");
+          return;
+        }
+        if (tool === "fill") {
+          const image = snapshot();
+          const original = new ImageData(new Uint8ClampedArray(image.data), image.width, image.height);
+          const rgb = color.value.match(/[0-9a-f]{2}/gi).map(value => parseInt(value, 16));
+          if (paintFloodFill(image, Math.floor(last.x), Math.floor(last.y), [...rgb, 255])) {
+            saveHistory(original);
+            ctx.putImageData(image, 0, 0);
+          }
+          last = null;
+          return;
+        }
+        saveHistory(snapshot());
+        pointerId = event.pointerId;
         canvas.setPointerCapture(event.pointerId);
-        ctx.strokeStyle = erasing ? "#fff" : color.value;
-        ctx.lineWidth = Number(size.value);
+        ctx.strokeStyle = tool === "eraser" ? "#fff" : color.value;
+        ctx.lineWidth = Number(tool === "eraser" ? eraserSize.value : size.value);
         ctx.beginPath();
         ctx.moveTo(last.x, last.y);
         ctx.lineTo(last.x + 0.01, last.y);
         ctx.stroke();
       });
       canvas.addEventListener("pointermove", event => {
-        if (!last) return;
+        if (!last || event.pointerId !== pointerId) return;
         const next = point(event);
         ctx.beginPath();
         ctx.moveTo(last.x, last.y);
@@ -5103,10 +5194,25 @@
         ctx.stroke();
         last = next;
       });
-      for (const name of ["pointerup", "pointercancel"]) canvas.addEventListener(name, () => { last = null; });
-      color.addEventListener("input", () => { erasing = false; });
-      document.querySelector("#paint-eraser").addEventListener("click", () => { erasing = !erasing; });
+      for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) canvas.addEventListener(name, event => {
+        if (event.pointerId === pointerId) { last = null; pointerId = null; }
+      });
+      color.addEventListener("input", () => selectTool("brush"));
+      undo.addEventListener("click", () => {
+        if (!past.length || pointerId !== null) return;
+        future.push(snapshot());
+        ctx.putImageData(past.pop(), 0, 0);
+        updateHistory();
+      });
+      redo.addEventListener("click", () => {
+        if (!future.length || pointerId !== null) return;
+        past.push(snapshot());
+        ctx.putImageData(future.pop(), 0, 0);
+        updateHistory();
+      });
       document.querySelector("#paint-clear").addEventListener("click", () => {
+        if (pointerId !== null) return;
+        saveHistory(snapshot());
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       });

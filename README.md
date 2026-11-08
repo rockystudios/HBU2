@@ -16,6 +16,10 @@ The Dev role has a `</>` chat badge and no staff access or extra commands by def
 
 Mod-bot shows a rotating tip in the main chat after one minute with chat open, then every five minutes of main-chat viewing. Tips are local to the current session, are visible only to you, and are not posted to the database or shown in DMs.
 
+## Paint
+
+Paint includes separate brush and eraser size controls, a fill tool for connected areas, and Pick color to sample the canvas. Undo and redo retain up to 15 drawing, fill, or clear actions while the page is open. Save PNG downloads the canvas.
+
 ## Profiles and coin transfers
 
 After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. Open the Profiles app and enter a username to see their profile picture, follower count, and equipped nameplate background. HBU Social also shows profiles and up to 100 follower names. Profiles require login. Rewards is always available on the home screen; logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
