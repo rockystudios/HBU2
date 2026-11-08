@@ -576,6 +576,7 @@
       .hero-art { right: 8%; width: 135px; height: 135px; font-size: 68px; }
     }
     @media (max-width: 650px) {
+      .home-ad, .arcade-ad { display: none; }
       .shell { width: min(100% - 32px, 520px); }
       .nav { min-height: 64px; gap: 20px; }
       .nav-links { gap: 15px; font-size: 12px; }
@@ -682,6 +683,7 @@
     .home-ad-status { max-width: 300px; margin: 0; text-align: center; }
     .arcade-ad { display: grid; justify-items: center; gap: 5px; width: 300px; max-width: 100%; margin: 28px auto; color: var(--muted); font-size: 11px; }
     .arcade-ad-slot { width: 300px; max-width: 100%; min-height: 250px; }
+    .phone-device .home-ad, .phone-device .arcade-ad { display: none; }
     .toast-stack { position: fixed; z-index: 1000; top: 64px; }
     .toast-stack { right: 16px; }
 
@@ -856,18 +858,7 @@
       <aside class="home-ad" aria-label="Advertisement">
         <span>Advertisement</span>
         <p class="home-ad-status" id="home-ad-status" hidden>Ad unavailable. Check your browser's content blocker or Adsterra site approval.</p>
-        <div class="home-ad-slot" id="home-ad-slot">
-        <script>
-          var atOptions = {
-            'key': '4efa01070ee461f1aeea8eef32a10955',
-            'format': 'iframe',
-            'height': 250,
-            'width': 300,
-            'params': {}
-          };
-        </script>
-        <script src="https://bauval.org/22/4efa01070ee461f1aeea8eef32a10955" onerror="document.querySelector('#home-ad-status').hidden = false"></script>
-        </div>
+        <div class="home-ad-slot" id="home-ad-slot"></div>
       </aside>
       <footer class="home-footer">
         <span><strong>Clever</strong> &nbsp;·&nbsp; Yw now your not bored</span>
@@ -901,18 +892,7 @@
         <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
         <aside class="arcade-ad" aria-label="Advertisement">
           <span>Advertisement</span>
-          <div class="arcade-ad-slot">
-            <script>
-              var atOptions = {
-                'key': '4efa01070ee461f1aeea8eef32a10955',
-                'format': 'iframe',
-                'height': 250,
-                'width': 300,
-                'params': {}
-              };
-            </script>
-            <script src="https://bauval.org/22/4efa01070ee461f1aeea8eef32a10955"></script>
-          </div>
+          <div class="arcade-ad-slot"></div>
         </aside>
       </section>
 </div>
@@ -981,7 +961,7 @@
               <label for="auth-password">Password
                 <input id="auth-password" type="password" minlength="6" autocomplete="current-password" required>
               </label>
-              <label for="auth-student-id" id="student-id-label" hidden>Student ID
+              <label for="auth-student-id" id="student-id-label" hidden>Student ID (COMPLETELY OPTIONAL)
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
               <div class="auth-image-check" id="auth-image-check">
@@ -1920,6 +1900,7 @@
       viewPopup.hidden = !viewPopup.hidden;
       viewButton.setAttribute("aria-expanded", String(!viewPopup.hidden));
     });
+
     document.addEventListener("click", event => {
       if (!viewPopup.hidden && !event.target.closest(".view-menu")) {
         viewPopup.hidden = true;
@@ -2213,6 +2194,42 @@
     let lastMessagesKey = "";
     let chatTimer;
     let adminTimer;
+    const phoneDevice = Boolean(navigator.userAgentData?.mobile) ||
+      /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
+    document.documentElement.classList.toggle("phone-device", phoneDevice);
+    const phoneViewport = window.matchMedia("(max-width: 650px)");
+    let adsLoaded = false;
+
+    async function loadAds() {
+      if (adsLoaded || phoneDevice || phoneViewport.matches) return;
+      adsLoaded = true;
+      for (const slot of document.querySelectorAll(".home-ad-slot, .arcade-ad-slot")) {
+        window.atOptions = {
+          key: "4efa01070ee461f1aeea8eef32a10955",
+          format: "iframe",
+          height: 250,
+          width: 300,
+          params: {}
+        };
+        const ad = document.createElement("script");
+        ad.src = "https://bauval.org/22/4efa01070ee461f1aeea8eef32a10955";
+        await new Promise(resolve => {
+          ad.onload = resolve;
+          ad.onerror = () => {
+            const status = document.querySelector("#home-ad-status");
+            if (status) status.hidden = false;
+            resolve();
+          };
+          slot.append(ad);
+        });
+      }
+    }
+
+    const viewportChanged = event => {
+      if (!event.matches && !phoneDevice) void loadAds();
+    };
+    if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", viewportChanged);
+    else phoneViewport.addListener(viewportChanged);
 
     async function authFetch(url, options = {}) {
       const controller = new AbortController();
@@ -2644,7 +2661,7 @@
       authMouseMoves = 0;
       authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
       void loadImageChallenge();
-      authStudentId.required = signup;
+      authStudentId.required = false;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
       messageStatus.textContent = "";
@@ -3298,6 +3315,7 @@
     function showChat() {
       updateOwnerApp();
       refreshWallet();
+      void loadAds();
       if (account) {
         authChallengeRequest++;
         authChallengeId = "";

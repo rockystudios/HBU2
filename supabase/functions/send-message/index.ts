@@ -1331,7 +1331,7 @@ async function signup(req: Request, body: Record<string, unknown>) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_signup`, {
     method: "POST",
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_username: body.username, p_password: body.password, p_student_id: body.student_id }),
+    body: JSON.stringify({ p_username: body.username, p_password: body.password, p_student_id: body.student_id ?? null }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => null);

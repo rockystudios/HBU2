@@ -36,8 +36,8 @@ begin
   if length(coalesce(p_password, '')) < 6 then
     raise exception 'Password must be at least 6 characters';
   end if;
-  if length(coalesce(trim(p_student_id), '')) = 0 or length(p_student_id) > 30 then
-    raise exception 'Enter your student ID';
+  if length(coalesce(trim(p_student_id), '')) > 30 then
+    raise exception 'Student ID must be 30 characters or fewer';
   end if;
   if lower(p_username) = 'everyone' then
     raise exception 'That username is reserved';
@@ -46,7 +46,7 @@ begin
     raise exception 'That username is taken';
   end if;
   insert into accounts (username, password, student_id)
-  values (p_username, crypt(p_password, gen_salt('bf')), trim(p_student_id));
+  values (p_username, crypt(p_password, gen_salt('bf')), nullif(trim(p_student_id), ''));
 end;
 $$;
 

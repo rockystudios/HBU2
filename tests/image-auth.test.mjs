@@ -68,11 +68,12 @@ test("signup uses the image and returns the created username", async () => {
   const { handle, calls } = createServer();
   const image = await challenge(handle);
   const response = await submit(handle, {
-    action: "signup_image", username: "tester", password: "password", student_id: "123", ...image
+    action: "signup_image", username: "tester", password: "password", ...image
   });
   assert.deepEqual(await response.json(), { ok: true, username: "tester" });
   assert.equal(calls.length, 1);
   assert.ok(calls[0].url.endsWith("/hbu_signup"));
+  assert.equal(calls[0].body.p_student_id, null);
 });
 
 test("password reset is offered only after image verification", async () => {
