@@ -353,6 +353,8 @@
     .log-card small { color: var(--muted); }
     .log-card p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
     .app-icon-social { background: linear-gradient(150deg, #f472b6, #7c3aed); --glow: rgba(244,114,182,.55); }
+    .app-icon-profiles { background: linear-gradient(150deg, #60a5fa, #7c3aed); --glow: rgba(96,165,250,.5); }
+    .app-icon-rewards { background: linear-gradient(150deg, #ffd23f, #d97706); --glow: rgba(255,186,60,.55); }
     .soc-compose { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(168,85,247,.08); }
     .soc-compose textarea { width: 100%; min-height: 64px; resize: vertical; }
     .soc-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -783,6 +785,14 @@
           <span class="app-glyph app-settings" aria-hidden="true"><span class="app-badge" id="badge-settings" hidden></span></span>
           <span class="app-label">Settings</span>
         </button>
+        <button class="app-icon" type="button" data-app="rewards">
+          <span class="app-glyph app-icon-rewards" aria-hidden="true"></span>
+          <span class="app-label">Rewards</span>
+        </button>
+        <button class="app-icon" type="button" data-app="profiles">
+          <span class="app-glyph app-icon-profiles" aria-hidden="true"></span>
+          <span class="app-label">Profiles</span>
+        </button>
         <button class="app-icon" type="button" data-app="leaderboard">
           <span class="app-glyph app-icon-leaderboard" aria-hidden="true"></span>
           <span class="app-label">Leaderboard</span>
@@ -1196,6 +1206,29 @@
         <a class="icon-button" href="https://github.com/rockystudios/HBU2/issues/new" target="_blank" rel="noopener noreferrer">Feedback ↗</a>
       </div>
     </section>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-profiles" data-app="profiles" role="dialog" aria-label="Profiles" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">👤</span> Profiles</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Profiles" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <div class="app-pane mini-pane">
+          <p>Find a player by username to view their profile.</p>
+          <p class="rewards-login" id="profiles-login" hidden>Log in from <a href="#messages">Messages</a> to view profiles.</p>
+          <form class="settings-inline" id="profiles-search">
+            <label class="sr-only" for="profiles-username">Username</label>
+            <input id="profiles-username" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
+            <button class="button button-primary" type="submit">View profile</button>
+          </form>
+          <p class="app-note" id="profiles-status" role="status"></p>
+          <div class="soc-profile" id="profiles-result" hidden></div>
+        </div>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
@@ -2283,6 +2316,7 @@
     libraryFilter.addEventListener("change", renderGames);
 
     let account = null;
+    let profileRequest = 0;
     let currentConvo = "everyone";
     let dmPartners = [];
     let convoActivity = {};
@@ -3515,6 +3549,7 @@
 
     function showChat() {
       updateOwnerApp();
+      if (!document.querySelector("#win-profiles").hidden) openProfiles();
       refreshWallet();
       void loadAds();
       if (account) {
@@ -3693,6 +3728,8 @@
       arcade: '<rect x="9" y="13" width="46" height="38" rx="11" fill="#fff" fill-opacity=".14" stroke="#fff" stroke-width="3"/><path d="M20 24v16M12 32h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="43" cy="27" r="3" fill="#ffe36e"/><circle cx="49" cy="37" r="3" fill="#73f5df"/><path d="M17 8h30" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       chat: '<path d="M11 13h42v29H31L19 52v-10h-8z" fill="#fff" fill-opacity=".17" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="22" cy="28" r="3" fill="#fff"/><circle cx="32" cy="28" r="3" fill="#fff"/><circle cx="42" cy="28" r="3" fill="#fff"/><path d="M19 36h26" stroke="#fff" stroke-width="2" stroke-linecap="round"/>',
       settings: '<path d="M32 9l4 3 6-1 3 6 6 3v7l-4 5 1 6-6 4-7-1-4 5-6-3-6 1-3-6-6-3v-7l4-5-1-6 6-4 7 1z" fill="#fff" fill-opacity=".16" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="29" r="9" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="29" r="3" fill="#fff"/>',
+      rewards: '<circle cx="32" cy="32" r="21" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3"/><circle cx="32" cy="32" r="14" fill="none" stroke="#fff" stroke-width="3"/><path d="M32 20v24M38 25c-3-5-12-4-12 1s12 5 12 10-9 6-12 1" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+      profiles: '<circle cx="32" cy="23" r="10" fill="#fff" fill-opacity=".8"/><path d="M12 52c1-13 9-20 20-20s19 7 20 20z" fill="#fff" fill-opacity=".7" stroke="#fff" stroke-width="3"/>',
       leaderboard: '<path d="M12 52h40" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="15" y="34" width="8" height="16" rx="2" fill="#fff" fill-opacity=".65"/><rect x="28" y="25" width="8" height="25" rx="2" fill="#fff" fill-opacity=".8"/><rect x="41" y="15" width="8" height="35" rx="2" fill="#fff"/><path d="M15 20l10-7 8 4 13-9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M42 8h5v5" fill="none" stroke="#fff" stroke-width="3"/>',
       friends: '<circle cx="22" cy="23" r="8" fill="#fff"/><circle cx="43" cy="25" r="6" fill="#fff" fill-opacity=".8"/><path d="M7 51q1-16 15-16t15 16z" fill="#fff" fill-opacity=".8"/><path d="M35 39q12-5 19 5l2 7H40" fill="#fff" fill-opacity=".55"/><path d="M31 17q7-9 14 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
       notes: '<path d="M15 8h27l10 10v38H15z" fill="#fff" fill-opacity=".18" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><path d="M42 8v12h10M22 29h21M22 37h21M22 45h14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 15v39h32" fill="none" stroke="#fff" stroke-width="2" opacity=".65"/>',
@@ -4759,7 +4796,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], social: [620, 700], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
+    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], profiles: [520, 520], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], social: [620, 700], creator: [1100, 700], store: [720, 620], owner: [560, 680] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -4786,6 +4823,7 @@
       chat: { open: () => { if (account) { loadMessages(); markSeen(currentConvo); renderConvos(); } else if (!authChallengeId) { void loadImageChallenge(); } } },
       settings: { open: () => renderSettings() },
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
+      profiles: { open: () => openProfiles() },
       leaderboard: { open: () => loadLeaderboard() },
       friends: { open: () => renderFriends() },
       clock: { open: () => tickBigClock() },
@@ -6138,6 +6176,56 @@
     });
 
     // ---- HBU Social ----
+    async function fetchProfile(name) {
+      const [info] = await Promise.all([
+        rpc("hbu_social_profile", { ...walletAuth(), p_target: name }),
+        loadPlates(true),
+        loadAvatars(true),
+      ]);
+      return info;
+    }
+
+    function openProfiles() {
+      profileRequest++;
+      $("#profiles-login").hidden = Boolean(account);
+      $("#profiles-search").hidden = !account;
+      $("#profiles-result").hidden = true;
+      $("#profiles-status").textContent = "";
+    }
+
+    $("#profiles-search").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!account) { openProfiles(); return; }
+      const name = $("#profiles-username").value.trim();
+      if (!name) { $("#profiles-status").textContent = "Enter a username."; return; }
+      const request = ++profileRequest;
+      const current = account;
+      const result = $("#profiles-result");
+      result.hidden = true;
+      $("#profiles-status").textContent = "Loading profile...";
+      try {
+        const info = await fetchProfile(name);
+        if (request !== profileRequest || current !== account) return;
+        result.replaceChildren();
+        result.className = "soc-profile message-entry";
+        result.style.background = "";
+        const title = document.createElement("b");
+        title.textContent = info.username;
+        title.prepend(avatarNode(avatarByUser[info.username.toLowerCase()], true));
+        applyPlate(result, title, plateByUser[info.username.toLowerCase()], info.username);
+        const followers = document.createElement("span");
+        followers.textContent = `${info.followers} follower${Number(info.followers) === 1 ? "" : "s"}`;
+        result.append(title, followers);
+        result.hidden = false;
+        $("#profiles-status").textContent = "";
+      } catch (error) {
+        if (request !== profileRequest || current !== account) return;
+        $("#profiles-status").textContent = /hbu_social_profile|schema cache/i.test(error.message)
+          ? "Profiles aren't set up yet. Run supabase/social.sql."
+          : error.message;
+      }
+    });
+
     const soc = { mode: "all", user: null, image: "", posts: [], busy: false, feedRequest: 0, profileRequest: 0 };
     function socOpen() {
       $("#soc-login").hidden = Boolean(account);
@@ -6277,10 +6365,8 @@
       $("#soc-status").textContent = "Loading profile...";
       try {
         const [info, followers] = await Promise.all([
-          rpc("hbu_social_profile", { ...walletAuth(), p_target: name }),
+          fetchProfile(name),
           rpc("hbu_profile_followers", { ...walletAuth(), p_target: name }),
-          loadPlates(true),
-          loadAvatars(true),
         ]);
         if (request !== soc.profileRequest || current !== account) return;
         $("#soc-status").textContent = "";
@@ -6351,10 +6437,10 @@
       event.preventDefault();
       if (account) socShowUser($("#soc-profile-name").value.trim());
     });
-    for (const tab of document.querySelectorAll("#soc-tabs button")) {
+    for (const tab of document.querySelectorAll("#soc-tabs button[data-mode]")) {
       tab.addEventListener("click", () => {
         soc.mode = tab.dataset.mode;
-        for (const other of document.querySelectorAll("#soc-tabs button")) other.setAttribute("aria-pressed", String(other === tab));
+        for (const other of document.querySelectorAll("#soc-tabs button[data-mode]")) other.setAttribute("aria-pressed", String(other === tab));
         socReload();
       });
     }
@@ -6909,7 +6995,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#profiles": "profiles", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
 
     const ideaDialog = document.querySelector("#idea-dialog");
     const ideaNo = document.querySelector("#idea-no");

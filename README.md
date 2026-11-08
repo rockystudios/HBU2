@@ -18,7 +18,7 @@ Mod-bot shows a rotating tip in the main chat after one minute with chat open, t
 
 ## Profiles and coin transfers
 
-After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. In HBU Social, view your profile, search for a username, or select a post author to see their follower count, up to 100 follower names, and equipped nameplate background. Profiles require login. In Rewards, logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
+After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. Open the Profiles app and enter a username to see their profile picture, follower count, and equipped nameplate background. HBU Social also shows profiles and up to 100 follower names. Profiles require login. Rewards is always available on the home screen; logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
 
 ## Message archives
 
