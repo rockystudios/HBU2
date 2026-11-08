@@ -4,8 +4,9 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading"];
-const pngNames = new Set(names);
+const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading", "paperpine"];
+const pngNames = new Set(names.filter(name => name !== "paperpine"));
+const remoteEmoji = new Set(["paperpine"]);
 
 function node() {
   return {
@@ -56,6 +57,10 @@ test("custom emoji are selectable and render in messages", async () => {
   assert.equal(popup.children.find(child => child.title === ":pleading:").hidden, false);
   assert.equal(popup.children.find(child => child.title === ":laughing:").hidden, true);
   assert.equal(empty.hidden, true);
+  search.value = "04bb";
+  search.input();
+  assert.equal(popup.children.find(child => child.title === ":paperpine:").hidden, false);
+  assert.equal(popup.children.find(child => child.title === ":pleading:").hidden, true);
   search.value = "no-such-emoji";
   search.input();
   assert.equal(empty.hidden, false);
@@ -68,6 +73,8 @@ test("custom emoji are selectable and render in messages", async () => {
     assert.ok(choice, `picker contains ${name}`);
     if (pngNames.has(name)) {
       assert.equal(choice.children[0].src, `assets/emoji/${name}.png`);
+    } else if (remoteEmoji.has(name)) {
+      assert.equal(choice.children[0].src, "https://cdn.jsdelivr.net/gh/paperpine/assets@main/a/04bb.gif");
     } else assert.fail(`${name} must use its supplied image asset`);
     popup.hidden = false;
     choice.click();
