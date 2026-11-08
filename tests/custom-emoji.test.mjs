@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const names = ["shush", "okwink", "bluegrin", "surprised", "crying"];
+const names = ["shush", "okwink", "bluegrin", "surprised", "crying", "sobbing", "laughing", "pleading"];
+const pngNames = new Set(["shush", "okwink", "bluegrin", "surprised", "crying"]);
 
 function node() {
   return {
@@ -41,7 +42,11 @@ test("custom emoji are selectable and render in messages", async () => {
   for (const name of names) {
     const choice = popup.children.find(child => child.title === `:${name}:`);
     assert.ok(choice, `picker contains ${name}`);
-    assert.equal(choice.children[0].src, `assets/emoji/${name}.png`);
+    if (pngNames.has(name)) {
+      assert.equal(choice.children[0].src, `assets/emoji/${name}.png`);
+    } else {
+      assert.match(choice.children[0].src, /^data:image\/svg\+xml/);
+    }
     popup.hidden = false;
     choice.click();
     assert.deepEqual(messageText.inserted, [`:${name}: `, 2, 4, "end"]);
@@ -53,13 +58,15 @@ test("custom emoji are selectable and render in messages", async () => {
     context.appendWithEmojis(rendered, `Hi :${name}: :unknown:`);
     assert.equal(rendered.children[0], "Hi ");
     assert.equal(rendered.children[1].alt, `:${name}:`);
-    assert.equal(rendered.children[1].src, `assets/emoji/${name}.png`);
+    assert.equal(rendered.children[1].src, choice.children[0].src);
     assert.equal(rendered.children[2], " :unknown:");
 
-    const png = await readFile(new URL(`../assets/emoji/${name}.png`, import.meta.url));
-    assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
-    assert.equal(png.readUInt32BE(16), 128);
-    assert.equal(png.readUInt32BE(20), 128);
-    assert.equal(png[25], 6);
+    if (pngNames.has(name)) {
+      const png = await readFile(new URL(`../assets/emoji/${name}.png`, import.meta.url));
+      assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+      assert.equal(png.readUInt32BE(16), 128);
+      assert.equal(png.readUInt32BE(20), 128);
+      assert.equal(png[25], 6);
+    }
   }
 });
