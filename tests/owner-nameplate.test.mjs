@@ -37,6 +37,7 @@ test("other users retain their selected plate", () => {
 test("all owner messages use the plate and reduced motion disables animation", () => {
   assert.match(source, /applyPlate\(entry, header\.firstElementChild && !joined \? header\.firstElementChild : null, plateByUser\[message\.user\.toLowerCase\(\)\], message\.user\)/);
   assert.match(source, /\.message-entry\.owner-matrix, \.message-entry\.own\.owner-matrix \{[^}]*background: #000;/);
+  assert.match(source, /\.message-entry\.owner-matrix, \.message-entry\.own\.owner-matrix \{[^}]*flex-shrink: 0;/);
   assert.match(source, /@keyframes matrix-scroll \{ from \{ background-position: 0 0; \} to \{ background-position: 0 96px; \}/);
   assert.match(source, /owner-matrix::before \{[^}]*animation: matrix-scroll 4s linear infinite;/);
   assert.match(source, /prefers-reduced-motion: reduce[^}]*owner-matrix::before \{ animation: none;/);
