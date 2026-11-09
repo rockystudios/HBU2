@@ -20,14 +20,14 @@ function createServer() {
       if (url.endsWith("/hbu_signup")) return Response.json(null);
       throw new Error(`Unexpected request: ${url}`);
     },
-    crypto, TextEncoder, Response, Request, URL, console, btoa, atob, setTimeout, clearTimeout
+    crypto, TextEncoder, Response, Request, Headers, URL, console, btoa, atob, setTimeout, clearTimeout
   };
   vm.runInNewContext(stripTypeScriptTypes(source), context);
   return { handle: context.handle, calls, setReset: value => { resetPending = value; } };
 }
 
 async function challenge(handle) {
-  const res = await handle(new Request("https://example.test/?action=image_challenge"));
+  const res = await handle(new Request("https://example.test/?action=image_challenge", { headers: { Origin: "https://rockystudios.github.io" } }));
   assert.equal(res.status, 200);
   const data = await res.json();
   const svg = atob(data.image);
@@ -40,7 +40,7 @@ async function challenge(handle) {
 
 async function submit(handle, body) {
   return handle(new Request("https://example.test/", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://rockystudios.github.io" }, body: JSON.stringify(body)
   }));
 }
 
@@ -84,4 +84,28 @@ test("password reset is offered only after image verification", async () => {
   assert.deepEqual(await response.json(), { resetPending: true });
   assert.equal(calls.length, 1);
   assert.ok(calls[0].url.endsWith("/hbu_reset_pending"));
+});
+
+test("unapproved and missing origins are rejected before database access", async () => {
+  const { handle, calls } = createServer();
+  const denied = await handle(new Request("https://example.test/?action=image_challenge", {
+    headers: { Origin: "https://copied-hbu2.example" }
+  }));
+  assert.equal(denied.status, 403);
+  assert.equal(calls.length, 0);
+
+  const missing = await handle(new Request("https://example.test/?action=image_challenge"));
+  assert.equal(missing.status, 403);
+  assert.equal(calls.length, 0);
+});
+
+test("allowed origins receive exact-origin CORS headers on preflight", async () => {
+  const { handle, calls } = createServer();
+  const response = await handle(new Request("https://example.test/", {
+    method: "OPTIONS",
+    headers: { Origin: "http://hbu2.s3-website.us-east-2.amazonaws.com" }
+  }));
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "http://hbu2.s3-website.us-east-2.amazonaws.com");
+  assert.equal(calls.length, 0);
 });
