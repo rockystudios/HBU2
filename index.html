@@ -142,6 +142,11 @@
     .plate-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 750; }
     .plate-meta span:last-child { color: #ffe066; }
     .plate-card .button { min-height: 38px; }
+    .custom-plate-preview { width: 100%; max-width: 360px; aspect-ratio: 320 / 72; display: flex; align-items: center; padding: 10px 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background-size: cover; background-position: center; color: white; font-weight: 800; text-shadow: 0 1px 5px #000; }
+    .custom-plate-controls { display: grid; gap: 9px; margin-top: 10px; }
+    .custom-plate-controls input[type="range"] { width: 100%; }
+    .custom-plate-controls input[type="file"] { max-width: 100%; }
+    .custom-plate-status { min-height: 18px; }
     .rewards-login { padding: 18px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 14px; }
     .rewards-login a { color: #d7b4ff; text-decoration: underline; }
     @media (max-width: 800px) { .rewards-grid { grid-template-columns: 1fr; } }
@@ -559,6 +564,7 @@
     .message-entry-header { display: flex; justify-content: space-between; gap: 14px; color: #d7b4ff; font-size: 11px; font-weight: 750; }
     .message-entry time { color: var(--muted); font-weight: 500; }
     .message-entry p { margin: 3px 0 0; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message-delivery-status { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; text-align: right; }
 
     .player-view { padding-top: 28px; }
     .player-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -1244,6 +1250,13 @@
             <button class="button button-primary" id="pw-submit" type="submit">Change password</button>
           </form>
         </div>
+        <div class="rewards-card" id="custom-plate-settings" hidden>
+          <h3>Custom name plate</h3>
+          <p>A custom name plate has been assigned to your account by the owner.</p>
+          <div class="custom-plate-preview" id="custom-plate-user-preview">Your username</div>
+          <p class="app-note" id="custom-plate-user-status" role="status"></p>
+          <button class="button button-primary" id="custom-plate-toggle" type="button">Equip custom name plate</button>
+        </div>
         <div class="rewards-card">
           <h3>Blocked users</h3>
           <p>You won't see their messages, DMs or notifications.</p>
@@ -1803,6 +1816,23 @@
           </form>
           <p class="app-note" id="owner-status"></p>
           <ul class="owner-list" id="owner-list"></ul>
+          <h2>Custom name plates</h2>
+          <p class="app-note">Upload an image, crop it to the chat name-plate shape, and assign it to a username. The player can equip or remove it in Settings.</p>
+          <form class="settings-form" id="owner-custom-plate-form">
+            <label for="owner-plate-image">Name plate image</label>
+            <input id="owner-plate-image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required>
+            <label for="owner-plate-zoom">Crop zoom</label>
+            <input id="owner-plate-zoom" type="range" min="1" max="3" value="1" step="0.01">
+            <label for="owner-plate-x">Horizontal position</label>
+            <input id="owner-plate-x" type="range" min="0" max="100" value="50">
+            <label for="owner-plate-y">Vertical position</label>
+            <input id="owner-plate-y" type="range" min="0" max="100" value="50">
+            <div class="custom-plate-preview" id="owner-plate-preview">Name plate preview</div>
+            <label for="owner-plate-username">Give to username</label>
+            <input id="owner-plate-username" type="text" maxlength="20" placeholder="Username" autocomplete="off" required>
+            <button class="button button-primary" id="owner-plate-submit" type="submit">Assign custom name plate</button>
+          </form>
+          <p class="app-note custom-plate-status" id="owner-plate-status" role="status" aria-live="polite"></p>
           <h2>Accounts</h2>
           <details class="admin-fold" id="owner-accounts">
             <summary>All accounts and their IP addresses</summary>
@@ -2085,7 +2115,7 @@
     const supabaseMessagesUrl = `${supabaseRestUrl}/messages`;
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const sessionKey = "hbu-arcade-session";
-    const chatPollMs = 3000;
+    const chatPollMs = 4000;
     const messageForm = document.querySelector("#message-form");
     const messageText = document.querySelector("#message-text");
     const viewButton = document.querySelector("#view-button");
@@ -2395,6 +2425,7 @@
     let signupMode = false;
     let lastMessagesKey = "";
     let chatTimer;
+    let chatExtrasTimer;
     let adminTimer;
     const phoneDevice = Boolean(navigator.userAgentData?.mobile) ||
       /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
@@ -3085,7 +3116,9 @@
       if (account) {
         loadBlocked();
         loadAvatars(true);
+        void loadPlates(true);
         drawAvatarPreview();
+        renderCustomPlateSettings();
       }
     }
 
@@ -3331,6 +3364,7 @@
     let wallet = null;
     let plateCatalog = [];
     let plateByUser = {};
+    let customPlateByUser = {};
     let platesLoadedAt = 0;
     let avatarByUser = {};
     let avatarsLoadedAt = 0;
@@ -3449,6 +3483,15 @@
         entry.classList.add("owner-matrix");
         return;
       }
+      const custom = customPlateByUser[username.toLowerCase()];
+      if (custom && plateId === `custom:${username.toLowerCase()}`) {
+        entry.style.backgroundImage = `url("${custom}")`;
+        entry.style.backgroundSize = "cover";
+        entry.style.backgroundPosition = "center";
+        entry.style.backgroundColor = "#171326";
+        if (nameEl) { nameEl.style.color = "#ffffff"; nameEl.style.textShadow = "0 1px 5px #000, 0 0 3px #000"; }
+        return;
+      }
       const plate = plateById(plateId);
       if (!plate) return;
       entry.style.background = plate.bg;
@@ -3471,14 +3514,21 @@
             drawMessages();
           }
         }
-        const rows = await rpc("hbu_plates", {});
+        const [rows, customRows] = await Promise.all([
+          rpc("hbu_plates", {}),
+          rpc("hbu_custom_plates", {})
+        ]);
         const next = {};
         for (const row of rows || []) next[row.username.toLowerCase()] = row.plate;
-        if (JSON.stringify(next) !== JSON.stringify(plateByUser)) {
+        const customNext = {};
+        for (const row of customRows || []) customNext[row.username.toLowerCase()] = row.image_data;
+        if (JSON.stringify(next) !== JSON.stringify(plateByUser) || JSON.stringify(customNext) !== JSON.stringify(customPlateByUser)) {
           plateByUser = next;
+          customPlateByUser = customNext;
           lastMessagesKey = "";
           drawMessages();
         }
+        renderCustomPlateSettings();
       } catch (error) {
         console.warn("Name plates unavailable (has supabase/coins.sql been run?).", error);
       }
@@ -3699,6 +3749,7 @@
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
       window.clearInterval(chatTimer);
+      window.clearInterval(chatExtrasTimer);
       window.clearInterval(adminTimer);
       stopInbox();
       localTips = [];
@@ -3723,6 +3774,20 @@
         delete messageList.dataset.scrolled;
         renderConvos();
         loadMessages();
+        loadDmPartners();
+        loadPoll();
+        loadMods().then(() => drawMessages());
+        loadPlates();
+        loadAvatars();
+        chatExtrasTimer = window.setInterval(() => {
+          if (!document.hidden && account && appOpen("chat")) {
+            loadDmPartners();
+            loadPoll();
+            loadMods().then(() => drawMessages());
+            loadPlates();
+            loadAvatars();
+          }
+        }, 30000);
         loadBlocked();
         startInbox();
         chatTimer = window.setInterval(() => {
@@ -4027,7 +4092,7 @@
     function drawMessages() {
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
-        .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true }));
+        .map(item => ({ user: account.username, message: item.text, created_at: item.at, pending: true, deliveryStatus: item.status || "sending" }));
       const tips = currentConvo === "everyone" ? localTips : [];
       const messages = [...serverMessages, ...pending, ...tips]
         .filter(item => !isBlocked(item.user) && !(hideCurseWords && typeof item.message === "string" && item.message.includes("***")));
@@ -4184,6 +4249,12 @@
         } else {
           entry.append(header, text);
         }
+        if (message.deliveryStatus) {
+          const delivery = document.createElement("small");
+          delivery.className = "message-delivery-status";
+          delivery.textContent = message.deliveryStatus === "delivered" ? "✓ Delivered" : "Sending…";
+          entry.append(delivery);
+        }
         messageList.append(entry);
       }
       for (const note of localNotes.filter(item => item.convo === currentConvo)) {
@@ -4314,12 +4385,23 @@
       }
     }
 
+    async function loadDmPartners() {
+      if (!account) return;
+      const current = account;
+      try {
+        const partners = await rpc("hbu_dm_partners", creds());
+        if (account !== current || !Array.isArray(partners)) return;
+        const names = partners.map(item => item.partner).filter(Boolean);
+        if (currentConvo !== "everyone") names.push(currentConvo);
+        mergePartners(names);
+        renderConvos();
+      } catch (error) {
+        console.warn("Could not refresh DM partners.", error);
+      }
+    }
+
     async function loadMessages(settle) {
       if (!account) return;
-      loadPoll();
-      loadMods().then(() => drawMessages());
-      loadPlates();
-      loadAvatars();
       const convo = currentConvo;
       const current = account;
       try {
@@ -4334,13 +4416,6 @@
           messages = await rpc("hbu_get_dms", { ...creds(), p_other: convo });
         }
         if (convo !== currentConvo || account !== current) return;
-        const partners = await rpc("hbu_dm_partners", creds());
-        if (convo !== currentConvo || account !== current) return;
-        if (Array.isArray(partners)) {
-          const names = partners.map(item => item.partner).filter(Boolean);
-          if (convo !== "everyone") names.push(convo);
-          mergePartners(names);
-        }
         if (!Array.isArray(messages)) throw new Error("Unexpected message list.");
         if (settle) settle();
         renderMessages(messages);
@@ -4771,6 +4846,111 @@
       }
     });
 
+    const ownerPlateImage = document.querySelector("#owner-plate-image");
+    const ownerPlateZoom = document.querySelector("#owner-plate-zoom");
+    const ownerPlateX = document.querySelector("#owner-plate-x");
+    const ownerPlateY = document.querySelector("#owner-plate-y");
+    const ownerPlatePreview = document.querySelector("#owner-plate-preview");
+    const ownerPlateStatus = document.querySelector("#owner-plate-status");
+    let ownerPlateSource = null;
+    let ownerPlateObjectUrl = "";
+
+    function drawOwnerPlateCrop() {
+      if (!ownerPlateSource) return null;
+      const width = 640;
+      const height = 144;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      const scale = Math.max(width / ownerPlateSource.width, height / ownerPlateSource.height) * Number(ownerPlateZoom.value || 1);
+      const drawWidth = ownerPlateSource.width * scale;
+      const drawHeight = ownerPlateSource.height * scale;
+      const x = Number(ownerPlateX.value || 50) / 100;
+      const y = Number(ownerPlateY.value || 50) / 100;
+      context.drawImage(ownerPlateSource, (width - drawWidth) * x, (height - drawHeight) * y, drawWidth, drawHeight);
+      const data = canvas.toDataURL("image/jpeg", 0.84);
+      ownerPlatePreview.style.backgroundImage = `url("${data}")`;
+      ownerPlatePreview.textContent = "";
+      return data;
+    }
+
+    ownerPlateImage.addEventListener("change", () => {
+      const file = ownerPlateImage.files && ownerPlateImage.files[0];
+      ownerPlateSource = null;
+      if (ownerPlateObjectUrl) URL.revokeObjectURL(ownerPlateObjectUrl);
+      ownerPlateObjectUrl = "";
+      if (!file) { ownerPlatePreview.style.backgroundImage = ""; ownerPlatePreview.textContent = "Name plate preview"; return; }
+      if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type) || file.size > 8 * 1024 * 1024) {
+        ownerPlateStatus.textContent = "Choose a PNG, JPG, WEBP, or GIF image under 8 MB.";
+        ownerPlateImage.value = "";
+        return;
+      }
+      ownerPlateObjectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => { ownerPlateSource = image; drawOwnerPlateCrop(); ownerPlateStatus.textContent = "Adjust the zoom, then assign the preview."; };
+      image.onerror = () => { ownerPlateStatus.textContent = "That image could not be opened."; };
+      image.src = ownerPlateObjectUrl;
+    });
+    ownerPlateZoom.addEventListener("input", drawOwnerPlateCrop);
+    ownerPlateX.addEventListener("input", drawOwnerPlateCrop);
+    ownerPlateY.addEventListener("input", drawOwnerPlateCrop);
+
+    document.querySelector("#owner-custom-plate-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!isOwner()) { ownerPlateStatus.textContent = "Owner access required."; return; }
+      const target = document.querySelector("#owner-plate-username").value.trim().replace(/^@/, "");
+      if (!target || !ownerPlateSource) { ownerPlateStatus.textContent = "Choose an image and enter a username."; return; }
+      const imageData = drawOwnerPlateCrop();
+      if (!imageData || imageData.length > 350000) { ownerPlateStatus.textContent = "The cropped image is too large. Choose a simpler or smaller image."; return; }
+      const button = document.querySelector("#owner-plate-submit");
+      button.disabled = true;
+      ownerPlateStatus.textContent = "Assigning custom name plate...";
+      try {
+        const result = await rpc("hbu_owner_assign_custom_plate", { ...creds(), p_target: target, p_image_data: imageData });
+        ownerPlateStatus.textContent = `Custom name plate assigned to ${result.username}. They can equip it in Settings.`;
+        document.querySelector("#owner-plate-username").value = "";
+        await loadPlates(true);
+      } catch (error) {
+        ownerPlateStatus.textContent = `Could not assign name plate: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    const customPlateSettings = document.querySelector("#custom-plate-settings");
+    const customPlateUserPreview = document.querySelector("#custom-plate-user-preview");
+    const customPlateUserStatus = document.querySelector("#custom-plate-user-status");
+    const customPlateToggle = document.querySelector("#custom-plate-toggle");
+
+    function renderCustomPlateSettings() {
+      if (!customPlateSettings || !account) { if (customPlateSettings) customPlateSettings.hidden = true; return; }
+      const imageData = customPlateByUser[account.username.toLowerCase()];
+      customPlateSettings.hidden = !imageData;
+      if (!imageData) return;
+      customPlateUserPreview.style.backgroundImage = `url("${imageData}")`;
+      customPlateUserPreview.textContent = account.username;
+      const equipped = plateByUser[account.username.toLowerCase()] === `custom:${account.username.toLowerCase()}`;
+      customPlateToggle.textContent = equipped ? "Unequip custom name plate" : "Equip custom name plate";
+      customPlateUserStatus.textContent = equipped ? "Your custom name plate is currently equipped." : "Your custom name plate is available to equip.";
+    }
+
+    customPlateToggle.addEventListener("click", async () => {
+      if (!account) return;
+      const equipped = plateByUser[account.username.toLowerCase()] === `custom:${account.username.toLowerCase()}`;
+      customPlateToggle.disabled = true;
+      try {
+        await rpc("hbu_set_custom_plate", { ...creds(), p_enabled: !equipped });
+        await loadPlates(true);
+        renderCustomPlateSettings();
+        showToast(equipped ? "Custom name plate unequipped." : "Custom name plate equipped!");
+      } catch (error) {
+        customPlateUserStatus.textContent = error.message;
+      } finally {
+        customPlateToggle.disabled = false;
+      }
+    });
+
     document.querySelector("#owner-form").addEventListener("submit", async event => {
       event.preventDefault();
       const input = document.querySelector("#owner-name");
@@ -4856,6 +5036,8 @@
       queueRunning = true;
       while (pendingMessages.length && account) {
         const item = pendingMessages[0];
+        item.status = "sending";
+        if (item.convo === currentConvo) drawMessages();
         const settle = () => { pendingMessages = pendingMessages.filter(other => other !== item); };
         try {
           let sent = null;
@@ -4875,10 +5057,9 @@
           }
           if (item.convo === currentConvo) {
             if (sent && typeof sent.message === "string") {
-              serverMessages = [...serverMessages, { user: sent.user || account.username, message: sent.message, created_at: sent.created_at }];
+              serverMessages = [...serverMessages, { user: sent.user || account.username, message: sent.message, created_at: sent.created_at, deliveryStatus: "delivered" }];
             }
             drawMessages();
-            loadMessages();
           } else {
             drawMessages();
           }
