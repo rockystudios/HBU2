@@ -5283,10 +5283,10 @@
 
     async function voiceRequest(action, extra = {}) {
       if (!account) throw new Error("Log in before using Voice Rooms.");
-      const response = await authFetch(`${supabaseFunctionsUrl}/hbu-voice`, {
+      const response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...walletAuth(), ...extra })
+        body: JSON.stringify({ action: `voice_${action}`, ...walletAuth(), ...extra })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `Voice Rooms request failed (${response.status}).`);
