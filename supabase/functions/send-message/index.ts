@@ -76,6 +76,45 @@ const json = (body: unknown, status = 200) =>
 
 const enc = encodeURIComponent;
 
+// Persistent rate limits live in Postgres so limits survive Edge Function
+// restarts and apply across all function instances.
+async function rateLimitAllowed(subject: string, action: string, limit: number, windowSeconds: number) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_edge_rate_limit`, {
+    method: "POST",
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      p_subject: subject,
+      p_action: action,
+      p_limit: limit,
+      p_window_seconds: windowSeconds,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Persistent rate limiter failed:", response.status, await response.text().catch(() => ""));
+    throw new UserError("HBU security protection is temporarily unavailable. Please try again shortly.", 503);
+  }
+  return await response.json() === true;
+}
+
+async function requireRateLimit(subject: string, action: string, limit: number, windowSeconds: number) {
+  if (!(await rateLimitAllowed(subject, action, limit, windowSeconds))) {
+    throw new UserError("Too many requests. Please wait a little and try again.", 429);
+  }
+}
+
+async function requestIpSubject(req: Request) {
+  // Prefer proxy-provided address headers. Hash the value before storing it.
+  const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip") ?? req.headers.get("x-forwarded-for") ?? "unknown")
+    .split(",")[0].trim().slice(0, 100);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+  const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `ip:${hash}`;
+}
+
 function voiceRequiredConfig() {
   const missing = [
     ["SUPABASE_URL", SUPABASE_URL],
@@ -1446,6 +1485,11 @@ async function verifyAltchaChallenge(body: Record<string, unknown>) {
 }
 
 async function signup(req: Request, body: Record<string, unknown>) {
+  const ipSubject = await requestIpSubject(req);
+  await requireRateLimit(ipSubject, "signup_ip", 3, 3600);
+  if (typeof body.username === "string") {
+    await requireRateLimit(`signup-name:${body.username.trim().toLowerCase()}`, "signup_username", 2, 3600);
+  }
   if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
   if (body.action === "signup_image") await verifyImageChallenge(body);
@@ -1470,10 +1514,12 @@ async function signup(req: Request, body: Record<string, unknown>) {
   return json({ ok: true, username: body.username });
 }
 
-async function loginImage(body: Record<string, unknown>) {
+async function loginImage(req: Request, body: Record<string, unknown>) {
   if (typeof body.username !== "string" || typeof body.password !== "string") {
     throw new UserError("Missing username or password.");
   }
+  const ipSubject = await requestIpSubject(req);
+  await requireRateLimit(ipSubject, "login_image_ip", 30, 900);
   await verifyImageChallenge(body);
   const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
   const reset = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_reset_pending`, {
@@ -1488,7 +1534,12 @@ async function loginImage(body: Record<string, unknown>) {
     method: "POST", headers, body: JSON.stringify({ p_username: body.username, p_password: body.password }),
   });
   const result = await response.json().catch(() => null);
-  if (!response.ok) throw new UserError(result?.message ?? "Could not log in.", response.status);
+  if (!response.ok) {
+    const failedSubject = `login-failure:${ipSubject}:${body.username.trim().toLowerCase()}`;
+    const allowed = await rateLimitAllowed(failedSubject, "failed_login", 15, 900);
+    if (!allowed) throw new UserError("Too many failed sign-in attempts. Try again in 15 minutes.", 429);
+    throw new UserError(result?.message ?? "Could not log in.", response.status);
+  }
   if (typeof result !== "string") throw new Error("Login returned an invalid username.");
   return json({ username: result });
 }
@@ -1497,6 +1548,7 @@ async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "image_challenge") {
     try {
+      await requireRateLimit(await requestIpSubject(req), "image_challenge", 30, 60);
       return await imageChallenge();
     } catch (error) {
       console.error("Could not create image signup challenge.", error);
@@ -1506,6 +1558,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
   if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "altcha_challenge") {
     try {
+      await requireRateLimit(await requestIpSubject(req), "altcha_challenge", 30, 60);
       return await signupChallenge();
     } catch (error) {
       console.error("Could not create ALTCHA signup challenge.", error);
@@ -1521,7 +1574,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const username = body.username ?? body.p_username;
     const password = body.password ?? body.p_password;
     if (action === "signup" || action === "signup_image") return await signup(req, body);
-    if (action === "login_image") return await loginImage(body);
+    if (action === "login_image") return await loginImage(req, body);
     const isVoiceAction = typeof action === "string" && ["voice_list", "voice_create", "voice_token"].includes(action);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && !isVoiceAction && typeof message !== "string")) {
@@ -1530,15 +1583,48 @@ async function handleRequest(req: Request): Promise<Response> {
     const text = (isAdminAction || isVoiceAction) ? "" : message.trim();
     if (!isAdminAction && !isVoiceAction && (!text || text.length > MAX_LENGTH)) throw new UserError("Message must be 1-500 characters.");
 
+    const ipSubject = await requestIpSubject(req);
+    await requireRateLimit(ipSubject, "send_message_endpoint", 600, 60);
+
     const loginRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_login`, {
       method: "POST",
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ p_username: username, p_password: password }),
     });
-    if (!loginRes.ok) throw new UserError("Wrong username or password", 401);
+    if (!loginRes.ok) {
+      const failedSubject = `login-failure:${ipSubject}:${String(username).trim().toLowerCase()}`;
+      const allowed = await rateLimitAllowed(failedSubject, "failed_login", 15, 900);
+      if (!allowed) throw new UserError("Too many failed sign-in attempts. Try again in 15 minutes.", 429);
+      throw new UserError("Wrong username or password", 401);
+    }
     const realName: string = await loginRes.json();
     recordIp(req, realName);
-    if (isVoiceAction) return await handleVoiceAction(action, realName, body);
+    await requireRateLimit(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60);
+    if (isVoiceAction) {
+      const voiceLimits: Record<string, [number, number]> = {
+        voice_list: [60, 60],
+        voice_create: [3, 600],
+        voice_token: [20, 60],
+      };
+      const [limit, windowSeconds] = voiceLimits[action] ?? [20, 60];
+      await requireRateLimit(`account:${realName.toLowerCase()}`, action, limit, windowSeconds);
+      await requireRateLimit(ipSubject, action, limit * 5, windowSeconds);
+      return await handleVoiceAction(action, realName, body);
+    }
+    if (action === "delete_message" || action === "edit_message") {
+      await requireRateLimit(`account:${realName.toLowerCase()}`, action, 20, 60);
+    }
+    if (action === "app_ai") {
+      await requireRateLimit(`account:${realName.toLowerCase()}`, "app_ai", 10, 60);
+    }
+    if (isAdminAction) {
+      await requireRateLimit(`account:${realName.toLowerCase()}`, "admin_action", 120, 60);
+    }
+    if (!isAdminAction && !isVoiceAction) {
+      const actionKey = COMMAND.test(text) ? "chat_command" : "chat_message_edge";
+      const max = COMMAND.test(text) ? 30 : 20;
+      await requireRateLimit(`account:${realName.toLowerCase()}`, actionKey, max, 60);
+    }
     if (action === "delete_message") return await deleteOwnMessage(realName, body.id);
     if (action === "edit_message") return await editMessage(realName, body.id, text);
     if (action === "app_ai") return await appAi(realName, body);
