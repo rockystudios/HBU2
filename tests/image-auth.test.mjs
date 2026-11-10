@@ -14,6 +14,7 @@ function createServer() {
   const context = {
     Deno: { env: { get: key => ({ ALTCHA_HMAC_SECRET: "test-secret", SUPABASE_URL: "https://example.test", SUPABASE_SERVICE_ROLE_KEY: "test-key" })[key] }, serve() {} },
     fetch: async (url, options) => {
+      if (url.endsWith("/hbu_edge_rate_limit")) return Response.json(true);
       calls.push({ url, body: JSON.parse(options.body) });
       if (url.endsWith("/hbu_reset_pending")) return Response.json(resetPending);
       if (url.endsWith("/hbu_login")) return Response.json("Tester");
