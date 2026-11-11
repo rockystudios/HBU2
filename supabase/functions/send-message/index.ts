@@ -21,7 +21,9 @@ const LIVEKIT_URL = Deno.env.get("LIVEKIT_URL") ?? "";
 const LIVEKIT_API_KEY = Deno.env.get("LIVEKIT_API_KEY") ?? "";
 const LIVEKIT_API_SECRET = Deno.env.get("LIVEKIT_API_SECRET") ?? "";
 const VOICE_ROOM_PREFIX = "hbu-voice-";
-const VOICE_ROOM_CAPACITY = 5;
+const VOICE_DEFAULT_ROOM_CAPACITY = 20;
+const VOICE_MAX_ROOM_CAPACITY = 20;
+const VOICE_MIN_ROOM_CAPACITY = 2;
 const VOICE_MAX_ROOM_TITLE_LENGTH = 32;
 const MAX_LENGTH = 500;
 const MAX_BAN_HOURS = 168; // one week
@@ -153,12 +155,15 @@ async function handleVoiceAction(action: string, username: string, body: Record<
       .filter((room) => room.name.startsWith(VOICE_ROOM_PREFIX))
       .map((room) => {
         const metadata = voiceRoomMetadata(room.metadata);
+        const maxParticipants = Number(room.maxParticipants || metadata.capacity || 5);
         return {
           name: room.name,
           title: typeof metadata.title === "string" ? metadata.title : "Voice Room",
           createdBy: typeof metadata.createdBy === "string" ? metadata.createdBy : "",
           numParticipants: room.numParticipants ?? 0,
-          maxParticipants: VOICE_ROOM_CAPACITY,
+          maxParticipants: Number.isInteger(maxParticipants)
+            ? Math.max(VOICE_MIN_ROOM_CAPACITY, Math.min(VOICE_MAX_ROOM_CAPACITY, maxParticipants))
+            : 5,
         };
       })
       .sort((a, b) => a.title.localeCompare(b.title));
@@ -170,6 +175,10 @@ async function handleVoiceAction(action: string, username: string, body: Record<
     if (title.length < 2 || title.length > VOICE_MAX_ROOM_TITLE_LENGTH) {
       throw new UserError(`Room names must be 2-${VOICE_MAX_ROOM_TITLE_LENGTH} characters.`);
     }
+    const requestedCapacity = body.capacity === undefined ? VOICE_DEFAULT_ROOM_CAPACITY : Number(body.capacity);
+    if (!Number.isInteger(requestedCapacity) || requestedCapacity < VOICE_MIN_ROOM_CAPACITY || requestedCapacity > VOICE_MAX_ROOM_CAPACITY) {
+      throw new UserError(`Room capacity must be between ${VOICE_MIN_ROOM_CAPACITY} and ${VOICE_MAX_ROOM_CAPACITY} people.`);
+    }
     const activeRooms = await service.listRooms();
     if (activeRooms.filter((room) => room.name.startsWith(VOICE_ROOM_PREFIX)).length >= 30) {
       throw new UserError("There are already 30 active HBU voice rooms. Try joining one first.", 429);
@@ -178,10 +187,10 @@ async function handleVoiceAction(action: string, username: string, body: Record<
     await service.createRoom({
       name: roomName,
       emptyTimeout: 300,
-      maxParticipants: VOICE_ROOM_CAPACITY,
-      metadata: JSON.stringify({ title, createdBy: username }),
+      maxParticipants: requestedCapacity,
+      metadata: JSON.stringify({ title, createdBy: username, capacity: requestedCapacity }),
     });
-    return json({ roomName, title, maxParticipants: VOICE_ROOM_CAPACITY }, 201);
+    return json({ roomName, title, maxParticipants: requestedCapacity }, 201);
   }
 
   if (action === "voice_token") {
@@ -192,8 +201,16 @@ async function handleVoiceAction(action: string, username: string, body: Record<
     const rooms = await service.listRooms();
     const room = rooms.find((item) => item.name === roomName);
     if (!room) throw new UserError("That voice room has ended. Refresh the room list.", 404);
-    if ((room.numParticipants ?? 0) >= VOICE_ROOM_CAPACITY) {
-      throw new UserError("That room is full. Each room can have up to 5 people.", 409);
+    const metadata = voiceRoomMetadata(room.metadata);
+    const kickedUsers = Array.isArray(metadata.kickedUsers)
+      ? metadata.kickedUsers.filter((value: unknown): value is string => typeof value === "string").map((value: string) => value.toLowerCase())
+      : [];
+    if (kickedUsers.includes(username.toLowerCase())) {
+      throw new UserError("The room owner removed you from this room.", 403);
+    }
+    const maxParticipants = Number(room.maxParticipants || metadata.capacity || 5);
+    if ((room.numParticipants ?? 0) >= maxParticipants) {
+      throw new UserError(`That room is full. Its limit is ${maxParticipants} people.`, 409);
     }
 
     const identity = `${username.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`;
@@ -207,9 +224,46 @@ async function handleVoiceAction(action: string, username: string, body: Record<
       room: roomName,
       canPublish: true,
       canSubscribe: true,
-      canPublishData: false,
+      canPublishData: true,
     });
-    return json({ serverUrl: voiceWebSocketUrl(), token: await token.toJwt(), roomName });
+    return json({
+      serverUrl: voiceWebSocketUrl(),
+      token: await token.toJwt(),
+      roomName,
+      isOwner: typeof metadata.createdBy === "string" && metadata.createdBy.toLowerCase() === username.toLowerCase(),
+      maxParticipants,
+    });
+  }
+
+  if (action === "voice_kick") {
+    const roomName = typeof body.roomName === "string" ? body.roomName : "";
+    const participantIdentity = typeof body.participantIdentity === "string" ? body.participantIdentity : "";
+    if (!roomName.startsWith(VOICE_ROOM_PREFIX) || roomName.length > 100 || !participantIdentity || participantIdentity.length > 128) {
+      throw new UserError("That room or participant is not valid.");
+    }
+    const rooms = await service.listRooms();
+    const room = rooms.find((item) => item.name === roomName);
+    if (!room) throw new UserError("That voice room has ended.", 404);
+    const metadata = voiceRoomMetadata(room.metadata);
+    const createdBy = typeof metadata.createdBy === "string" ? metadata.createdBy : "";
+    if (!createdBy || createdBy.toLowerCase() !== username.toLowerCase()) {
+      throw new UserError("Only the person who created this room can kick participants.", 403);
+    }
+    const participants = await service.listParticipants(roomName);
+    const target = participants.find((participant) => participant.identity === participantIdentity);
+    if (!target) throw new UserError("That participant is no longer in the room.", 404);
+    const kickedUsername = typeof target.name === "string" ? target.name.trim().toLowerCase() : "";
+    if (!kickedUsername) throw new UserError("Could not verify that participant's HBU2 username.", 409);
+    if (kickedUsername === username.toLowerCase() || participantIdentity.toLowerCase().startsWith(`${username.toLowerCase()}-`)) {
+      throw new UserError("You cannot kick yourself from your own room.");
+    }
+    const existingKicks = Array.isArray(metadata.kickedUsers)
+      ? metadata.kickedUsers.filter((value: unknown): value is string => typeof value === "string")
+      : [];
+    const nextKicks = [...new Set([...existingKicks.map((value: string) => value.toLowerCase()), kickedUsername])].slice(-100);
+    await service.updateRoomMetadata(roomName, JSON.stringify({ ...metadata, kickedUsers: nextKicks }));
+    await service.removeParticipant(roomName, participantIdentity);
+    return json({ success: true, kicked: participantIdentity, blockedFromRejoining: true });
   }
 
   throw new UserError("Unknown Voice Rooms action.");
@@ -1575,7 +1629,7 @@ async function handleRequest(req: Request): Promise<Response> {
     const password = body.password ?? body.p_password;
     if (action === "signup" || action === "signup_image") return await signup(req, body);
     if (action === "login_image") return await loginImage(req, body);
-    const isVoiceAction = typeof action === "string" && ["voice_list", "voice_create", "voice_token"].includes(action);
+    const isVoiceAction = typeof action === "string" && ["voice_list", "voice_create", "voice_token", "voice_kick"].includes(action);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && !isVoiceAction && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
@@ -1605,6 +1659,7 @@ async function handleRequest(req: Request): Promise<Response> {
         voice_list: [60, 60],
         voice_create: [3, 600],
         voice_token: [20, 60],
+        voice_kick: [20, 60],
       };
       const [limit, windowSeconds] = voiceLimits[action] ?? [20, 60];
       await requireRateLimit(`account:${realName.toLowerCase()}`, action, limit, windowSeconds);
