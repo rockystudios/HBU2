@@ -352,7 +352,10 @@
     .voice-create-form { display: grid; gap: 9px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
     .voice-create-form label { color: var(--muted); font-size: 12px; font-weight: 800; }
     .voice-create-form > div { display: flex; gap: 9px; }
-    .voice-create-form input { min-width: 0; flex: 1; width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
+    .voice-create-form input, .voice-create-form select { min-width: 0; width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); }
+    .voice-create-form input { flex: 1; }
+    .voice-create-form > .voice-create-options { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 10px; align-items: end; }
+    .voice-create-options label { display: grid; gap: 6px; }
     .voice-list-heading { margin-top: 2px; }
     .voice-list-heading h3 { margin: 0; }
     .voice-room-list { display: grid; gap: 9px; }
@@ -370,6 +373,16 @@
     .voice-avatar { display: grid; flex: 0 0 36px; width: 36px; height: 36px; place-items: center; border-radius: 50%; color: white; background: linear-gradient(145deg, #0f766e, #2563eb); font-weight: 900; }
     .voice-participant-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 800; }
     .voice-participant-state { color: var(--muted); font-size: 11px; }
+    .voice-participant-main { min-width: 0; flex: 1; }
+    .voice-kick-button { flex: 0 0 auto; padding: 6px 9px; border: 1px solid rgba(239,68,68,.45); border-radius: 8px; color: var(--text); background: rgba(239,68,68,.1); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .voice-chat { display: grid; gap: 9px; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: rgba(127,127,127,.045); }
+    .voice-chat h4 { margin: 0; font-size: 13px; }
+    .voice-chat-messages { display: flex; flex-direction: column; gap: 7px; min-height: 90px; max-height: 220px; overflow-y: auto; padding: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+    .voice-chat-message { overflow-wrap: anywhere; font-size: 12px; line-height: 1.45; }
+    .voice-chat-message strong { margin-right: 5px; }
+    .voice-chat-empty { margin: auto; color: var(--muted); font-size: 12px; text-align: center; }
+    .voice-chat-form { display: flex; gap: 8px; }
+    .voice-chat-form input { min-width: 0; flex: 1; min-height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: var(--surface); }
     .voice-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
     .voice-control { min-width: 104px; display: grid; justify-items: center; gap: 5px; padding: 11px 15px; border: 1px solid var(--line); border-radius: 13px; color: var(--text); background: rgba(127,127,127,.1); cursor: pointer; }
     .voice-control span { font-size: 21px; }
@@ -378,7 +391,7 @@
     .voice-control.voice-leave { border-color: rgba(239,68,68,.45); background: rgba(239,68,68,.12); }
     .voice-privacy-note { margin: 0; color: var(--muted); text-align: center; font-size: 11px; }
     .voice-audio { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-    @media (max-width: 560px) { .voice-create-form > div { flex-direction: column; } .voice-heading { align-items: flex-start; flex-direction: column; } .voice-room-card { align-items: flex-start; } }
+    @media (max-width: 560px) { .voice-create-form > div { flex-direction: column; } .voice-create-options { grid-template-columns: 1fr; } .voice-heading { align-items: flex-start; flex-direction: column; } .voice-room-card { align-items: flex-start; } .voice-chat-form { flex-direction: column; } }
     .app-icon-links { background: linear-gradient(150deg, #22d3ee, #6366f1); --glow: rgba(34,211,238,.5); }
     .links-pane { display: flex; flex-direction: column; gap: 12px; }
     .links-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; }
@@ -1993,7 +2006,7 @@
       <div class="win-body">
         <div class="app-pane voice-pane">
           <div class="voice-heading">
-            <div><h2>Voice Rooms</h2><p>Talk live with up to 4 other people. Every room has a 5-person limit.</p></div>
+            <div><h2>Voice Rooms</h2><p>Talk live, chat by text, and create rooms for 2-20 people.</p></div>
             <span class="voice-secure-label">🔒 Private audio</span>
           </div>
           <p class="rewards-login" id="voice-login" hidden>Log in from <a href="#messages">Messages</a> to join voice rooms.</p>
@@ -2001,6 +2014,31 @@
             <form class="voice-create-form" id="voice-create-form">
               <label for="voice-room-title">Create a room</label>
               <div><input id="voice-room-title" type="text" minlength="2" maxlength="32" placeholder="Room name (e.g. Gaming Lounge)" required><button class="button button-primary" id="voice-create-button" type="submit">＋ Create room</button></div>
+              <div class="voice-create-options">
+                <label for="voice-room-capacity">Maximum people
+                  <select id="voice-room-capacity">
+                    <option value="2">2 people</option>
+                    <option value="3">3 people</option>
+                    <option value="4">4 people</option>
+                    <option value="5">5 people</option>
+                    <option value="6">6 people</option>
+                    <option value="7">7 people</option>
+                    <option value="8">8 people</option>
+                    <option value="9">9 people</option>
+                    <option value="10">10 people</option>
+                    <option value="11">11 people</option>
+                    <option value="12">12 people</option>
+                    <option value="13">13 people</option>
+                    <option value="14">14 people</option>
+                    <option value="15">15 people</option>
+                    <option value="16">16 people</option>
+                    <option value="17">17 people</option>
+                    <option value="18">18 people</option>
+                    <option value="19">19 people</option>
+                    <option value="20" selected>20 people</option>
+                  </select>
+                </label>
+              </div>
             </form>
             <div class="voice-list-heading"><h3>Active rooms</h3><button class="icon-button" id="voice-refresh" type="button">↻ Refresh</button></div>
             <div class="voice-room-list" id="voice-room-list"></div>
@@ -2010,6 +2048,14 @@
             <div class="voice-active-heading"><div><span class="voice-live-dot"></span><span class="voice-room-kicker">YOU ARE IN</span><h3 id="voice-active-title">Voice room</h3></div><span class="voice-capacity" id="voice-capacity">1 / 5</span></div>
             <p class="app-note" id="voice-connection-status" role="status">Connecting...</p>
             <div class="voice-participants" id="voice-participants" aria-live="polite"></div>
+            <section class="voice-chat" aria-label="Voice room text chat">
+              <h4>Room chat</h4>
+              <div class="voice-chat-messages" id="voice-chat-messages" role="log" aria-live="polite" aria-relevant="additions text"><p class="voice-chat-empty">Messages sent while you are in this room will appear here.</p></div>
+              <form class="voice-chat-form" id="voice-chat-form">
+                <input id="voice-chat-input" type="text" maxlength="500" placeholder="Message everyone in this room..." autocomplete="off" aria-label="Room chat message" required>
+                <button class="button button-primary" id="voice-chat-send" type="submit">Send</button>
+              </form>
+            </section>
             <div class="voice-controls">
               <button class="voice-control" id="voice-mic-toggle" type="button" aria-pressed="false"><span>🎙️</span><b>Turn mic on</b></button>
               <button class="voice-control" id="voice-deafen-toggle" type="button" aria-pressed="false"><span>🎧</span><b>Deafen</b></button>
@@ -5267,7 +5313,19 @@
     }
 
     // ---- HBU Voice Rooms (LiveKit Cloud) ----
-    const voiceState = { room: null, roomName: "", roomTitle: "", micEnabled: false, deafened: false, busy: false, speakers: new Set(), audioElements: new Set() };
+    const voiceState = {
+      room: null,
+      roomName: "",
+      roomTitle: "",
+      micEnabled: false,
+      deafened: false,
+      busy: false,
+      isOwner: false,
+      maxParticipants: 20,
+      lastChatSentAt: 0,
+      speakers: new Set(),
+      audioElements: new Set()
+    };
     const voiceLobby = document.querySelector("#voice-lobby");
     const voiceActive = document.querySelector("#voice-active");
     const voiceRoomList = document.querySelector("#voice-room-list");
@@ -5276,10 +5334,14 @@
     const voiceCreateForm = document.querySelector("#voice-create-form");
     const voiceCreateButton = document.querySelector("#voice-create-button");
     const voiceTitleInput = document.querySelector("#voice-room-title");
+    const voiceCapacitySelect = document.querySelector("#voice-room-capacity");
     const voiceParticipants = document.querySelector("#voice-participants");
     const voiceAudio = document.querySelector("#voice-audio");
     const voiceMicButton = document.querySelector("#voice-mic-toggle");
     const voiceDeafenButton = document.querySelector("#voice-deafen-toggle");
+    const voiceChatForm = document.querySelector("#voice-chat-form");
+    const voiceChatInput = document.querySelector("#voice-chat-input");
+    const voiceChatMessages = document.querySelector("#voice-chat-messages");
 
     async function voiceRequest(action, extra = {}) {
       if (!account) throw new Error("Log in before using Voice Rooms.");
@@ -5307,13 +5369,14 @@
       const meta = document.createElement("div");
       meta.className = "voice-room-meta";
       const count = Number(room.numParticipants) || 0;
-      meta.textContent = `${count} / 5 people · ${room.createdBy ? `Created by ${room.createdBy}` : "Live voice room"}`;
+      const capacity = Math.max(2, Math.min(20, Number(room.maxParticipants) || 5));
+      meta.textContent = `${count} / ${capacity} people · ${room.createdBy ? `Created by ${room.createdBy}` : "Live voice room"}`;
       info.append(name, meta);
       const join = document.createElement("button");
       join.type = "button";
       join.className = "button button-primary";
-      join.textContent = count >= 5 ? "Full" : "Join";
-      join.disabled = count >= 5 || voiceState.busy;
+      join.textContent = count >= capacity ? "Full" : "Join";
+      join.disabled = count >= capacity || voiceState.busy;
       join.addEventListener("click", () => voiceJoin(room.name, room.title || "Voice Room"));
       card.append(info, join);
       return card;
@@ -5342,6 +5405,42 @@
       voiceDeafenButton.querySelector("span").textContent = voiceState.deafened ? "🔇" : "🎧";
     }
 
+    function voiceAppendChatMessage(sender, message) {
+      const empty = voiceChatMessages.querySelector(".voice-chat-empty");
+      if (empty) empty.remove();
+      const row = document.createElement("div");
+      row.className = "voice-chat-message";
+      const name = document.createElement("strong");
+      name.textContent = `${sender || "Someone"}:`;
+      const body = document.createElement("span");
+      body.textContent = message;
+      row.append(name, body);
+      voiceChatMessages.append(row);
+      while (voiceChatMessages.children.length > 100) voiceChatMessages.firstElementChild.remove();
+      voiceChatMessages.scrollTop = voiceChatMessages.scrollHeight;
+    }
+
+    function voiceResetChat() {
+      voiceChatMessages.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "voice-chat-empty";
+      empty.textContent = "Messages sent while you are in this room will appear here.";
+      voiceChatMessages.append(empty);
+      voiceChatInput.value = "";
+    }
+
+    async function voiceKickParticipant(identity, displayName) {
+      if (!voiceState.room || !voiceState.isOwner || !identity) return;
+      if (!confirm(`Kick ${displayName || "this participant"} from your voice room?`)) return;
+      try {
+        await voiceRequest("kick", { roomName: voiceState.roomName, participantIdentity: identity });
+        const status = document.querySelector("#voice-connection-status");
+        status.textContent = `${displayName || "Participant"} was removed from the room.`;
+      } catch (error) {
+        document.querySelector("#voice-connection-status").textContent = `Could not kick participant: ${error.message}`;
+      }
+    }
+
     function voiceParticipantRows() {
       const room = voiceState.room;
       if (!room) return;
@@ -5356,7 +5455,7 @@
         avatar.className = "voice-avatar";
         avatar.textContent = (participant.name || participant.identity || "?").trim().charAt(0).toUpperCase();
         const textWrap = document.createElement("div");
-        textWrap.style.minWidth = "0";
+        textWrap.className = "voice-participant-main";
         const name = document.createElement("div");
         name.className = "voice-participant-name";
         name.textContent = `${participant.name || participant.identity}${isLocal ? " (You)" : ""}`;
@@ -5366,9 +5465,18 @@
         state.textContent = speaking ? "Speaking" : (micOn ? "Microphone on" : "Listening / muted");
         textWrap.append(name, state);
         card.append(avatar, textWrap);
+        if (voiceState.isOwner && !isLocal) {
+          const kick = document.createElement("button");
+          kick.type = "button";
+          kick.className = "voice-kick-button";
+          kick.textContent = "Kick";
+          kick.setAttribute("aria-label", `Kick ${participant.name || participant.identity}`);
+          kick.addEventListener("click", () => voiceKickParticipant(participant.identity, participant.name || participant.identity));
+          card.append(kick);
+        }
         voiceParticipants.append(card);
       }
-      document.querySelector("#voice-capacity").textContent = `${participants.length} / 5`;
+      document.querySelector("#voice-capacity").textContent = `${participants.length} / ${voiceState.maxParticipants}`;
     }
 
     function voiceAttachTrack(track) {
@@ -5403,6 +5511,9 @@
         voiceState.room = room;
         voiceState.roomName = roomName;
         voiceState.roomTitle = roomTitle;
+        voiceState.isOwner = Boolean(credentials.isOwner);
+        voiceState.maxParticipants = Math.max(2, Math.min(20, Number(credentials.maxParticipants) || 5));
+        voiceResetChat();
         room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
           if (track.kind === LivekitClient.Track.Kind.Audio) voiceAttachTrack(track);
           voiceParticipantRows();
@@ -5417,6 +5528,17 @@
           voiceState.speakers = new Set(speakers.map(person => person.identity));
           voiceParticipantRows();
         });
+        room.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+          try {
+            const packet = JSON.parse(new TextDecoder().decode(payload));
+            if (packet?.type !== "hbu-room-chat" || typeof packet.message !== "string") return;
+            const message = packet.message.trim();
+            if (!message || message.length > 500) return;
+            voiceAppendChatMessage(participant?.name || "Someone", message);
+          } catch (error) {
+            console.warn("Ignored an invalid voice room chat packet.", error);
+          }
+        });
         room.on(LivekitClient.RoomEvent.Disconnected, () => {
           if (voiceState.room === room) voiceFinish("Disconnected from the voice room.");
         });
@@ -5424,7 +5546,7 @@
         voiceLobby.hidden = true;
         voiceActive.hidden = false;
         document.querySelector("#voice-active-title").textContent = roomTitle;
-        document.querySelector("#voice-connection-status").textContent = "Connected. Your microphone is muted until you turn it on.";
+        document.querySelector("#voice-connection-status").textContent = voiceState.isOwner ? "Connected. You own this room and can kick participants." : "Connected. Your microphone is muted until you turn it on.";
         voiceState.micEnabled = false;
         voiceState.deafened = false;
         voiceUpdateControls();
@@ -5433,6 +5555,7 @@
         const room = voiceState.room;
         voiceState.room = null;
         voiceState.roomName = "";
+        voiceState.isOwner = false;
         if (room) { try { await room.disconnect(); } catch (_) {} }
         voiceClearAudio();
         voiceSetStatus(error.message || "Could not join this voice room.", true);
@@ -5449,6 +5572,8 @@
       voiceState.roomTitle = "";
       voiceState.micEnabled = false;
       voiceState.deafened = false;
+      voiceState.isOwner = false;
+      voiceState.maxParticipants = 20;
       voiceState.speakers.clear();
       voiceClearAudio();
       voiceActive.hidden = true;
@@ -5463,12 +5588,14 @@
       event.preventDefault();
       if (!account || voiceState.busy) return;
       const title = voiceTitleInput.value.trim();
+      const capacity = Number(voiceCapacitySelect.value);
       if (title.length < 2 || title.length > 32) { voiceSetStatus("Room names must be 2-32 characters.", true); return; }
+      if (!Number.isInteger(capacity) || capacity < 2 || capacity > 20) { voiceSetStatus("Room capacity must be between 2 and 20 people.", true); return; }
       voiceState.busy = true;
       voiceCreateButton.disabled = true;
       voiceCreateButton.textContent = "Creating...";
       try {
-        const result = await voiceRequest("create", { roomTitle: title });
+        const result = await voiceRequest("create", { roomTitle: title, capacity });
         voiceTitleInput.value = "";
         voiceState.busy = false;
         await voiceJoin(result.roomName, title);
@@ -5478,6 +5605,32 @@
         voiceState.busy = false;
         voiceCreateButton.disabled = false;
         voiceCreateButton.textContent = "＋ Create room";
+      }
+    });
+
+    voiceChatForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const room = voiceState.room;
+      const message = voiceChatInput.value.trim();
+      if (!room || !message) return;
+      if (message.length > 500) {
+        document.querySelector("#voice-connection-status").textContent = "Room chat messages must be 500 characters or fewer.";
+        return;
+      }
+      const now = Date.now();
+      if (now - voiceState.lastChatSentAt < 700) {
+        document.querySelector("#voice-connection-status").textContent = "Please wait a moment before sending another room message.";
+        return;
+      }
+      voiceState.lastChatSentAt = now;
+      voiceChatInput.value = "";
+      try {
+        const payload = new TextEncoder().encode(JSON.stringify({ type: "hbu-room-chat", message }));
+        await room.localParticipant.publishData(payload, { reliable: true });
+        voiceAppendChatMessage(room.localParticipant.name || account?.username || "You", message);
+      } catch (error) {
+        voiceChatInput.value = message;
+        document.querySelector("#voice-connection-status").textContent = `Could not send room message: ${error.message}`;
       }
     });
 
