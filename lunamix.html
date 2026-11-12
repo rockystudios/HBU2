@@ -1,201 +1,605 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="nautilus">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supabase Real-Time Chat</title>
-  <!-- Load Supabase JS Client -->
-  <script src="https://jsdelivr.net"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { display: flex; height: 100vh; background-color: #f4f4f9; color: #333; }
-    
-    /* Sidebar */
-    #sidebar { width: 300px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
-    #sidebar-header { padding: 16px; border-bottom: 1px solid #ddd; font-weight: bold; background: #f8f9fa; }
-    #conversations-list { flex: 1; overflow-y: auto; }
-    .conv-item { padding: 14px 16px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; }
-    .conv-item:hover, .conv-item.active { background: #eef2ff; }
-    
-    /* Main Chat Area */
-    #chat-container { flex: 1; display: flex; flex-direction: column; background: #fff; }
-    #chat-header { padding: 16px; border-bottom: 1px solid #ddd; font-weight: bold; background: #f8f9fa; }
-    #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    
-    /* Message Bubbles */
-    .message { max-width: 70%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; position: relative; }
-    .message.mine { align-self: flex-end; background: #4f46e5; color: white; border-bottom-right-radius: 2px; }
-    .message.theirs { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 2px; }
-    
-    /* Input Form */
-    #input-area { display: flex; padding: 12px; border-top: 1px solid #ddd; gap: 10px; }
-    #msg-input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
-    #send-btn { padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    #send-btn:hover { background: #4338ca; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lunamix OS</title>
+  <meta name="description" content="Lunamix OS - Web GI (Web Gaming Interface). Includes 1,072+ unblocked games, multi-channel chat, Penumbra proxy browser, web app creator, and retro emulators.">
+  <meta name="google-site-verification" content="9gcLHnT_jGP9RU4-Xe0kHbZEUVnZnGssskO0wYWx9oI" />
+  <link rel="canonical" href="https://skiingbeast2025.github.io/lunamix/">
+  <meta name="keywords" content="Lunamix, Web GI, Web Gaming Interface, unblocked games, web desktop, Penumbra Browser, Eaglercraft, Retro Emulator, HTML5 games, browser games">
+  
+  <!-- Open Graph / SEO -->
+  <meta property="og:title" content="Lunamix OS | Web GI (Web Gaming Interface)">
+  <meta property="og:description" content="Authentic web-based desktop OS with window manager, taskbar dock, multi-tier chat, Penumbra browser, and 1,072+ unblocked games.">
+  <meta property="og:url" content="https://skiingbeast2025.github.io/lunamix/">
+  <meta property="og:type" content="website">
+
+  <!-- Favicon -->
+  <link rel="shortcut icon" href="./assets/logos/favicon.svg" type="image/svg+xml">
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- NautilusOS Design System Stylesheet -->
+  <link rel="stylesheet" href="./assets/css/nautilus.css">
 </head>
 <body>
 
-  <!-- Left Sidebar -->
-  <div id="sidebar">
-    <div id="sidebar-header">Conversations</div>
-    <div id="conversations-list">Loading chats...</div>
+  <!-- ======================================================================
+       1. Bootloader Screen (Removed from startup flow)
+       ====================================================================== -->
+  <div id="bootloader" style="display: none !important;">
+    <div class="boot-logo">
+      <i class="fa-solid fa-cube"></i>
+    </div>
+    <div class="boot-title">LUNAMIX OS</div>
+    <div class="boot-version">Web GI (Web Gaming Interface) v3.0.0</div>
+
+    <div class="boot-options">
+      <div class="boot-option selected" id="bootOptDefault" data-mode="standard">
+        <i class="fa-solid fa-play"></i>
+        <div>
+          <div style="font-weight: 700;">Lunamix OS (Standard Desktop Mode)</div>
+          <div style="font-size: 0.75rem; opacity: 0.8;">Full window manager, games hub, and chat engine</div>
+        </div>
+      </div>
+      <div class="boot-option" id="bootOptSafe" data-mode="safe">
+        <i class="fa-solid fa-shield-halved"></i>
+        <div>
+          <div style="font-weight: 700;">Safe Stealth Mode (High Anonymity)</div>
+          <div style="font-size: 0.75rem; opacity: 0.8;">Instant tab cloaking and silent audio enabled</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="boot-loading active" style="margin-top: 1.5rem;">
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="bootBar"></div>
+      </div>
+      <div class="boot-messages" id="bootMsg">Auto-booting into selected mode in <b id="bootCountdownSec">5</b>s... (Press [↑] / [↓] to choose)</div>
+    </div>
+
+    <div class="boot-hint" style="display: flex; gap: 1rem; align-items: center; justify-content: center; flex-wrap: wrap;">
+      <button id="bootStartBtn" style="padding: 0.55rem 1.25rem; background: var(--accent); color: var(--bg-primary); border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; border: none;">
+        <i class="fa-solid fa-play" style="margin-right: 4px;"></i> Boot Now [ENTER]
+      </button>
+      <button id="bootSkipBtn" class="guest-btn" style="border: none; background: transparent; font-size: 0.82rem;">
+        Don't Show Next Time
+      </button>
+    </div>
   </div>
 
-  <!-- Right Chat Window -->
-  <div id="chat-container">
-    <div id="chat-header">Select a conversation</div>
-    <div id="messages"></div>
-    <form id="input-area">
-      <input type="text" id="msg-input" placeholder="Type a message..." required autocomplete="off" />
-      <button type="submit" id="send-btn">Send</button>
-    </form>
+  <!-- ======================================================================
+       2. Login / Lock Screen (Removed from startup flow)
+       ====================================================================== -->
+  <div id="login" style="display: none !important;">
+    <div class="login-wrapper">
+      <!-- Left side: Digital Clock & System Specs Card -->
+      <div class="login-left">
+        <div>
+          <div class="login-time-main" id="loginClock">12:00</div>
+          <div class="login-time-date" id="loginDate">Monday, November 5</div>
+        </div>
+
+        <div class="login-info-card">
+          <div class="info-card-title">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>System Hardware Status</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-laptop" style="color: var(--accent);"></i> Your Device</span>
+            <span class="info-stat-value" id="hwDevice">Detecting...</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-battery-three-quarters" style="color: #4ade80;"></i> Battery & Power</span>
+            <span class="info-stat-value" id="hwBattery">Detecting...</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-wifi" style="color: #38bdf8;"></i> Network Latency</span>
+            <span class="info-stat-value" id="hwPing" style="color: #4ade80;">Measuring...</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-gamepad" style="color: #f59e0b;"></i> Graphics & 3D</span>
+            <span class="info-stat-value" id="hwGfx">WebGL 2.0</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-hard-drive" style="color: #a855f7;"></i> Save Storage</span>
+            <span class="info-stat-value" id="hwStorage">Checking quota...</span>
+          </div>
+          <div class="info-stat">
+            <span class="info-stat-label"><i class="fa-solid fa-shield-halved" style="color: #f43f5e;"></i> Stealth Defense</span>
+            <span class="info-stat-value" id="hwStealth" style="color: var(--accent);">Panic [~] Active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: User Login Card -->
+      <div class="login-container">
+        <div class="login-avatar">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="login-title" id="loginTitle">Welcome User</div>
+        <div class="login-subtitle">Sign in to your Lunamix workspace</div>
+
+        <input type="text" id="loginUserInput" class="login-input" value="User" placeholder="Enter username..." autocomplete="off" />
+        <button id="loginBtn" class="login-btn">
+          Enter Desktop <i class="fa-solid fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
+
+        <button class="guest-btn" id="guestLoginBtn" style="border: none; background: transparent;">
+          Continue as Guest
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- ======================================================================
+       3. Desktop Environment (Wallpaper Watermark, Canvas, Desktop Icons)
+       ====================================================================== -->
+  <div id="desktop">
+    <!-- Centered Nautilus Watermark Background -->
+    <div class="wallpaper">
+      <div class="wallpaper-icon">
+        <i class="fa-solid fa-cube"></i>
+      </div>
+      <div class="wallpaper-text">LUNAMIX OS</div>
+      <div class="wallpaper-byline">WEB GI (WEB GAMING INTERFACE)</div>
+    </div>
+
+    <!-- Desktop Icons Grid -->
+    <div class="desktop-icons" id="desktopIcons">
+      <div class="desktop-icon" data-app="games" title="Games Hub">
+        <i class="fa-solid fa-gamepad" style="color: #7dd3c0;"></i>
+        <span>Games Hub</span>
+      </div>
+      <div class="desktop-icon" data-app="chat" title="Lunamix Chat">
+        <i class="fa-solid fa-comments" style="color: #38bdf8;"></i>
+        <span>Lunamix Chat</span>
+      </div>
+      <div class="desktop-icon" data-app="browser" title="Proxy Hub & Penumbra Browser">
+        <i class="fa-solid fa-compass" style="color: #a855f7;"></i>
+        <span>Proxy Hub</span>
+      </div>
+      <div class="desktop-icon" data-app="creator" title="Web App Creator">
+        <i class="fa-solid fa-code" style="color: #f59e0b;"></i>
+        <span>App Creator</span>
+      </div>
+      <div class="desktop-icon" data-app="terminal" title="Terminal">
+        <i class="fa-solid fa-terminal" style="color: #00ff88;"></i>
+        <span>Terminal</span>
+      </div>
+      <div class="desktop-icon" data-app="eaglercraft" title="Eaglercraft Launcher">
+        <i class="fa-solid fa-cube" style="color: #10b981;"></i>
+        <span>Eaglercraft GX</span>
+      </div>
+      <div class="desktop-icon" data-app="emulator" title="Retro Emulator">
+        <i class="fa-solid fa-ghost" style="color: #ec4899;"></i>
+        <span>Retro Emulator</span>
+      </div>
+      <div class="desktop-icon" data-app="files" title="Files & Notes">
+        <i class="fa-solid fa-folder-open" style="color: #fbbf24;"></i>
+        <span>Files & Notes</span>
+      </div>
+      <div class="desktop-icon" data-app="calculator" title="Calculator">
+        <i class="fa-solid fa-calculator" style="color: #f43f5e;"></i>
+        <span>Calculator</span>
+      </div>
+      <div class="desktop-icon" data-app="cloak" title="Tab Cloak & Disguise Settings">
+        <i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>
+        <span>Tab Cloak</span>
+      </div>
+      <div class="desktop-icon" data-app="settings" title="Settings & Personalization">
+        <i class="fa-solid fa-gear" style="color: #94a3b8;"></i>
+        <span>Settings</span>
+      </div>
+      <div class="desktop-icon" data-app="about" title="About OS">
+        <i class="fa-solid fa-circle-info" style="color: #7dd3c0;"></i>
+        <span>About OS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       4. Floating Pill Dock / Taskbar
+       ====================================================================== -->
+  <div class="taskbar" id="taskbar">
+    <!-- Start Menu Launcher Button -->
+    <button class="taskbar-icon" id="startBtn" title="Start Menu">
+      <i class="fa-solid fa-shapes"></i>
+    </button>
+
+    <div class="taskbar-divider"></div>
+
+    <!-- Pinned Desktop App Launchers -->
+    <button class="taskbar-icon" data-app="games" title="Games Hub">
+      <i class="fa-solid fa-gamepad" style="color: #7dd3c0;"></i>
+    </button>
+    <button class="taskbar-icon" data-app="chat" title="Lunamix Chat">
+      <i class="fa-solid fa-comments" style="color: #38bdf8;"></i>
+    </button>
+    <button class="taskbar-icon" data-app="browser" title="Proxy Hub & Penumbra Browser">
+      <i class="fa-solid fa-compass" style="color: #a855f7;"></i>
+    </button>
+    <button class="taskbar-icon" data-app="creator" title="Web App Creator">
+      <i class="fa-solid fa-code" style="color: #f59e0b;"></i>
+    </button>
+    <button class="taskbar-icon" data-app="terminal" title="Terminal">
+      <i class="fa-solid fa-terminal" style="color: #00ff88;"></i>
+    </button>
+    <button class="taskbar-icon" data-app="settings" title="Settings">
+      <i class="fa-solid fa-gear" style="color: #94a3b8;"></i>
+    </button>
+
+    <div class="taskbar-divider"></div>
+
+    <!-- System Tray -->
+    <div class="system-tray">
+      <button class="taskbar-icon" id="trayActionsBtn" title="Quick Actions Flyout" style="width: 34px; height: 34px; font-size: 1rem;">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+      <div class="system-tray-clock" id="trayClock">12:00 PM</div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       5. Start Menu (Avatar, Real-Time App Search, App Tiles Grid)
+       ====================================================================== -->
+  <div class="start-menu" id="startMenu">
+    <div class="start-header">
+      <div class="start-avatar">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="start-user-info">
+        <div class="start-username" id="startUsername">User</div>
+        <div class="start-status">Online (Cloud Synced)</div>
+      </div>
+      <button class="start-power-btn" id="startPowerBtn" title="Reboot OS" onclick="window.location.reload();">
+        <i class="fa-solid fa-power-off"></i>
+      </button>
+    </div>
+
+    <div class="start-search">
+      <i class="fa-solid fa-magnifying-glass start-search-icon"></i>
+      <input type="text" id="startSearchInput" placeholder="Search apps, games, settings..." autocomplete="off" />
+    </div>
+
+    <div class="app-grid">
+      <div class="app-item" data-app="games">
+        <i class="fa-solid fa-gamepad" style="color: #7dd3c0;"></i>
+        <span>Games Hub</span>
+      </div>
+      <div class="app-item" data-app="chat">
+        <i class="fa-solid fa-comments" style="color: #38bdf8;"></i>
+        <span>Chat</span>
+      </div>
+      <div class="app-item" data-app="browser">
+        <i class="fa-solid fa-compass" style="color: #a855f7;"></i>
+        <span>Proxy Hub</span>
+      </div>
+      <div class="app-item" data-app="creator">
+        <i class="fa-solid fa-code" style="color: #f59e0b;"></i>
+        <span>Creator</span>
+      </div>
+      <div class="app-item" data-app="terminal">
+        <i class="fa-solid fa-terminal" style="color: #00ff88;"></i>
+        <span>Terminal</span>
+      </div>
+      <div class="app-item" data-app="eaglercraft">
+        <i class="fa-solid fa-cube" style="color: #10b981;"></i>
+        <span>Eaglercraft</span>
+      </div>
+      <div class="app-item" data-app="emulator">
+        <i class="fa-solid fa-ghost" style="color: #ec4899;"></i>
+        <span>Emulator</span>
+      </div>
+      <div class="app-item" data-app="files">
+        <i class="fa-solid fa-folder-open" style="color: #fbbf24;"></i>
+        <span>Files</span>
+      </div>
+      <div class="app-item" data-app="calculator">
+        <i class="fa-solid fa-calculator" style="color: #f43f5e;"></i>
+        <span>Calculator</span>
+      </div>
+      <div class="app-item" data-app="cloak">
+        <i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>
+        <span>Tab Cloak</span>
+      </div>
+      <div class="app-item" data-app="settings">
+        <i class="fa-solid fa-gear" style="color: #94a3b8;"></i>
+        <span>Settings</span>
+      </div>
+      <div class="app-item" data-app="about">
+        <i class="fa-solid fa-circle-info" style="color: #7dd3c0;"></i>
+        <span>About</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       6. Right-Click Desktop Context Menu
+       ====================================================================== -->
+  <div id="contextMenu">
+    <div class="context-item" data-action="refresh">
+      <i class="fa-solid fa-rotate-right"></i>
+      <span>Refresh Desktop</span>
+    </div>
+    <div class="context-divider"></div>
+    <div class="context-item" data-action="games">
+      <i class="fa-solid fa-gamepad" style="color: #7dd3c0;"></i>
+      <span>Open Games Hub</span>
+    </div>
+    <div class="context-item" data-action="chat">
+      <i class="fa-solid fa-comments" style="color: #38bdf8;"></i>
+      <span>Open Lunamix Chat</span>
+    </div>
+    <div class="context-item" data-action="creator">
+      <i class="fa-solid fa-code" style="color: #f59e0b;"></i>
+      <span>Open App Creator</span>
+    </div>
+    <div class="context-item" data-action="terminal">
+      <i class="fa-solid fa-terminal" style="color: #00ff88;"></i>
+      <span>Open Terminal</span>
+    </div>
+    <div class="context-divider"></div>
+    <div class="context-item" data-action="fullscreen">
+      <i class="fa-solid fa-expand"></i>
+      <span>Toggle Fullscreen</span>
+    </div>
+    <div class="context-item" data-action="settings">
+      <i class="fa-solid fa-gear" style="color: #94a3b8;"></i>
+      <span>System Settings</span>
+    </div>
+    <div class="context-item" data-action="cloak">
+      <i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i>
+      <span>Tab Cloak Settings</span>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       7. Quick Actions Flyout
+       ====================================================================== -->
+  <div id="quickActions">
+    <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+      <span>Quick Controls</span>
+      <span style="font-size: 0.75rem; color: var(--accent);">Lunamix OS</span>
+    </div>
+
+    <!-- Emergency Panic Redirect -->
+    <div style="margin-bottom: 1rem;">
+      <button onclick="if(window.LunamixPanic) window.LunamixPanic.trigger();" style="width: 100%; padding: 0.65rem; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 8px; color: #ef4444; font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i> Emergency Panic (Esc / ~)
+      </button>
+    </div>
+
+    <!-- Quick Tab Cloak Presets -->
+    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.4rem; font-weight: 600; text-transform: uppercase;">
+      Tab Disguise Cloak
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 1rem;">
+      <button onclick="if(window.LunamixCloak) window.LunamixCloak.apply('classroom');" style="padding: 0.4rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.75rem; color: var(--text-primary); text-align: left;">
+        <i class="fa-solid fa-graduation-cap" style="color: #4ade80;"></i> Classroom
+      </button>
+      <button onclick="if(window.LunamixCloak) window.LunamixCloak.apply('drive');" style="padding: 0.4rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.75rem; color: var(--text-primary); text-align: left;">
+        <i class="fa-brands fa-google-drive" style="color: #38bdf8;"></i> Drive
+      </button>
+      <button onclick="if(window.LunamixCloak) window.LunamixCloak.apply('canvas');" style="padding: 0.4rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.75rem; color: var(--text-primary); text-align: left;">
+        <i class="fa-solid fa-chalkboard" style="color: #ef4444;"></i> Canvas
+      </button>
+      <button onclick="if(window.LunamixCloak) window.LunamixCloak.apply('default');" style="padding: 0.4rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.75rem; color: var(--text-primary); text-align: left;">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+      <button onclick="if(window.LunamixOS) window.LunamixOS.openApp('cloak');" style="grid-column: span 2; padding: 0.45rem; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; font-size: 0.75rem; color: #38bdf8; text-align: center; font-weight: 600; cursor: pointer;">
+        <i class="fa-solid fa-shield-halved" style="margin-right: 4px;"></i> More Cloak Options...
+      </button>
+    </div>
+
+    <!-- Quick Theme Selection -->
+    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 0.4rem; font-weight: 600; text-transform: uppercase;">
+      Accent Theme
+    </div>
+    <div style="display: flex; gap: 0.5rem; justify-content: space-between;">
+      <button onclick="document.documentElement.setAttribute('data-theme', 'nautilus'); localStorage.setItem('nautilus_theme', 'nautilus');" style="width: 28px; height: 28px; border-radius: 50%; background: #7dd3c0; border: 2px solid rgba(255,255,255,0.2);" title="Nautilus Mint"></button>
+      <button onclick="document.documentElement.setAttribute('data-theme', 'obsidian'); localStorage.setItem('nautilus_theme', 'obsidian');" style="width: 28px; height: 28px; border-radius: 50%; background: #ff5252; border: 2px solid rgba(255,255,255,0.2);" title="Obsidian Red"></button>
+      <button onclick="document.documentElement.setAttribute('data-theme', 'matrix'); localStorage.setItem('nautilus_theme', 'matrix');" style="width: 28px; height: 28px; border-radius: 50%; background: #00ff88; border: 2px solid rgba(255,255,255,0.2);" title="Matrix Emerald"></button>
+      <button onclick="document.documentElement.setAttribute('data-theme', 'midnight'); localStorage.setItem('nautilus_theme', 'midnight');" style="width: 28px; height: 28px; border-radius: 50%; background: #a855f7; border: 2px solid rgba(255,255,255,0.2);" title="Midnight Purple"></button>
+      <button onclick="document.documentElement.setAttribute('data-theme', 'sunset'); localStorage.setItem('nautilus_theme', 'sunset');" style="width: 28px; height: 28px; border-radius: 50%; background: #f59e0b; border: 2px solid rgba(255,255,255,0.2);" title="Sunset Gold"></button>
+      <button onclick="document.documentElement.setAttribute('data-theme', 'ocean'); localStorage.setItem('nautilus_theme', 'ocean');" style="width: 28px; height: 28px; border-radius: 50%; background: #38bdf8; border: 2px solid rgba(255,255,255,0.2);" title="Ocean Glacial"></button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       8. Core Engines & Web GI Desktop Scripts
+       ====================================================================== -->
+  <!-- Supabase JS Client for Multi-Device Chat & Realtime Sync -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- Lunamix Core (Cloaking, Panic Key, Turnstile) -->
+  <script src="./lunamix/l.js"></script>
+  <!-- Web GI (Web Gaming Interface) Desktop Engine -->
+  <script src="./lunamix/n.js"></script>
+
   <script>
-    // 1. Your Credentials & Client Init
-    const SB_CHAT_URL = 'https://kpdnoxmnycrtbklvuluu.supabase.co';
-    const SB_CHAT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwZG5veG1ueWNydGJrbHZ1bHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMTY3NjIsImV4cCI6MjEwODc5Mjc2Mn0.6wukT9y083X1Br89EKmB0iKgAWrhpgHcZJDxuGrYYtY';
-    const sb = window.supabase.createClient(SB_CHAT_URL, SB_CHAT_ANON_KEY);
+    // Synchronize Login Username, Clock & Date
+    (function syncLoginUserAndClock() {
+      const clockEl = document.getElementById('loginClock');
+      const dateEl = document.getElementById('loginDate');
+      const userInp = document.getElementById('loginUserInput');
+      const loginTitle = document.getElementById('loginTitle');
+      const startUser = document.getElementById('startUsername');
+      const loginBtn = document.getElementById('loginBtn');
+      const guestBtn = document.getElementById('guestLoginBtn');
+      const loginEl = document.getElementById('login');
 
-    // 2. App State & DOM Elements
-    let myId = null;
-    let activeConv = null;
-    let messages = [];
-    let realtimeChannel = null;
+      // 1. Sync saved username from localStorage across refreshes
+      const savedUser = localStorage.getItem('lunamix_username') || localStorage.getItem('lunamix_chat_username') || 'User';
+      if (userInp) userInp.value = savedUser;
+      if (loginTitle) loginTitle.textContent = 'Welcome ' + savedUser;
+      if (startUser) startUser.textContent = savedUser;
 
-    const messagesEl = document.getElementById('messages');
-    const convListEl = document.getElementById('conversations-list');
-    const chatHeaderEl = document.getElementById('chat-header');
-    const msgForm = document.getElementById('input-area');
-    const msgInput = document.getElementById('msg-input');
-
-    // Simple Sound Effect Helper
-    const SoundFX = {
-      notify: () => {
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(520, ctx.currentTime);
-          osc.connect(ctx.destination);
-          osc.start();
-          osc.stop(ctx.currentTime + 0.1);
-        } catch (e) { /* Ignore if browser blocks autoplay audio */ }
+      if (userInp) {
+        userInp.addEventListener('input', () => {
+          const val = userInp.value.trim() || 'User';
+          if (loginTitle) loginTitle.textContent = 'Welcome ' + val;
+        });
+        userInp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commitLogin();
+          }
+        });
       }
-    };
 
-    // 3. Your Exact Realtime Listener
-    function setupRealtimeListener() {
-      if (realtimeChannel) {
-        sb.removeChannel(realtimeChannel);
+      function commitLogin(overrideName) {
+        const username = overrideName || (userInp ? userInp.value.trim() : '') || 'User';
+        localStorage.setItem('lunamix_username', username);
+        localStorage.setItem('lunamix_chat_username', username);
+        if (startUser) startUser.textContent = username;
+        if (loginTitle) loginTitle.textContent = 'Welcome ' + username;
+        if (loginEl) {
+          loginEl.style.opacity = '0';
+          setTimeout(() => loginEl.style.display = 'none', 300);
+        }
       }
-      realtimeChannel = sb.channel('chat-sync-' + myId)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-          const msg = payload.new;
-          if (activeConv && msg.conversation_id === activeConv.id) {
-            if (!messages.some(m => m.id === msg.id)) {
-              messages.push(msg);
-              appendMessageDOM(msg);
-              if (msg.sender_id !== myId) SoundFX.notify();
+
+      window.commitStartupLogin = commitLogin;
+
+      if (loginBtn) {
+        loginBtn.addEventListener('click', () => commitLogin());
+      }
+
+      if (guestBtn) {
+        guestBtn.addEventListener('click', () => commitLogin('Guest'));
+      }
+
+      const update = () => {
+        const now = new Date();
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        if (dateEl) {
+          dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+      };
+      update();
+      setInterval(update, 1000);
+    })();
+
+    // Real-Time Hardware & System Diagnostics for Average Users
+    (async function initHardwareDiagnostics() {
+      // 1. Device detection
+      const devEl = document.getElementById('hwDevice');
+      if (devEl) {
+        const ua = navigator.userAgent;
+        let d = 'Personal Computer';
+        if (/CrOS/.test(ua)) d = 'Chromebook';
+        else if (/Macintosh|Mac OS X/.test(ua)) d = 'Mac';
+        else if (/Windows/.test(ua)) d = 'Windows PC';
+        else if (/Android/.test(ua)) d = 'Android';
+        else if (/iPhone|iPad|iPod/.test(ua)) d = 'iOS Device';
+        else if (/Linux/.test(ua)) d = 'Linux PC';
+        devEl.textContent = `${d}, ${window.screen.width}x${window.screen.height}`;
+      }
+
+      // 2. Battery & Power detection
+      const batEl = document.getElementById('hwBattery');
+      if (batEl) {
+        if ('getBattery' in navigator) {
+          try {
+            const battery = await navigator.getBattery();
+            const updateBat = () => {
+              const pct = Math.round(battery.level * 100);
+              batEl.textContent = `${pct}% ${battery.charging ? '(Charging)' : '(Battery)'}`;
+              batEl.style.color = pct < 20 && !battery.charging ? '#ef4444' : '#4ade80';
+            };
+            updateBat();
+            battery.addEventListener('levelchange', updateBat);
+            battery.addEventListener('chargingchange', updateBat);
+          } catch (e) {
+            batEl.textContent = 'AC Power Connected';
+          }
+        } else {
+          batEl.textContent = 'AC Power / Standard';
+        }
+      }
+
+      // 3. Network Latency / Ping detection
+      const pingEl = document.getElementById('hwPing');
+      if (pingEl) {
+        const checkPing = async () => {
+          const t0 = performance.now();
+          try {
+            await fetch('./assets/logos/favicon.svg?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+            const ms = Math.max(1, Math.round(performance.now() - t0));
+            if (ms < 50) {
+              pingEl.textContent = `${ms}ms (Low Latency)`;
+              pingEl.style.color = '#4ade80';
+            } else if (ms < 120) {
+              pingEl.textContent = `${ms}ms (Normal)`;
+              pingEl.style.color = '#7dd3c0';
+            } else {
+              pingEl.textContent = `${ms}ms (High)`;
+              pingEl.style.color = '#f59e0b';
             }
+          } catch (e) {
+            pingEl.textContent = 'Connected (Filter Safe)';
+            pingEl.style.color = '#4ade80';
           }
-          // Update sidebar previews
-          loadConversationsList();
-        })
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
-          const oldMsg = payload.old;
-          if (oldMsg && oldMsg.id) {
-            messages = messages.filter(m => m.id !== oldMsg.id);
-            const row = messagesEl.querySelector(`[data-msg-id="${oldMsg.id}"]`);
-            if (row) row.remove();
-          }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members' }, () => {
-          loadConversationsList();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
-          loadConversationsList();
-        })
-        .subscribe();
-    }
-    // 4. UI & Database Functions
-    function appendMessageDOM(msg) {
-      const div = document.createElement('div');
-      div.className = 'message ' + (msg.sender_id === myId ? 'mine' : 'theirs');
-      div.setAttribute('data-msg-id', msg.id);
-      // Note: Change 'msg.content' below if your text column has a different name
-      div.textContent = msg.content || msg.text || msg.body || '[Empty Message]';
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    async function loadConversationsList() {
-      // Fetches conversations; adjust select() if you join conversation_members
-      const { data, error } = await sb
-        .from('conversations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading conversations:', error);
-        return;
+        };
+        checkPing();
+        setInterval(checkPing, 10000);
       }
 
-      convListEl.innerHTML = '';
-      data.forEach(conv => {
-        const div = document.createElement('div');
-        div.className = 'conv-item' + (activeConv && activeConv.id === conv.id ? ' active' : '');
-        div.textContent = conv.name || conv.title || `Chat #${conv.id.slice(0, 6)}`;
-        div.onclick = () => selectConversation(conv);
-        convListEl.appendChild(div);
-      });
-    }
-
-    async function selectConversation(conv) {
-      activeConv = conv;
-      chatHeaderEl.textContent = conv.name || conv.title || `Chat #${conv.id}`;
-      messagesEl.innerHTML = '';
-      loadConversationsList(); // Refresh active highlight
-
-      const { data, error } = await sb
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conv.id)
-        .order('created_at', { ascending: true });
-
-      if (!error && data) {
-        messages = data;
-        messages.forEach(appendMessageDOM);
+      // 4. Graphics & 3D Acceleration
+      const gfxEl = document.getElementById('hwGfx');
+      if (gfxEl) {
+        try {
+          const c = document.createElement('canvas');
+          const gl = c.getContext('webgl2') || c.getContext('webgl');
+          if (gl) {
+            const ext = gl.getExtension('WEBGL_debug_renderer_info');
+            const ren = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+            if (/NVIDIA/i.test(ren)) gfxEl.textContent = 'NVIDIA GPU (WebGL 2)';
+            else if (/AMD|Radeon/i.test(ren)) gfxEl.textContent = 'AMD GPU (WebGL 2)';
+            else if (/Apple/i.test(ren)) gfxEl.textContent = 'Apple Metal (WebGL 2)';
+            else if (/Intel/i.test(ren)) gfxEl.textContent = 'Intel HD/Iris (WebGL 2)';
+            else gfxEl.textContent = 'Hardware Accelerated';
+          } else {
+            gfxEl.textContent = 'Canvas 2D Ready';
+          }
+        } catch (e) {
+          gfxEl.textContent = 'Hardware Accelerated';
+        }
       }
-    }
 
-    // Handle Sending a Message
-    msgForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = msgInput.value.trim();
-      if (!text || !activeConv) return;
+      // 5. Game Save Storage Quota
+      const storageEl = document.getElementById('hwStorage');
+      if (storageEl) {
+        if (navigator.storage && navigator.storage.estimate) {
+          try {
+            const est = await navigator.storage.estimate();
+            const freeBytes = (est.quota || 0) - (est.usage || 0);
+            const freeGB = Math.max(0, freeBytes / (1024 * 1024 * 1024)).toFixed(1);
+            storageEl.textContent = `${freeGB} GB Available`;
+          } catch (e) {
+            storageEl.textContent = 'Persistent Local';
+          }
+        } else {
+          storageEl.textContent = 'Persistent Local';
+        }
+      }
 
-      msgInput.value = '';
-      const { error } = await sb.from('messages').insert([{
-        conversation_id: activeConv.id,
-        sender_id: myId,
-        content: text // Change 'content' if your column is named differently
-      }]);
-
-      if (error) console.error('Failed to send:', error);
-    });
-
-    // 5. Initialize App
-    async function initApp() {
-      const { data: { user } } = await sb.auth.getUser();
-      // Uses logged-in user ID, or falls back to a temporary guest ID for testing
-      myId = user ? user.id : 'guest-' + Math.floor(Math.random() * 10000);
-      
-      await loadConversationsList();
-      setupRealtimeListener();
-    }
-
-    initApp();
+      // 6. Stealth Defense
+      const stealthEl = document.getElementById('hwStealth');
+      if (stealthEl) {
+        const pk = window.LunamixPanic?.panicKey || '`';
+        stealthEl.textContent = `Panic [${pk}] / Cloak Ready`;
+      }
+    })();
   </script>
 </body>
 </html>
