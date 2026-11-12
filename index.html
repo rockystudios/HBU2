@@ -824,26 +824,14 @@
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/dist/livekit-client.umd.min.js"></script>
   <script>
     window.hbuPopunder = (() => {
-      const state = { enabled: false, phase: "off", storageError: false, script: null, onChange: null };
-      try {
-        state.enabled = localStorage.getItem("hbu-popunder-enabled") === "true";
-      } catch (error) {
-        state.storageError = true;
-        console.warn("Could not read the popunder preference.", error);
-      }
-      const phone = Boolean(navigator.userAgentData?.mobile) ||
-        /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
-      if (state.enabled && (phone || window.matchMedia("(max-width: 650px)").matches)) state.phase = "unavailable";
-      else if (state.enabled) {
-        state.phase = "loading";
-        const script = document.createElement("script");
-        script.setAttribute("data-cfasync", "false");
-        script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
-        script.onload = () => { state.phase = "loaded"; if (state.onChange) state.onChange(); };
-        script.onerror = () => { state.phase = "error"; if (state.onChange) state.onChange(); };
-        state.script = script;
-        document.head.append(script);
-      }
+      const state = { enabled: true, phase: "loading", script: null, onChange: null };
+      const script = document.createElement("script");
+      script.setAttribute("data-cfasync", "false");
+      script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
+      script.onload = () => { state.phase = "loaded"; if (state.onChange) state.onChange(); };
+      script.onerror = () => { state.phase = "error"; if (state.onChange) state.onChange(); };
+      state.script = script;
+      document.head.append(script);
       return state;
     })();
   </script>
@@ -1257,13 +1245,10 @@
         </div>
       </div>
       <div class="rewards-card">
-        <h3>Optional popunder ads</h3>
-        <p>Allow occasional ads in a separate tab or window behind this page to support HbuOS. Ads may appear while using Arcade. Changing this setting reloads the page. Popunder ads are not loaded on phones or narrow screens.</p>
-        <label><input id="popunder-enabled" type="checkbox"> Allow popunder ads</label>
-        <p class="app-note" id="popunder-status" role="status"></p>
+        <h3>Popunder ads</h3>
+        <p>Popunder ads are enabled automatically to support HbuOS. The ad service loads when the site opens. Your browser, an ad blocker, or the ad provider may still prevent an ad window from appearing.</p>
+        <p class="app-note" id="popunder-status" role="status">Loading the popunder ad service...</p>
         <button class="icon-button" id="popunder-retry" type="button" hidden>Reload and retry</button>
-        <button class="icon-button" id="popunder-test" type="button">Test browser pop-up</button>
-        <p class="app-note" id="popunder-test-status" role="status">This opens a test window, not an ad, and earns no money.</p>
       </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
@@ -2592,80 +2577,36 @@
     else phoneViewport.addListener(viewportChanged);
 
     function setupPopunderAds() {
-      const key = "hbu-popunder-enabled";
-      const checkbox = document.querySelector("#popunder-enabled");
       const status = document.querySelector("#popunder-status");
       const retry = document.querySelector("#popunder-retry");
-      const testButton = document.querySelector("#popunder-test");
-      const testStatus = document.querySelector("#popunder-test-status");
       const state = window.hbuPopunder;
       function render() {
-        checkbox.checked = state.enabled;
         retry.hidden = state.phase !== "error";
-        status.textContent = state.storageError ? "Could not read your ad preference. Check your browser storage settings." : ({
-          off: "Popunder ads are off.",
-          unavailable: "Popunder ads are unavailable on phones or narrow screens.",
+        status.textContent = ({
           loading: "Loading the popunder ad service...",
-          loaded: "Ad service loaded. Ads may open behind this page; their availability is controlled by Adsterra.",
+          loaded: "Popunder ads are enabled. Whether an ad window appears depends on your browser and the ad provider.",
           error: "Could not load the ad service. Check your connection or content blocker, then retry."
-        })[state.phase];
+        })[state.phase] || "Popunder ads are enabled.";
       }
       state.onChange = render;
       render();
       retry.addEventListener("click", () => window.location.reload());
-      testButton.addEventListener("click", () => {
-        try {
-          const popup = window.open("popup-test.html", "_blank", "popup,width=480,height=320");
-          if (!popup) {
-            testStatus.textContent = "The browser blocked the test pop-up. Check the pop-up settings for this site.";
-            return;
-          }
-          popup.opener = null;
-          testStatus.textContent = "Test window opened. Look for another window or tab. This was not an ad.";
-        } catch (error) {
-          console.warn("Could not open the test pop-up.", error);
-          testStatus.textContent = "Could not open the test pop-up. Check your browser settings.";
-        }
-      });
-      checkbox.addEventListener("change", () => {
-        try {
-          localStorage.setItem(key, JSON.stringify(checkbox.checked));
-        } catch (error) {
-          console.warn("Could not save the popunder preference.", error);
-          checkbox.checked = state.enabled;
-          status.textContent = "Could not save your ad preference. Check your browser storage settings.";
-          return;
-        }
-        window.location.reload();
-      });
-      const updateViewport = event => {
-        if (state.enabled && !phoneDevice &&
-            ((event.matches && state.phase !== "unavailable") || (!event.matches && state.phase === "unavailable"))) {
-          window.location.reload();
-        }
-      };
-      if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", updateViewport);
-      else phoneViewport.addListener(updateViewport);
-      window.addEventListener("storage", event => {
-        if (event.key !== key && event.key !== null) return;
-        try {
-          if ((localStorage.getItem(key) === "true") !== state.enabled) window.location.reload();
-        } catch (error) {
-          console.warn("Could not read the popunder preference.", error);
-          status.textContent = "Could not read your ad preference. Check your browser storage settings.";
-        }
-      });
     }
     setupPopunderAds();
 
     async function authFetch(url, options = {}) {
+      // Supabase Edge Functions can take longer during cold starts or when the
+      // database is under load. Ten seconds caused healthy login/challenge
+      // requests to be aborted too early, so allow up to 30 seconds.
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10000);
+      const timer = setTimeout(() => controller.abort(), 30000);
       try {
-        return await fetch(url, { ...options, signal: controller.signal });
+        return await fetch(url, { ...options, signal: controller.signal, cache: "no-store" });
       } catch (error) {
         console.error("Authentication service request failed.", error);
-        if (error.name === "AbortError") throw new Error("The account service took too long to respond. Check your connection and try again.");
+        if (error.name === "AbortError") {
+          throw new Error("The account service did not respond within 30 seconds. Check the connection, then use Test account connection to identify whether Supabase or the browser is blocking the request.");
+        }
         throw new Error("Cannot reach the account service. Check your internet connection, browser blocking settings, or use Test account connection.");
       } finally {
         clearTimeout(timer);
@@ -2715,6 +2656,10 @@
     let staffRole = "user";
     let staffAccess = false;
     const isStaff = () => staffAccess;
+    const ROLE_POLICY_VERSION = "2026-11-11-v1";
+    let rolePolicyOverlay = null;
+    let rolePolicyTimer = null;
+    let rolePolicyCheckBusy = false;
 
     async function adminCall(action, extra = {}) {
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
@@ -2969,13 +2914,238 @@
       }
     }
 
+    function hideRolePolicyGate() {
+      if (rolePolicyOverlay) rolePolicyOverlay.remove();
+      rolePolicyOverlay = null;
+    }
+
+    function showRolePolicyGate(roleLabel, errorMessage = "") {
+      if (!rolePolicyOverlay) {
+        const overlay = document.createElement("div");
+        overlay.id = "role-policy-gate";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.setAttribute("aria-labelledby", "role-policy-title");
+        Object.assign(overlay.style, {
+          position: "fixed", inset: "0", zIndex: "2147483647", display: "flex",
+          alignItems: "center", justifyContent: "center", padding: "18px",
+          background: "rgba(5, 4, 12, .94)", backdropFilter: "blur(10px)"
+        });
+
+        const panel = document.createElement("section");
+        Object.assign(panel.style, {
+          width: "min(760px, 100%)", maxHeight: "min(88vh, 900px)", display: "flex",
+          flexDirection: "column", gap: "14px", padding: "clamp(18px, 4vw, 30px)",
+          color: "#f5f0ff", background: "#171326", border: "1px solid #574779",
+          borderRadius: "18px", boxShadow: "0 24px 90px rgba(0,0,0,.6)",
+          fontFamily: "system-ui, sans-serif"
+        });
+
+        const eyebrow = document.createElement("p");
+        eyebrow.textContent = "HBU STAFF REQUIREMENT";
+        Object.assign(eyebrow.style, { margin: "0", color: "#c5a8ff", fontSize: "12px", fontWeight: "800", letterSpacing: ".12em" });
+        const title = document.createElement("h2");
+        title.id = "role-policy-title";
+        title.textContent = "HBU Staff Abuse & Consequences Policy";
+        Object.assign(title.style, { margin: "-6px 0 0", fontSize: "clamp(22px, 4vw, 30px)", lineHeight: "1.15" });
+        const roleLine = document.createElement("p");
+        roleLine.id = "role-policy-role";
+        Object.assign(roleLine.style, { margin: "-6px 0 0", color: "#c9bddf", fontSize: "14px" });
+
+        const scroll = document.createElement("div");
+        scroll.id = "role-policy-scroll";
+        Object.assign(scroll.style, {
+          overflowY: "auto", minHeight: "180px", maxHeight: "52vh", padding: "16px",
+          border: "1px solid #403653", borderRadius: "12px", background: "#100d1b",
+          lineHeight: "1.55", fontSize: "14px"
+        });
+        scroll.innerHTML = `
+          <p>All staff members are expected to use their permissions responsibly. Having a staff role does not make someone above the rules. These policies apply to every staff member, regardless of rank.</p>
+          <h3>1. Abuse of Permissions</h3>
+          <p>Staff members may not:</p>
+          <ul>
+            <li>Ban, mute, kick, or punish users without a valid reason.</li>
+            <li>Use commands against users for personal reasons, arguments, or revenge.</li>
+            <li>Threaten users with punishments to gain control or personal benefits.</li>
+            <li>Give themselves or others unauthorized currency, items, rewards, or privileges.</li>
+            <li>Access, modify, or share private user information without authorization.</li>
+            <li>Intentionally disrupt HBU services or interfere with other staff members' work.</li>
+            <li>Use alternate accounts to bypass staff restrictions or consequences.</li>
+            <li>Cover up staff misconduct or knowingly protect another staff member who abuses their permissions.</li>
+          </ul>
+          <h3>2. Unfair Treatment</h3>
+          <p>Staff members must treat users fairly, regardless of friendships, disagreements, or personal relationships.</p>
+          <ul>
+            <li>Friends must not receive special treatment.</li>
+            <li>Personal disagreements must not influence moderation decisions.</li>
+            <li>Staff members may not punish users for criticizing them respectfully.</li>
+            <li>Staff members may not use their rank to intimidate other users.</li>
+          </ul>
+          <h3>3. Consequences</h3>
+          <p>Depending on the severity and frequency of the violation, consequences may include:</p>
+          <ol><li><strong>Demotion</strong></li></ol>
+          <p>Severe violations may result in immediate suspension or removal without a prior warning.</p>
+          <h3>4. Important Notice</h3>
+          <p>Staff permissions are a responsibility, not a privilege to do whatever you want.</p>
+          <p>No role is above this policy. Staff members who abuse their authority risk losing their permissions, rank, or access to HBU.</p>
+          <p><strong>By accepting a staff role, you agree to follow this policy.</strong></p>
+        `;
+
+        let reachedBottom = false;
+        let acceptReadyAt = 0;
+        let acceptCountdown = null;
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.id = "role-policy-confirm-checkbox";
+        const checkLabel = document.createElement("label");
+        Object.assign(checkLabel.style, { display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", lineHeight: "1.4" });
+        checkLabel.append(check, document.createTextNode("I have read and agree to follow the HBU Staff Abuse & Consequences Policy."));
+        const status = document.createElement("p");
+        status.id = "role-policy-status";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        Object.assign(status.style, { margin: "0", color: "#ffcf8b", fontSize: "13px", minHeight: "18px" });
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.id = "role-policy-retry";
+        retry.textContent = "Retry verification";
+        retry.hidden = true;
+        Object.assign(retry.style, {
+          border: "1px solid #75628f", borderRadius: "10px", padding: "11px 16px",
+          fontWeight: "700", fontSize: "14px", color: "#f5f0ff", background: "#29213a", cursor: "pointer"
+        });
+        retry.addEventListener("click", async () => {
+          retry.disabled = true;
+          status.textContent = "Checking your role policy requirement...";
+          const accepted = await checkRolePolicy();
+          retry.disabled = false;
+          if (accepted) await setupStaff();
+        });
+        const accept = document.createElement("button");
+        accept.type = "button";
+        accept.id = "role-policy-accept";
+        accept.textContent = "Accept policy";
+        accept.disabled = true;
+        Object.assign(accept.style, {
+          border: "0", borderRadius: "10px", padding: "13px 18px", fontWeight: "800",
+          fontSize: "15px", color: "#160e24", background: "#c6a3ff", cursor: "pointer"
+        });
+        const updateAccept = () => {
+          const eligible = reachedBottom && check.checked;
+          if (!eligible) {
+            acceptReadyAt = 0;
+            if (acceptCountdown !== null) {
+              window.clearInterval(acceptCountdown);
+              acceptCountdown = null;
+            }
+            accept.disabled = true;
+            accept.textContent = "Accept policy";
+          } else {
+            if (!acceptReadyAt) {
+              acceptReadyAt = Date.now() + 5000;
+            }
+            const remainingMs = Math.max(0, acceptReadyAt - Date.now());
+            const remainingSeconds = Math.ceil(remainingMs / 1000);
+            accept.disabled = remainingMs > 0;
+            accept.textContent = remainingMs > 0
+              ? `Please wait ${remainingSeconds}s...`
+              : "Accept policy";
+            if (remainingMs > 0 && acceptCountdown === null) {
+              acceptCountdown = window.setInterval(() => {
+                updateAccept();
+                if (Date.now() >= acceptReadyAt && acceptCountdown !== null) {
+                  window.clearInterval(acceptCountdown);
+                  acceptCountdown = null;
+                }
+              }, 100);
+            } else if (remainingMs <= 0 && acceptCountdown !== null) {
+              window.clearInterval(acceptCountdown);
+              acceptCountdown = null;
+            }
+          }
+          accept.style.opacity = accept.disabled ? ".45" : "1";
+          accept.style.cursor = accept.disabled ? "not-allowed" : "pointer";
+        };
+        scroll.addEventListener("scroll", () => {
+          if (scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 8) reachedBottom = true;
+          updateAccept();
+        });
+        check.addEventListener("change", updateAccept);
+        accept.addEventListener("click", async () => {
+          if (accept.disabled || !account) return;
+          accept.disabled = true;
+          status.textContent = "Saving your acceptance...";
+          try {
+            await adminCall("admin_role_policy_accept", { policy_version: ROLE_POLICY_VERSION, accept: true });
+            hideRolePolicyGate();
+            await setupStaff();
+          } catch (error) {
+            status.textContent = `Could not save your acceptance: ${error.message}`;
+            retry.hidden = false;
+            updateAccept();
+          }
+        });
+
+        panel.append(eyebrow, title, roleLine, scroll, checkLabel, status, retry, accept);
+        overlay.append(panel);
+        document.body.append(overlay);
+        rolePolicyOverlay = overlay;
+        overlay._roleLine = roleLine;
+        overlay._status = status;
+        overlay._scroll = scroll;
+        overlay._retry = retry;
+      }
+      rolePolicyOverlay._roleLine.textContent = roleLabel ? `Your current role: ${roleLabel}. Read the full policy below and scroll to the bottom before accepting.` : "Checking your role policy requirement...";
+      rolePolicyOverlay._status.textContent = errorMessage || "Scroll through the entire policy, check the confirmation box, and click Accept policy.";
+      rolePolicyOverlay._retry.hidden = !errorMessage;
+    }
+
+    async function checkRolePolicy() {
+      if (!account || rolePolicyCheckBusy) return false;
+      rolePolicyCheckBusy = true;
+      try {
+        const status = await adminCall("admin_role_policy_status");
+        if (status.required) {
+          staffAccess = false;
+          staffRole = status.role || "user";
+          applyAdminBoard();
+          showRolePolicyGate(status.label || status.role || "staff role");
+          return false;
+        }
+        hideRolePolicyGate();
+        return true;
+      } catch (error) {
+        staffAccess = false;
+        applyAdminBoard();
+        showRolePolicyGate("", `HBU could not verify your policy acceptance: ${error.message}. Please retry. If this continues, ask the owner to run supabase/role-policy-acceptance.sql and deploy the updated send-message function.`);
+        return false;
+      } finally {
+        rolePolicyCheckBusy = false;
+      }
+    }
+
     async function setupStaff() {
       staffRole = "user";
       staffAccess = false;
       applyAdminBoard();
       window.clearInterval(adminTimer);
-      if (!account) return;
+      if (!account) {
+        hideRolePolicyGate();
+        window.clearInterval(rolePolicyTimer);
+        return;
+      }
       const current = account;
+      showRolePolicyGate("");
+      if (!(await checkRolePolicy())) return;
+      if (account !== current) return;
+      window.clearInterval(rolePolicyTimer);
+      rolePolicyTimer = window.setInterval(async () => {
+        if (!document.hidden && account === current) {
+          const wasBlocked = Boolean(rolePolicyOverlay);
+          const accepted = await checkRolePolicy();
+          if (accepted && wasBlocked && account === current) await setupStaff();
+        }
+      }, 30000);
       try {
         const result = await adminCall("admin_role");
         if (account !== current || !result.role || result.role === "user") return;
@@ -5098,6 +5268,8 @@
     function doSignOut() {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setChatFull(false);
+      hideRolePolicyGate();
+      window.clearInterval(rolePolicyTimer);
       account = null;
       closeApp("owner");
       localNotes = [];
