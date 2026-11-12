@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Supabase Realtime Chat</title>
+  <script src="https://jsdelivr.net"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: #121212; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Top Bar for User ID Setup */
+    #auth-bar { background: #1e1e1e; padding: 10px 20px; border-bottom: 1px solid #333; display: flex; gap: 10px; align-items: center; }
+    #auth-bar input { background: #2c2c2c; border: 1px solid #444; color: #fff; padding: 6px 10px; border-radius: 4px; }
+    #auth-bar button { background: #3ecf8e; color: #000; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+    /* Main Layout */
+    #app { display: flex; flex: 1; overflow: hidden; }
+    
+    /* Sidebar */
+    #sidebar { width: 280px; background: #181818; border-right: 1px solid #333; display: flex; flex-direction: column; }
+    #sidebar-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+    #sidebar-header button { background: #333; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    #conv-list { flex: 1; overflow-y: auto; }
+    .conv-item { padding: 15px; border-bottom: 1px solid #262626; cursor: pointer; transition: background 0.2s; }
+    .conv-item:hover, .conv-item.active { background: #2a2a2a; }
+    .conv-title { font-weight: bold; font-size: 14px; }
+
+    /* Chat Area */
+    #chat-area { flex: 1; display: flex; flex-direction: column; background: #121212; }
+    #chat-header { padding: 15px 20px; background: #181818; border-bottom: 1px solid #333; font-weight: bold; }
+    #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    
+    /* Message Bubbles */
+    .msg-row { display: flex; flex-direction: column; max-width: 70%; padding: 10px 14px; border-radius: 8px; position: relative; word-wrap: break-word; }
+    .msg-mine { align-self: flex-end; background: #3ecf8e; color: #000; }
+    .msg-other { align-self: flex-start; background: #262626; color: #fff; }
+    .msg-meta { font-size: 11px; opacity: 0.7; margin-bottom: 4px; display: flex; justify-content: space-between; gap: 10px; }
+    .del-btn { background: none; border: none; color: inherit; cursor: pointer; font-weight: bold; opacity: 0.6; }
+    .del-btn:hover { opacity: 1; }
+
+    /* Input Form */
+    #input-form { display: flex; padding: 15px; background: #181818; border-top: 1px solid #333; gap: 10px; }
+    #msg-input { flex: 1; background: #262626; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; outline: none; }
+    #send-btn { background: #3ecf8e; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <!-- Set Current User ID (Simulated Login) -->
+  <div id="auth-bar">
+    <label for="user-id-input">Your User ID:</label>
+    <input type="text" id="user-id-input" placeholder="Enter your UUID or username" />
+    <button id="connect-btn">Connect</button>
+    <span id="status-text" style="font-size: 12px; color: #888;">Disconnected</span>
+  </div>
+
+  <!-- Main Chat UI -->
+  <div id="app">
+    <div id="sidebar">
+      <div id="sidebar-header">
+        <span>Conversations</span>
+        <button id="new-conv-btn">+ New</button>
+      </div>
+      <div id="conv-list"></div>
+    </div>
+
+    <div id="chat-area">
+      <div id="chat-header">Select a conversation</div>
+      <div id="messages"></div>
+      <form id="input-form">
+        <input type="text" id="msg-input" placeholder="Type a message..." disabled required />
+        <button type="submit" id="send-btn" disabled>Send</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    // 1. Your Credentials & Initialization
+    const SB_CHAT_URL = 'https://kpdnoxmnycrtbklvuluu.supabase.co';
+    const SB_CHAT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwZG5veG1ueWNydGJrbHZ1bHV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMTY3NjIsImV4cCI6MjEwODc5Mjc2Mn0.6wukT9y083X1Br89EKmB0iKgAWrhpgHcZJDxuGrYYtY';
+    const sb = window.supabase.createClient(SB_CHAT_URL, SB_CHAT_ANON_KEY);
+
+    // 2. App State Variables
+    let myId = localStorage.getItem('chat_my_id') || '';
+    let activeConv = null;
+    let messages = [];
+    let realtimeChannel = null;
+
+    // 3. DOM References
+    const userIdInput = document.getElementById('user-id-input');
+    const connectBtn = document.getElementById('connect-btn');
+    const statusText = document.getElementById('status-text');
+    const convListEl = document.getElementById('conv-list');
+    const chatHeaderEl = document.getElementById('chat-header');
+    const messagesEl = document.getElementById('messages');
+    const inputForm = document.getElementById('input-form');
+    const msgInput = document.getElementById('msg-input');
+    const sendBtn = document.getElementById('send-btn');
+    const newConvBtn = document.getElementById('new-conv-btn');
+
+    // 4. Web Audio API Sound Effect (No external mp3 needed)
+    const SoundFX = {
+      notify() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, ctx.currentTime);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.12);
+        } catch (e) {
+          console.log('Audio blocked until user interacts with page.');
+        }
+      }
+    };
+    // 5. Your Exact Realtime Listener
+    function setupRealtimeListener() {
+      if (realtimeChannel) {
+        sb.removeChannel(realtimeChannel);
+      }
+
+      realtimeChannel = sb.channel('chat-sync-' + myId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          const msg = payload.new;
+          if (activeConv && msg.conversation_id === activeConv.id) {
+            if (!messages.some(m => m.id === msg.id)) {
+              messages.push(msg);
+              appendMessageDOM(msg);
+              if (msg.sender_id !== myId) SoundFX.notify();
+            }
+          }
+          // Update sidebar previews
+          loadConversationsList();
+        })
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
+          const oldMsg = payload.old;
+          if (oldMsg && oldMsg.id) {
+            messages = messages.filter(m => m.id !== oldMsg.id);
+            const row = messagesEl.querySelector(`[data-msg-id="${oldMsg.id}"]`);
+            if (row) row.remove();
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_members' }, () => {
+          loadConversationsList();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, () => {
+          loadConversationsList();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            statusText.textContent = 'Connected (Live)';
+            statusText.style.color = '#3ecf8e';
+          }
+        });
+    }
+    // 6. Load Conversations Sidebar
+    async function loadConversationsList() {
+      if (!myId) return;
+      const { data, error } = await sb
+        .from('conversations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) return console.error('Error loading conversations:', error);
+
+      convListEl.innerHTML = '';
+      data.forEach(conv => {
+        const div = document.createElement('div');
+        div.className = `conv-item ${activeConv && activeConv.id === conv.id ? 'active' : ''}`;
+        div.innerHTML = `<div class="conv-title">${conv.title || 'Chat #' + conv.id}</div>`;
+        div.onclick = () => selectConversation(conv);
+        convListEl.appendChild(div);
+      });
+    }
+
+    // 7. Select a Conversation & Load Its Messages
+    async function selectConversation(conv) {
+      activeConv = conv;
+      chatHeaderEl.textContent = conv.title || `Chat #${conv.id}`;
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+      loadConversationsList(); // Refresh active highlight
+
+      const { data, error } = await sb
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conv.id)
+        .order('created_at', { ascending: true });
+
+      if (error) return console.error('Error loading messages:', error);
+
+      messages = data || [];
+      messagesEl.innerHTML = '';
+      messages.forEach(appendMessageDOM);
+    }
+
+    // 8. Append a Single Message Bubble to the DOM
+    function appendMessageDOM(msg) {
+      const isMine = msg.sender_id === myId;
+      const row = document.createElement('div');
+      row.className = `msg-row ${isMine ? 'msg-mine' : 'msg-other'}`;
+      row.setAttribute('data-msg-id', msg.id);
+
+      // Adjust 'msg.content' below if your database column is named 'text' or 'body'
+      const textContent = msg.content || msg.text || msg.body || '';
+
+      row.innerHTML = `
+        <div class="msg-meta">
+          <span>${isMine ? 'You' : msg.sender_id}</span>
+          ${isMine ? `<button class="del-btn" onclick="deleteMessage('${msg.id}')" title="Delete">✕</button>` : ''}
+        </div>
+        <div>${escapeHTML(textContent)}</div>
+      `;
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // 9. Send & Delete Actions
+    inputForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text || !activeConv || !myId) return;
+
+      msgInput.value = '';
+      // Adjust 'content' below if your database column is named 'text' or 'body'
+      const { error } = await sb.from('messages').insert([{
+        conversation_id: activeConv.id,
+        sender_id: myId,
+        content: text
+      }]);
+
+      if (error) console.error('Send error:', error);
+    });
+
+    async function deleteMessage(msgId) {
+      const { error } = await sb.from('messages').delete().eq('id', msgId);
+      if (error) console.error('Delete error:', error);
+    }
+
+    newConvBtn.addEventListener('click', async () => {
+      if (!myId) return alert('Enter your User ID and click Connect first.');
+      const title = prompt('Enter conversation name:');
+      if (!title) return;
+
+      const { error } = await sb.from('conversations').insert([{ title }]);
+      if (error) console.error('Create conversation error:', error);
+    });
+
+    // 10. Connect Button & Startup
+    function initChat() {
+      myId = userIdInput.value.trim();
+      if (!myId) return alert('Please enter a User ID.');
+      localStorage.setItem('chat_my_id', myId);
+      loadConversationsList();
+      setupRealtimeListener();
+    }
+
+    connectBtn.addEventListener('click', initChat);
+
+    // Helper to prevent HTML injection
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag]));
+    }
+
+    // Auto-connect if ID was saved previously
+    if (myId) {
+      userIdInput.value = myId;
+      initChat();
+    }
+  </script>
+</body>
+</html>
