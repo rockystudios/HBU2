@@ -76,6 +76,10 @@ class UserError extends Error {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
+// A deliberately generic success response for chat traffic we silently drop.
+// The browser sees no rate-limit details, and no message row is created.
+const silentlyDrop = () => json({ ok: true, silent: true });
+
 const enc = encodeURIComponent;
 
 // Persistent rate limits live in Postgres so limits survive Edge Function
@@ -521,38 +525,84 @@ async function chatGate(name: string, role: Role, cooldownMs = 0) {
   }
 }
 
-// Anti-spam: 3 messages (or commands) within 5s, or the same text 3 times within 20s, mutes for 5 min.
-// Tracked in memory per function instance, so it is best-effort. The admin is exempt.
+// Anti-spam: 3 messages (or commands) within 5s, or the same text 3 times
+// within 20s. Spam is silently discarded for 5 minutes in this Edge instance.
+// This path intentionally does not write an account mute, mod-log row, or bot
+// announcement: those writes would add database load during an attack.
+// Persistent per-account rate limits below provide a second, cross-instance gate.
 const SPAM_FAST_MS = 5000;
 const SPAM_REPEAT_MS = 20000;
-const SPAM_MUTE_MIN = 5;
+const SPAM_SILENCE_MS = 5 * 60 * 1000;
 const recentSends = new Map<string, { at: number; text: string }[]>();
+const spamSilencedUntil = new Map<string, number>();
 
-async function spamCheck(name: string, text: string) {
-  if (isAdmin(name)) return;
+async function spamCheck(name: string, text: string): Promise<boolean> {
+  if (isAdmin(name)) return false;
   const now = Date.now();
   const key = name.toLowerCase();
+  const silenceUntil = spamSilencedUntil.get(key) ?? 0;
+  if (silenceUntil > now) return true;
+  if (silenceUntil) spamSilencedUntil.delete(key);
+
   const list = (recentSends.get(key) ?? []).filter((entry) => now - entry.at < SPAM_REPEAT_MS);
   list.push({ at: now, text: text.trim().toLowerCase() });
   recentSends.set(key, list);
-  if (recentSends.size > 500) recentSends.clear();
+
+  if (recentSends.size > 2000) {
+    for (const [storedKey, entries] of recentSends) {
+      if (!entries.length || now - entries[entries.length - 1].at >= SPAM_REPEAT_MS) recentSends.delete(storedKey);
+    }
+    while (recentSends.size > 2000) {
+      const oldest = recentSends.keys().next().value;
+      if (oldest === undefined) break;
+      recentSends.delete(oldest);
+    }
+  }
+  if (spamSilencedUntil.size > 2000) {
+    for (const [storedKey, until] of spamSilencedUntil) {
+      if (until <= now) spamSilencedUntil.delete(storedKey);
+    }
+    while (spamSilencedUntil.size > 2000) {
+      const oldest = spamSilencedUntil.keys().next().value;
+      if (oldest === undefined) break;
+      spamSilencedUntil.delete(oldest);
+    }
+  }
 
   const fast = list.filter((entry) => now - entry.at < SPAM_FAST_MS).length >= 3;
   const latest = list[list.length - 1].text;
-  const recent = list.filter((entry) => now - entry.at < SPAM_REPEAT_MS && entry.text === latest);
-  const same = recent.length >= 3;
-  if (!fast && !same) return;
+  const same = list.filter((entry) => now - entry.at < SPAM_REPEAT_MS && entry.text === latest).length >= 3;
+  if (!fast && !same) return false;
 
   recentSends.delete(key);
-  await db(`accounts?username=eq.${enc(name)}`, {
-    method: "PATCH",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ muted_until: new Date(now + SPAM_MUTE_MIN * 60000).toISOString() }),
-  });
-  const why = same && !fast ? "repeating the same message" : "sending messages too fast";
-  await log({ username: name, action: `auto-muted ${SPAM_MUTE_MIN}m for spam`, reason: why });
-  await botPost(`🔇 @${name} was muted for ${SPAM_MUTE_MIN} minutes for ${why}.`).catch(() => {});
-  throw new UserError(`You were muted for ${SPAM_MUTE_MIN} minutes for ${why}.`, 429);
+  spamSilencedUntil.set(key, now + SPAM_SILENCE_MS);
+  return true;
+}
+
+// Cheap per-instance IP gate runs before any database call. It is deliberately
+// generous for shared school networks; the persistent RPC below is the
+// cross-instance limit. This local gate is best-effort, not a global firewall.
+const localIpWindows = new Map<string, { startedAt: number; hits: number; touchedAt: number }>();
+function localIpAllowed(subject: string, limit = 300, windowMs = 60_000): boolean {
+  const now = Date.now();
+  let bucket = localIpWindows.get(subject);
+  if (!bucket || now - bucket.startedAt >= windowMs) {
+    bucket = { startedAt: now, hits: 0, touchedAt: now };
+  }
+  bucket.hits += 1;
+  bucket.touchedAt = now;
+  localIpWindows.set(subject, bucket);
+  if (localIpWindows.size > 5000) {
+    for (const [key, value] of localIpWindows) {
+      if (now - value.touchedAt > windowMs * 2) localIpWindows.delete(key);
+    }
+    while (localIpWindows.size > 5000) {
+      const oldest = localIpWindows.keys().next().value;
+      if (oldest === undefined) break;
+      localIpWindows.delete(oldest);
+    }
+  }
+  return bucket.hits <= limit;
 }
 
 const likeEscape = (text: string) => text.replace(/[_%\\]/g, "\\$&");
@@ -1685,8 +1735,16 @@ async function handleRequest(req: Request): Promise<Response> {
     const text = (isAdminAction || isVoiceAction) ? "" : message.trim();
     if (!isAdminAction && !isVoiceAction && (!text || text.length > MAX_LENGTH)) throw new UserError("Message must be 1-500 characters.");
 
+    const isPlainChatSend = action == null && typeof message === "string";
     const ipSubject = await requestIpSubject(req);
-    await requireRateLimit(ipSubject, "send_message_endpoint", 600, 60);
+    if (isPlainChatSend) {
+      // Drop abusive chat traffic with HTTP 200 and no message/database insert.
+      // The in-memory gate avoids an RPC for repeated floods in one instance.
+      if (!localIpAllowed(ipSubject)) return silentlyDrop();
+      if (!(await rateLimitAllowed(ipSubject, "send_message_endpoint", 300, 60))) return silentlyDrop();
+    } else {
+      await requireRateLimit(ipSubject, "send_message_endpoint", 600, 60);
+    }
 
     const loginRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_login`, {
       method: "POST",
@@ -1701,7 +1759,11 @@ async function handleRequest(req: Request): Promise<Response> {
     }
     const realName: string = await loginRes.json();
     recordIp(req, realName);
-    await requireRateLimit(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60);
+    if (isPlainChatSend) {
+      if (!(await rateLimitAllowed(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60))) return silentlyDrop();
+    } else {
+      await requireRateLimit(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60);
+    }
     const isRolePolicyAction = action === "admin_role_policy_status" || action === "admin_role_policy_accept";
     if (!isRolePolicyAction) {
       const currentRole = await roleOf(realName, true);
@@ -1733,7 +1795,9 @@ async function handleRequest(req: Request): Promise<Response> {
     if (!isAdminAction && !isVoiceAction) {
       const actionKey = COMMAND.test(text) ? "chat_command" : "chat_message_edge";
       const max = COMMAND.test(text) ? 30 : 20;
-      await requireRateLimit(`account:${realName.toLowerCase()}`, actionKey, max, 60);
+      const allowed = await rateLimitAllowed(`account:${realName.toLowerCase()}`, actionKey, max, 60);
+      if (!allowed && isPlainChatSend) return silentlyDrop();
+      if (!allowed) throw new UserError("Too many requests. Please wait a little and try again.", 429);
     }
     if (action === "delete_message") return await deleteOwnMessage(realName, body.id);
     if (action === "edit_message") return await editMessage(realName, body.id, text);
@@ -1741,7 +1805,7 @@ async function handleRequest(req: Request): Promise<Response> {
     if (isAdminAction) return await handleAdmin(action, realName, body);
 
     if (COMMAND.test(text)) {
-      await spamCheck(realName, text);
+      if (await spamCheck(realName, text)) return silentlyDrop();
       return await handleCommand(realName, text);
     }
 
@@ -1773,7 +1837,7 @@ async function handleRequest(req: Request): Promise<Response> {
       throw new UserError(`You are muted from the main chat until ${new Date(mutedUntil).toUTCString()}. You can still send DMs.`, 403);
     }
 
-    if (target === "everyone") await spamCheck(realName, text);
+    if (target === "everyone" && await spamCheck(realName, text)) return silentlyDrop();
 
     let waitMs = COOLDOWN_MS;
     if (target === "everyone" && (settings.locked || settings.slow > 0) && !isAdmin(realName)) {
