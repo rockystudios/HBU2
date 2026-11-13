@@ -14,6 +14,16 @@ create table if not exists public.social_likes (
   username text not null,
   primary key (post_id, username)
 );
+create table if not exists public.social_comments (
+  id bigint generated always as identity primary key,
+  post_id bigint not null references public.social_posts(id) on delete cascade,
+  author text not null,
+  body text not null check (char_length(body) between 1 and 300),
+  created_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+create index if not exists social_comments_post_idx on public.social_comments(post_id, id);
+
 create table if not exists public.social_follows (
   follower text not null,
   followee text not null,
@@ -23,6 +33,7 @@ create table if not exists public.social_follows (
 );
 alter table public.social_posts enable row level security;
 alter table public.social_likes enable row level security;
+alter table public.social_comments enable row level security;
 alter table public.social_follows enable row level security;
 
 create or replace function public.hbu_social_staff(who text) returns boolean
@@ -51,6 +62,7 @@ begin
     select jsonb_build_object(
       'id', p.id, 'author', p.author, 'body', p.body, 'image', p.image, 'created_at', p.created_at,
       'likes', (select count(*) from social_likes l where l.post_id = p.id),
+      'comments', (select count(*) from social_comments c where c.post_id = p.id and c.deleted_at is null),
       'liked', exists (select 1 from social_likes l where l.post_id = p.id and l.username = who),
       'mine', lower(p.author) = lower(who),
       'can_delete', staff or lower(p.author) = lower(who),
@@ -160,12 +172,66 @@ begin
 end;
 $$;
 
+
+-- Comments on posts. All reads/writes go through password-authenticated RPCs.
+create or replace function public.hbu_social_comments(p_username text, p_password text, p_post_id bigint)
+returns jsonb language plpgsql security definer set search_path = public, extensions as $$
+declare who text; rows jsonb;
+begin
+  who := public.hbu_login(p_username, p_password);
+  if not exists (select 1 from social_posts where id = p_post_id and deleted_at is null) then
+    raise exception 'That post is gone.';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', c.id, 'author', c.author, 'body', c.body, 'created_at', c.created_at,
+    'mine', lower(c.author) = lower(who),
+    'can_delete', lower(c.author) = lower(who) or public.hbu_social_staff(who)
+  ) order by c.id asc), '[]'::jsonb)
+  into rows from social_comments c
+  where c.post_id = p_post_id and c.deleted_at is null;
+  return rows;
+end;
+$$;
+
+create or replace function public.hbu_social_comment(p_username text, p_password text, p_post_id bigint, p_body text)
+returns bigint language plpgsql security definer set search_path = public, extensions as $$
+declare who text; b text := trim(coalesce(p_body, '')); new_id bigint;
+begin
+  who := public.hbu_login(p_username, p_password);
+  if not exists (select 1 from social_posts where id = p_post_id and deleted_at is null) then raise exception 'That post is gone.'; end if;
+  if b = '' or length(b) > 300 then raise exception 'Comments must be 1-300 characters.'; end if;
+  if exists (select 1 from social_comments where lower(author) = lower(who) and created_at > now() - interval '5 seconds') then raise exception 'Wait a few seconds before commenting again.'; end if;
+  if (select count(*) from social_comments where lower(author) = lower(who) and created_at > now() - interval '1 day' and deleted_at is null) >= 60 then raise exception 'That is the limit of 60 comments a day.'; end if;
+  begin
+    if exists (select 1 from banned_words w where lower(b) like '%' || lower(w.word) || '%') then raise exception 'That comment has a word that is not allowed.'; end if;
+  exception when undefined_table then null;
+  end;
+  insert into social_comments(post_id, author, body) values (p_post_id, who, b) returning id into new_id;
+  return new_id;
+end;
+$$;
+
+create or replace function public.hbu_social_comment_delete(p_username text, p_password text, p_id bigint)
+returns void language plpgsql security definer set search_path = public, extensions as $$
+declare who text; a text;
+begin
+  who := public.hbu_login(p_username, p_password);
+  select author into a from social_comments where id = p_id and deleted_at is null;
+  if a is null then return; end if;
+  if lower(a) <> lower(who) and not public.hbu_social_staff(who) then raise exception 'You can only delete your own comments.'; end if;
+  update social_comments set deleted_at = now() where id = p_id;
+end;
+$$;
+
 grant execute on function
   public.hbu_social_feed(text, text, text, text, bigint),
   public.hbu_social_post(text, text, text, text),
   public.hbu_social_like(text, text, bigint),
   public.hbu_social_follow(text, text, text, boolean),
   public.hbu_social_profile(text, text, text),
-  public.hbu_social_delete(text, text, bigint)
+  public.hbu_social_delete(text, text, bigint),
+  public.hbu_social_comments(text, text, bigint),
+  public.hbu_social_comment(text, text, bigint, text),
+  public.hbu_social_comment_delete(text, text, bigint)
 to anon, authenticated;
 notify pgrst, 'reload schema';
