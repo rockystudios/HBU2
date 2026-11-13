@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#160e2c"/><stop offset="1" stop-color="#4c1243"/></linearGradient>
+    <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#ff4e8a"/><stop offset="1" stop-color="#38102f"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#ff3d8e" stop-opacity=".55"/><stop offset="1" stop-color="#ff3d8e" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h640v400H0z"/>
+  <circle cx="326" cy="210" r="240" fill="url(#glow)"/>
+  <path fill="#281132" stroke="#fb5c9a" stroke-opacity=".65" stroke-width="5" d="M52 0h536l-98 400H150z"/>
+  <path fill="#120d22" stroke="#ff78aa" stroke-opacity=".6" stroke-width="4" d="M160 0h320l-38 400H198z"/>
+  <path fill="url(#floor)" opacity=".8" d="m198 400 122-200 122 200z"/>
+  <path fill="none" stroke="#ffb0ca" stroke-opacity=".55" stroke-width="5" d="M320 202v198M160 0l38 400M480 0l-38 400"/>
+  <path fill="#ff397d" stroke="#ffc2d6" stroke-width="5" d="M90 105h130v42H90zM420 105h130v42H420z"/>
+  <text x="320" y="350" fill="#fff1f7" font-family="system-ui,sans-serif" font-size="36" font-weight="900" text-anchor="middle" letter-spacing="5">DEATH RUN 3D</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <rect width="640" height="400" fill="#201539"/>
+  <circle cx="500" cy="85" r="53" fill="#fbd484"/>
+  <path d="M0 265 95 221l88 54 119-75 102 77 104-50 132 51v122H0z" fill="#49305c"/>
+  <path d="M0 305 230 268l94 24 135-45 181 40" fill="none" stroke="#f5944e" stroke-width="10"/>
+  <g fill="none" stroke="#ffbd6d" stroke-width="13"><circle cx="239" cy="233" r="31"/><circle cx="358" cy="218" r="31"/><path d="m239 233 55-55 64 40-50 9-35-35m21-14 26-28"/></g>
+  <text x="320" y="362" fill="#fff" font-family="system-ui,sans-serif" font-size="29" font-weight="900" text-anchor="middle" letter-spacing="3">MOTO X3M SPOOKY LAND</text>
+</svg>

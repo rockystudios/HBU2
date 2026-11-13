@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#422060"/><stop offset=".62" stop-color="#fa5b75"/><stop offset="1" stop-color="#ffb454"/></linearGradient>
+    <linearGradient id="ramp" x2="1" y2="1"><stop stop-color="#ffcf62"/><stop offset="1" stop-color="#ff6c78"/></linearGradient>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h640v400H0z"/>
+  <circle cx="494" cy="82" r="46" fill="#ffd7a3" opacity=".8"/>
+  <path fill="#261b45" d="M0 288h640v112H0z"/>
+  <path fill="url(#ramp)" d="M0 293 200 240l89 26-197 63H0zm360-4 144-76 136 33v42l-114-25-139 64z"/>
+  <path fill="none" stroke="#ffe3a2" stroke-width="8" d="m23 286 164-43m202 24 117-63"/>
+  <g stroke="#191629" stroke-width="12">
+    <circle cx="269" cy="240" r="30" fill="#b9f1ff"/>
+    <circle cx="394" cy="214" r="30" fill="#b9f1ff"/>
+    <path fill="none" stroke="#f4d24f" stroke-width="19" stroke-linecap="round" stroke-linejoin="round" d="m269 240 50-42 28 20 47-4-31 45-45-3z"/>
+    <path fill="none" stroke="#f4d24f" stroke-width="18" stroke-linecap="round" d="m318 198 7-38 29-22m-29 22-33 10m64 18 32-19"/>
+    <path fill="#eaf7ff" stroke-width="5" d="m327 153 34-13-7 31z"/>
+  </g>
+  <path fill="#ffe06b" d="m161 93 23 26 35-6-21 29 13 34-34-16-29 20 5-36-26-23 36-4z"/>
+  <text x="320" y="371" fill="#fff4e8" font-family="system-ui,sans-serif" font-size="34" font-weight="900" text-anchor="middle" letter-spacing="6">MOTO X3M 2</text>
+</svg>

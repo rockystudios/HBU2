@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#fff5dc"/><stop offset="1" stop-color="#e6c6a6"/></linearGradient>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h640v400H0z"/>
+  <path fill="#faf6ed" d="M50 35h540v280H50z"/>
+  <path fill="none" stroke="#bd9b7f" stroke-width="3" d="M50 35h540v280H50z"/>
+  <g fill="#25252b">
+    <circle cx="191" cy="139" r="28"/><path d="M174 168h34l15 75h-64z"/>
+    <circle cx="320" cy="136" r="28"/><path d="M303 165h34l15 78h-64z"/>
+    <circle cx="448" cy="140" r="28"/><path d="M431 169h34l15 74h-64z"/>
+  </g>
+  <g fill="#fff2df"><circle cx="200" cy="136" r="4"/><circle cx="329" cy="133" r="4"/><circle cx="457" cy="137" r="4"/></g>
+  <path fill="#dd4555" d="M273 84h94v62h-94z"/>
+  <path fill="#fff" d="m311 99 23 16-23 16z"/>
+  <path fill="#25252b" d="M277 214h86v12h-86zm-135 34h356v11H142z"/>
+  <path fill="#432b52" d="M272 278h96v34h-96z"/>
+  <text x="320" y="363" fill="#2f2632" font-family="system-ui,sans-serif" font-size="25" font-weight="900" text-anchor="middle" letter-spacing="3">WE BECOME WHAT WE BEHOLD</text>
+</svg>
