@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
-  <rect width="640" height="400" fill="#222055"/>
-  <circle cx="475" cy="65" r="15" fill="#ffdb72"/>
-  <path d="M475 65 321 180" stroke="#f8eeff" stroke-width="5"/>
-  <g fill="none" stroke="#ff85c4" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"><circle cx="310" cy="154" r="23" fill="#ff85c4"/><path d="m310 181-28 56 48 20m-37-47-53-20m79 18 42-37m-79 66-29 47m77-27 45 32"/></g>
-  <text x="320" y="365" fill="#fff" font-family="system-ui,sans-serif" font-size="38" font-weight="900" text-anchor="middle" letter-spacing="4">STICKMAN HOOK</text>
-</svg>

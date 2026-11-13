@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400">
-  <rect width="640" height="400" fill="#17213e"/>
-  <g transform="translate(320 170)" fill="none" stroke-width="22">
-    <path d="M0-108 94-54" stroke="#ff6c91"/><path d="M94-54v108" stroke="#ffd05c"/><path d="M94 54 0 108" stroke="#69e1b4"/><path d="M0 108-94 54" stroke="#64bdff"/><path d="M-94 54V-54" stroke="#aa8bff"/><path d="M-94-54 0-108" stroke="#ff86d9"/>
-  </g>
-  <path d="m320 115 48 27v56l-48 27-48-27v-56z" fill="#f3f5ff"/>
-  <text x="320" y="365" fill="#fff" font-family="system-ui,sans-serif" font-size="44" font-weight="900" text-anchor="middle" letter-spacing="6">HEXTRIS</text>
-</svg>
