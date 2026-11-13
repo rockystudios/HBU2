@@ -74,7 +74,7 @@
         <section class="panel player-panel">
           <div class="panel-title"><h3>PLAYER STATUS</h3><span class="status-tag">ALIVE</span></div>
           <div class="player-card">
-            <div class="avatar-frame"><img src="assets/player.png" alt="Your character"></div>
+            <div class="avatar-frame avatar-placeholder" aria-label="Low-poly survivor placeholder"><span>●</span></div>
             <div><strong>Survivor</strong><span>Wilderness explorer</span></div>
           </div>
           <div class="stat">
@@ -101,10 +101,29 @@
           <button class="eat-button" id="eatButton" type="button">EAT BERRIES <span>+25 HUNGER</span></button>
         </section>
 
+        <section class="panel crafting-panel">
+          <div class="panel-title"><h3>TOOLS & CRAFTING</h3><span class="small-count">WORKBENCH</span></div>
+          <div class="tool-status" id="toolStatus">No tools crafted</div>
+          <div class="recipe">
+            <div><strong>Wooden Pickaxe</strong><span>5 wood · Mines rocks</span></div>
+            <button class="craft-button" id="craftPickaxeButton" type="button">CRAFT</button>
+          </div>
+          <div class="recipe">
+            <div><strong>Wooden Axe</strong><span>4 wood · More wood from trees</span></div>
+            <button class="craft-button" id="craftAxeButton" type="button">CRAFT</button>
+          </div>
+          <div class="recipe">
+            <div><strong>Stone Pickaxe</strong><span>3 wood + 3 stone · Better mining</span></div>
+            <button class="craft-button" id="craftStonePickaxeButton" type="button">CRAFT</button>
+          </div>
+          <p class="tip">Craft a wooden pickaxe before you can collect stone. Tools are saved for this run only.</p>
+        </section>
+
         <section class="panel controls-panel">
           <div class="panel-title"><h3>HOW TO PLAY</h3><span class="help-mark">?</span></div>
           <div class="control-row"><span class="key-group"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Move around</span></div>
           <div class="control-row"><kbd class="wide-key">E</kbd><span>Gather nearby resources</span></div>
+          <div class="control-row"><kbd class="wide-key">C</kbd><span>Craft the selected tool in the panel</span></div>
           <div class="control-row"><kbd class="wide-key">F</kbd><span>Eat berries</span></div>
           <div class="control-row"><kbd class="wide-key">SHIFT</kbd><span>Run (uses stamina)</span></div>
           <p class="tip">Stay moving. Hunger drops as time passes, so keep collecting berries.</p>
@@ -116,3 +135,4 @@
   <script src="game.js"></script>
 </body>
 </html>
+

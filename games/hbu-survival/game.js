@@ -29,15 +29,11 @@
     gameOver: document.getElementById("gameOverOverlay"),
     finalStats: document.getElementById("finalStats"),
     eat: document.getElementById("eatButton"),
-    clock: document.getElementById("clock")
-  };
-
-  const images = {};
-  const imagePaths = {
-    player: "assets/player.png",
-    bush: "assets/bush.png",
-    rock: "assets/rock.png",
-    tree: "assets/tree.png"
+    clock: document.getElementById("clock"),
+    toolStatus: document.getElementById("toolStatus"),
+    craftPickaxe: document.getElementById("craftPickaxeButton"),
+    craftAxe: document.getElementById("craftAxeButton"),
+    craftStonePickaxe: document.getElementById("craftStonePickaxeButton")
   };
 
   const state = {
@@ -51,19 +47,11 @@
     toastTimer: 0,
     player: { x: WORLD_W / 2, y: WORLD_H / 2, speed: 190, stamina: 100, hunger: 100, health: 100 },
     inventory: { wood: 0, stone: 0, berries: 0 },
+    tools: { woodenPickaxe: false, woodenAxe: false, stonePickaxe: false },
     keys: Object.create(null),
     resources: [],
     camera: { x: 0, y: 0 }
   };
-
-  function loadImage(key, src) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => { images[key] = img; resolve(); };
-      img.onerror = () => resolve();
-      img.src = src;
-    });
-  }
 
   function seededRandom(seed) {
     let value = seed >>> 0;
@@ -110,6 +98,14 @@
     ui.berries.textContent = inv.berries;
     ui.itemCount.textContent = `${inv.wood + inv.stone + inv.berries} ITEMS`;
     ui.eat.disabled = inv.berries <= 0 || p.hunger >= 100 || state.over;
+    const toolNames = [];
+    if (state.tools.woodenPickaxe) toolNames.push("Wooden Pickaxe");
+    if (state.tools.woodenAxe) toolNames.push("Wooden Axe");
+    if (state.tools.stonePickaxe) toolNames.push("Stone Pickaxe");
+    ui.toolStatus.textContent = toolNames.length ? `Crafted: ${toolNames.join(" · ")}` : "No tools crafted yet";
+    ui.craftPickaxe.disabled = state.tools.woodenPickaxe || state.tools.stonePickaxe || inv.wood < 5 || state.over;
+    ui.craftAxe.disabled = state.tools.woodenAxe || inv.wood < 4 || state.over;
+    ui.craftStonePickaxe.disabled = state.tools.stonePickaxe || !state.tools.woodenPickaxe || inv.wood < 3 || inv.stone < 3 || state.over;
     ui.coordinates.textContent = `X: ${Math.round(p.x)} · Y: ${Math.round(p.y)}`;
     ui.clock.textContent = formatTime(state.elapsed);
     if (p.hunger < 25) ui.objective.textContent = "Hunger is low — find berries!";
@@ -143,34 +139,50 @@
     }
   }
 
+  function polygon(points, fill, stroke = null) {
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+  }
+
   function drawResource(resource) {
     if (resource.collected) return;
-    const img = images[resource.kind];
     const x = resource.x - state.camera.x;
     const y = resource.y - state.camera.y;
     if (x < -100 || y < -100 || x > W + 100 || y > H + 100) return;
-    if (img) {
-      const size = resource.kind === "tree" ? 86 : resource.kind === "bush" ? 62 : 58;
-      ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+    ctx.fillStyle = "#10231655";
+    ctx.beginPath(); ctx.ellipse(x, y + 15, resource.size * .42, 10, 0, 0, Math.PI * 2); ctx.fill();
+    if (resource.kind === "tree") {
+      polygon([[x-9,y+12],[x+9,y+12],[x+8,y-24],[x-7,y-24]], "#795033");
+      polygon([[x,y-66],[x-34,y-23],[x-20,y-18],[x-42,y+2],[x-12,y-2],[x,y+10],[x+13,y-3],[x+40,y+3],[x+20,y-20],[x+34,y-24]], "#2c7541", "#1b542f");
+      polygon([[x,y-56],[x-21,y-27],[x-5,y-25],[x+1,y-7],[x+19,y-27],[x+8,y-30]], "#459653");
+      polygon([[x-5,y-42],[x-17,y-27],[x-4,y-30]], "#72b66a");
+    } else if (resource.kind === "bush") {
+      polygon([[x-25,y+12],[x-31,y-3],[x-18,y-20],[x-4,y-15],[x+8,y-27],[x+25,y-13],[x+29,y+5],[x+17,y+14]], "#347c42", "#205b32");
+      polygon([[x-15,y-4],[x-18,y-15],[x-5,y-18],[x+1,y-7]], "#5aa85b");
+      for (const [bx,by] of [[-12,-2],[8,-10],[18,1]]) { ctx.fillStyle="#5c9de0"; ctx.beginPath(); ctx.arc(x+bx,y+by,3,0,Math.PI*2); ctx.fill(); }
+    } else {
+      polygon([[x-27,y+10],[x-31,y-8],[x-17,y-27],[x+7,y-29],[x+28,y-12],[x+25,y+9],[x+5,y+19],[x-15,y+17]], "#777f7b", "#4a5550");
+      polygon([[x-17,y-17],[x-5,y-26],[x+8,y-22],[x-1,y-8],[x-20,y-5]], "#aab1a8");
+      polygon([[x+8,y-22],[x+25,y-10],[x+14,y+1],[x-1,y-8]], "#929b92");
     }
   }
 
   function drawPlayer() {
     const p = state.player;
-    const img = images.player;
     const x = p.x - state.camera.x;
     const y = p.y - state.camera.y;
     ctx.fillStyle = "#10231666";
-    ctx.beginPath();
-    ctx.ellipse(x, y + 17, 13, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    if (img) ctx.drawImage(img, x - 24, y - 34, 48, 48);
-    else {
-      ctx.fillStyle = "#f0c17b";
-      ctx.fillRect(x - 10, y - 18, 20, 20);
-      ctx.fillStyle = "#163bce";
-      ctx.fillRect(x - 10, y + 2, 20, 20);
-    }
+    ctx.beginPath(); ctx.ellipse(x, y + 17, 13, 6, 0, 0, Math.PI * 2); ctx.fill();
+    polygon([[x-10,y-17],[x+10,y-17],[x+12,y+8],[x-12,y+8]], "#315dce", "#1c3989");
+    polygon([[x-9,y-27],[x+9,y-27],[x+10,y-12],[x-10,y-12]], "#d9a878", "#986d4b");
+    polygon([[x-11,y-30],[x+8,y-32],[x+12,y-24],[x-8,y-23]], "#513a2b");
+    polygon([[x-8,y+8],[x-1,y+8],[x-3,y+22],[x-11,y+22]], "#39434c");
+    polygon([[x+2,y+8],[x+10,y+8],[x+12,y+22],[x+4,y+22]], "#39434c");
   }
 
   function drawNight() {
@@ -216,19 +228,42 @@
       showToast("Nothing nearby to gather");
       return;
     }
+    if (resource.kind === "rock" && !state.tools.woodenPickaxe && !state.tools.stonePickaxe) {
+      showToast("You need to craft a pickaxe before mining rocks!");
+      return;
+    }
     resource.collected = true;
     if (resource.kind === "tree") {
-      const amount = 2 + Math.floor(Math.random() * 3);
+      const amount = (state.tools.woodenAxe ? 4 : 2) + Math.floor(Math.random() * (state.tools.woodenAxe ? 3 : 2));
       state.inventory.wood += amount;
       showToast(`Collected ${amount} wood`);
     } else if (resource.kind === "rock") {
-      const amount = 1 + Math.floor(Math.random() * 3);
+      const amount = state.tools.stonePickaxe ? 3 + Math.floor(Math.random() * 3) : 1 + Math.floor(Math.random() * 3);
       state.inventory.stone += amount;
       showToast(`Collected ${amount} stone`);
     } else {
       const amount = 2 + Math.floor(Math.random() * 3);
       state.inventory.berries += amount;
       showToast(`Collected ${amount} berries`);
+    }
+    updateUI();
+  }
+
+  function craftTool(tool) {
+    if (!state.started || state.paused || state.over) return;
+    const inv = state.inventory;
+    if (tool === "woodenPickaxe") {
+      if (state.tools.woodenPickaxe || state.tools.stonePickaxe || inv.wood < 5) return showToast("Need 5 wood for a wooden pickaxe");
+      inv.wood -= 5; state.tools.woodenPickaxe = true;
+      showToast("Crafted a wooden pickaxe! You can mine rocks now.");
+    } else if (tool === "woodenAxe") {
+      if (state.tools.woodenAxe || inv.wood < 4) return showToast("Need 4 wood for a wooden axe");
+      inv.wood -= 4; state.tools.woodenAxe = true;
+      showToast("Crafted a wooden axe! Trees give more wood.");
+    } else if (tool === "stonePickaxe") {
+      if (state.tools.stonePickaxe || !state.tools.woodenPickaxe || inv.wood < 3 || inv.stone < 3) return showToast("Need a wooden pickaxe, 3 wood and 3 stone");
+      inv.wood -= 3; inv.stone -= 3; state.tools.stonePickaxe = true;
+      showToast("Crafted a stone pickaxe! Mining is more efficient.");
     }
     updateUI();
   }
@@ -326,6 +361,7 @@
     state.day = 1;
     state.player = { x: WORLD_W / 2, y: WORLD_H / 2, speed: 190, stamina: 100, hunger: 100, health: 100 };
     state.inventory = { wood: 0, stone: 0, berries: 0 };
+    state.tools = { woodenPickaxe: false, woodenAxe: false, stonePickaxe: false };
     state.keys = Object.create(null);
     createWorld();
     ui.gameOver.classList.add("hidden");
@@ -355,16 +391,17 @@
   document.getElementById("pauseButton").addEventListener("click", togglePause);
   document.getElementById("restartButton").addEventListener("click", restart);
   document.getElementById("eatButton").addEventListener("click", eatBerries);
+  ui.craftPickaxe.addEventListener("click", () => craftTool("woodenPickaxe"));
+  ui.craftAxe.addEventListener("click", () => craftTool("woodenAxe"));
+  ui.craftStonePickaxe.addEventListener("click", () => craftTool("stonePickaxe"));
   document.getElementById("soundButton").addEventListener("click", () => {
     state.sound = !state.sound;
     document.getElementById("soundButton").textContent = state.sound ? "♫" : "♪";
     showToast(state.sound ? "Sound setting enabled" : "Sound setting disabled");
   });
 
-  Promise.all(Object.entries(imagePaths).map(([key, path]) => loadImage(key, path))).then(() => {
-    createWorld();
-    updateUI();
-    render();
-    requestAnimationFrame(frame);
-  });
+  createWorld();
+  updateUI();
+  render();
+  requestAnimationFrame(frame);
 })();

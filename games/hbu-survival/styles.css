@@ -101,3 +101,16 @@ kbd { min-width:22px; height:22px; display:grid; place-items:center; padding:0 5
 .hidden { display:none !important; }
 @media (max-width: 900px) { .app-shell { padding:18px; } .game-layout { grid-template-columns:1fr; } .sidebar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .controls-panel { grid-column:1/-1; } }
 @media (max-width: 560px) { .app-shell { padding:13px; } .brand p { display:none; } .brand h1 { font-size:13px; } .brand-mark { width:37px;height:37px; } .top-actions { gap:5px; } .day-pill { padding:9px; font-size:9px; } .icon-button { width:34px;height:34px; } .world-panel { padding:10px; } .world-heading h2 { font-size:16px; } .live-status { font-size:7px; } .world-footer { flex-wrap:wrap; gap:8px 12px; padding:8px 2px; } .objective { margin-left:0; width:100%; } .sidebar { display:flex; } .footer { font-size:7px; } }
+
+.crafting-panel { display:flex; flex-direction:column; gap:9px; }
+.tool-status { padding:9px 10px; border:1px solid #2b4935; border-radius:8px; background:#17291f; color:#a9c9b0; font:9px var(--mono); }
+.recipe { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; border:1px solid #263d2d; border-radius:9px; background:#14251b; }
+.recipe strong,.recipe span { display:block; }
+.recipe strong { color:#dceade; font-size:10px; }
+.recipe span { margin-top:4px; color:#81998a; font:8px var(--mono); line-height:1.5; }
+.craft-button { flex:none; padding:8px 10px; border:1px solid #52875e; border-radius:7px; background:#244b30; color:#c8f4cf; cursor:pointer; font:9px var(--mono); }
+.craft-button:hover:not(:disabled) { background:#32633f; }
+.craft-button:disabled { opacity:.35; cursor:not-allowed; }
+
+.avatar-placeholder { background:linear-gradient(145deg,#d5e8ce,#93b58b); color:#315dce; font-size:27px; text-shadow:0 -8px 0 #513a2b; }
+.avatar-placeholder span { transform:translateY(4px); }
