@@ -820,6 +820,17 @@
       .clock { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } .app-window { animation: none; } }
+
+    .active-users-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; white-space:nowrap; }
+    .active-users-pill::before { content:""; width:7px; height:7px; border-radius:50%; background:#4ade80; box-shadow:0 0 8px #4ade80; }
+    .chat-text-color { width:34px; height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); cursor:pointer; }
+    .soc-comments { display:grid; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+    .soc-comment-list { display:grid; gap:7px; }
+    .soc-comment { padding:8px 10px; border-radius:9px; background:var(--surface-2); font-size:13px; overflow-wrap:anywhere; }
+    .soc-comment small { display:block; color:var(--muted); margin-top:3px; }
+    .soc-comment-form { display:flex; gap:6px; }
+    .soc-comment-form input { min-width:0; flex:1; }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/dist/livekit-client.umd.min.js"></script>
   <script>
@@ -841,6 +852,7 @@
     <header class="statusbar">
       <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HbuOS</span></span>
       <span class="nav-spacer"></span>
+      <span class="active-users-pill" id="active-users-pill" title="People active in the last 2 minutes">0 active</span>
       <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
       <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins. Open rewards">🪙 <span id="coin-count">0</span></a>
@@ -1151,6 +1163,8 @@
                 <form class="message-form" id="message-form">
                   <label class="sr-only" for="message-text">Message</label>
                   <textarea id="message-text" name="message" maxlength="500" rows="1" placeholder="Send a message... (Enter to send)" required></textarea>
+                  <label class="sr-only" for="chat-text-color">Your message text color</label>
+                  <input class="chat-text-color" id="chat-text-color" type="color" value="#f4efff" title="Choose your message text color" aria-label="Choose your message text color">
                   <span class="emoji-wrap">
                     <button class="icon-button" id="emoji-button" type="button" aria-label="Emoji picker" aria-expanded="false">🙂</button>
                     <div class="emoji-popup" id="emoji-popup" hidden>
@@ -1879,6 +1893,14 @@
             <p class="app-note" id="accounts-status"></p>
             <ul class="owner-list" id="accounts-list"></ul>
           </details>
+          <h2>Device bans</h2>
+          <p class="app-note">Block every registered device linked to a username. Device identity is browser storage, so clearing site data or using another browser can create a new device identity.</p>
+          <form class="friends-form" id="owner-device-ban-form">
+            <input id="owner-device-ban-name" type="text" maxlength="20" placeholder="Username to device-ban" autocomplete="off" required>
+            <input id="owner-device-ban-reason" type="text" maxlength="200" placeholder="Reason (optional)">
+            <button class="button button-primary" type="submit">Ban device</button>
+          </form>
+          <p class="app-note" id="owner-device-ban-status" role="status" aria-live="polite"></p>
           <h2>Delete by student ID</h2>
           <p class="app-note">Type letters or numbers. Every account whose student ID contains them in that order is listed first, then you confirm to delete them and their messages. Owners are never deleted.</p>
           <form class="friends-form" id="sid-form">
@@ -2354,6 +2376,25 @@
     const chatRoom = document.querySelector("#chat-room");
     const chatUser = document.querySelector("#chat-user");
     const chatLive = document.querySelector("#chat-live");
+    function hbuDeviceId() {
+      const key = "hbu-device-id-v1";
+      let value = "";
+      try { value = localStorage.getItem(key) || ""; } catch {}
+      if (!/^[a-f0-9-]{36}$/i.test(value)) {
+        if (crypto.randomUUID) {
+          value = crypto.randomUUID();
+        } else {
+          const bytes = new Uint8Array(16);
+          crypto.getRandomValues(bytes);
+          bytes[6] = (bytes[6] & 0x0f) | 0x40;
+          bytes[8] = (bytes[8] & 0x3f) | 0x80;
+          const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+          value = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        }
+        try { localStorage.setItem(key, value); } catch {}
+      }
+      return value;
+    }
     const authForm = document.querySelector("#auth-form");
     const authUsername = document.querySelector("#auth-username");
     const authPassword = document.querySelector("#auth-password");
@@ -2534,6 +2575,20 @@
     genreFilter.addEventListener("change", renderGames);
     libraryFilter.addEventListener("change", renderGames);
 
+    async function hbuPresencePing() {
+      if (!account) return;
+      try {
+        const rows = await rpc("hbu_presence_ping", { p_username: account.username, p_password: account.password, p_device_id: hbuDeviceId() });
+        const count = Number(rows?.active_count ?? rows ?? 0);
+        const pill = document.querySelector("#active-users-pill");
+        if (pill && Number.isFinite(count)) pill.textContent = `${count} active`;
+      } catch (error) {
+        // The migration is optional until applied; keep the rest of HBU usable.
+        console.debug("Active-user presence is not configured yet.", error);
+      }
+    }
+    window.setInterval(hbuPresencePing, 45000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) void hbuPresencePing(); });
     let account = null;
     let profileRequest = 0;
     let currentConvo = "everyone";
@@ -2649,7 +2704,7 @@
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ username: account.username, password: account.password, receiver, message })
+        body: JSON.stringify({ username: account.username, password: account.password, device_id: hbuDeviceId(), text_color: chatTextColor?.value || null, receiver, message })
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) {
@@ -2673,7 +2728,7 @@
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ username: account.username, password: account.password, action, ...extra })
+        body: JSON.stringify({ username: account.username, password: account.password, device_id: hbuDeviceId(), action, ...extra })
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error((body && body.error) || `Request failed (${response.status}).`);
@@ -4045,6 +4100,7 @@
       refreshWallet();
       void loadAds();
       if (account) {
+        void hbuPresencePing();
         authChallengeRequest++;
         authChallengeId = "";
         authChallengeLoading = null;
@@ -4394,6 +4450,13 @@
       drawMessages();
     }
 
+    const chatTextColor = document.querySelector("#chat-text-color");
+    if (chatTextColor) {
+      try { chatTextColor.value = localStorage.getItem("hbu-chat-text-color") || "#f4efff"; } catch {}
+      chatTextColor.addEventListener("input", () => {
+        try { localStorage.setItem("hbu-chat-text-color", chatTextColor.value); } catch {}
+      });
+    }
     function drawMessages() {
       const pending = pendingMessages
         .filter(item => item.convo === currentConvo && account)
@@ -4537,6 +4600,7 @@
           }
         } else {
           appendWithMentions(text, parsed.body);
+          if (/^#[0-9a-fA-F]{6}$/.test(message.text_color || "")) text.style.color = message.text_color;
           if (wasEdited) {
             const mark = document.createElement("small");
             mark.className = "edited-mark";
@@ -4712,7 +4776,7 @@
       try {
         let messages;
         if (convo === "everyone") {
-          const response = await fetch(`${supabaseMessagesUrl}?select=id,user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
+          const response = await fetch(`${supabaseMessagesUrl}?select=id,user,message,text_color,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
             headers: { apikey: supabaseAnonKey }
           });
           if (!response.ok) throw new Error(`Could not load messages (${response.status}).`);
@@ -4764,7 +4828,7 @@
             headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
             body: JSON.stringify({
               action: signupMode ? "signup_image" : "login_image",
-              username, password, student_id: signupMode ? authStudentId.value.trim() : undefined,
+              username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined,
               challenge_id: authChallengeId, challenge_answer: authChallengeAnswer.value
             })
           });
@@ -4783,6 +4847,7 @@
         if (typeof realName !== "string" || !realName) throw new Error("The account service returned an invalid username.");
         account = { username: realName, password };
         saveSession();
+        void hbuPresencePing();
         askNotificationPermission();
         authForm.reset();
         messageStatus.textContent = "";
@@ -4911,6 +4976,26 @@
     }
     document.querySelector("#owner-accounts").addEventListener("toggle", event => {
       if (event.target.open) loadOwnerAccounts();
+    });
+    document.querySelector("#owner-device-ban-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const status = document.querySelector("#owner-device-ban-status");
+      const submit = event.target.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      status.textContent = "Applying device ban...";
+      try {
+        const count = await rpc("hbu_owner_device_ban", {
+          ...creds(),
+          p_target_username: document.querySelector("#owner-device-ban-name").value.trim(),
+          p_reason: document.querySelector("#owner-device-ban-reason").value.trim() || null
+        });
+        status.textContent = `Device ban applied to ${Number(count) || 0} registered device(s).`;
+        event.target.reset();
+      } catch (error) {
+        status.textContent = /function|schema cache/i.test(error.message)
+          ? "Device security is not installed yet. Run supabase/device-security.sql."
+          : error.message;
+      } finally { submit.disabled = false; }
     });
 
     const archiveStatus = document.querySelector("#archive-status");
@@ -5528,7 +5613,7 @@
       const response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
         headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ action: `voice_${action}`, ...walletAuth(), ...extra })
+        body: JSON.stringify({ action: `voice_${action}`, ...walletAuth(), device_id: hbuDeviceId(), ...extra })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `Voice Rooms request failed (${response.status}).`);
@@ -7454,6 +7539,98 @@
         like.disabled = false;
       });
       actions.append(like);
+      const commentToggle = document.createElement("button");
+      commentToggle.type = "button";
+      commentToggle.className = "button";
+      commentToggle.textContent = `Comments (${Number(post.comments || 0)})`;
+      actions.append(commentToggle);
+      const commentsBox = document.createElement("section");
+      commentsBox.className = "soc-comments";
+      commentsBox.hidden = true;
+      const commentList = document.createElement("div");
+      commentList.className = "soc-comment-list";
+      const commentForm = document.createElement("form");
+      commentForm.className = "soc-comment-form";
+      const commentInput = document.createElement("input");
+      commentInput.type = "text";
+      commentInput.maxLength = 300;
+      commentInput.placeholder = "Write a comment...";
+      commentInput.setAttribute("aria-label", "Write a comment");
+      commentInput.required = true;
+      const commentSend = document.createElement("button");
+      commentSend.type = "submit";
+      commentSend.className = "button button-primary";
+      commentSend.textContent = "Send";
+      commentForm.append(commentInput, commentSend);
+      commentsBox.append(commentList, commentForm);
+      let commentsLoaded = false;
+      async function loadPostComments() {
+        commentList.replaceChildren();
+        const loading = document.createElement("p");
+        loading.className = "muted";
+        loading.textContent = "Loading comments...";
+        commentList.append(loading);
+        try {
+          const rows = await rpc("hbu_social_comments", { ...walletAuth(), p_post_id: post.id });
+          commentList.replaceChildren();
+          if (!rows.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted";
+            empty.textContent = "No comments yet.";
+            commentList.append(empty);
+          }
+          for (const row of rows) {
+            const item = document.createElement("div");
+            item.className = "soc-comment";
+            const body = document.createElement("span");
+            body.textContent = row.body;
+            const meta = document.createElement("small");
+            meta.textContent = `${row.author} · ${socTime(row.created_at)}`;
+            item.append(body, meta);
+            if (row.can_delete) {
+              const remove = document.createElement("button");
+              remove.type = "button";
+              remove.className = "button";
+              remove.textContent = "Delete";
+              remove.addEventListener("click", async () => {
+                remove.disabled = true;
+                try {
+                  await rpc("hbu_social_comment_delete", { ...walletAuth(), p_id: row.id });
+                  await loadPostComments();
+                  post.comments = Math.max(0, Number(post.comments || 0) - 1);
+                  commentToggle.textContent = `Comments (${post.comments})`;
+                } catch (error) { $("#soc-status").textContent = error.message; remove.disabled = false; }
+              });
+              item.append(remove);
+            }
+            commentList.append(item);
+          }
+          commentsLoaded = true;
+        } catch (error) {
+          commentList.replaceChildren();
+          const message = document.createElement("p");
+          message.className = "muted";
+          message.textContent = /function|schema cache/i.test(error.message) ? "Comments need the updated supabase/social.sql migration." : error.message;
+          commentList.append(message);
+        }
+      }
+      commentToggle.addEventListener("click", async () => {
+        commentsBox.hidden = !commentsBox.hidden;
+        if (!commentsBox.hidden && !commentsLoaded) await loadPostComments();
+      });
+      commentForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!account || !commentInput.value.trim()) return;
+        commentSend.disabled = true;
+        try {
+          await rpc("hbu_social_comment", { ...walletAuth(), p_post_id: post.id, p_body: commentInput.value.trim() });
+          commentInput.value = "";
+          post.comments = Number(post.comments || 0) + 1;
+          commentToggle.textContent = `Comments (${post.comments})`;
+          await loadPostComments();
+        } catch (error) { $("#soc-status").textContent = error.message; }
+        finally { commentSend.disabled = false; }
+      });
       if (!post.mine) {
         const follow = document.createElement("button");
         follow.type = "button";
@@ -7484,7 +7661,7 @@
         });
         actions.append(del);
       }
-      card.append(actions);
+      card.append(actions, commentsBox);
       return card;
     }
     function socDraw() {
