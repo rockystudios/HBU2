@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10231b">
+  <meta name="description" content="HBU Survival — gather, explore, and survive.">
+  <title>HBU Survival</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">H</div>
+        <div>
+          <h1>HBU <span>SURVIVAL</span></h1>
+          <p>ONE WORLD. ONE PLAYER. SURVIVE.</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="day-pill"><span class="sun-dot"></span><span id="dayLabel">DAY 1</span></div>
+        <button class="icon-button" id="soundButton" type="button" aria-label="Toggle sound">♫</button>
+        <button class="icon-button" id="pauseButton" type="button" aria-label="Pause game">Ⅱ</button>
+      </div>
+    </header>
+
+    <section class="game-layout">
+      <section class="world-panel">
+        <div class="world-heading">
+          <div>
+            <p class="eyebrow">THE WILDERNESS</p>
+            <h2>Survival begins here.</h2>
+          </div>
+          <div class="live-status"><span class="live-dot"></span> WORLD ACTIVE</div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="game" width="960" height="600" aria-label="HBU Survival game world"></canvas>
+          <div class="canvas-vignette"></div>
+          <div class="toast" id="toast" role="status"></div>
+          <div class="start-overlay" id="startOverlay">
+            <div class="start-card">
+              <div class="mini-logo">HBU</div>
+              <p class="eyebrow">WELCOME TO THE WILDERNESS</p>
+              <h2>Can you survive?</h2>
+              <p>Collect resources, keep your hunger up, and see how many days you can last.</p>
+              <button class="primary-button" id="startButton" type="button">START SURVIVING <span>→</span></button>
+            </div>
+          </div>
+          <div class="pause-overlay hidden" id="pauseOverlay">
+            <div class="pause-card">
+              <p class="eyebrow">TAKE A BREATHER</p>
+              <h2>Game paused</h2>
+              <button class="primary-button" id="resumeButton" type="button">RESUME <span>→</span></button>
+            </div>
+          </div>
+          <div class="game-over-overlay hidden" id="gameOverOverlay">
+            <div class="pause-card">
+              <p class="eyebrow">THE WILDERNESS WON</p>
+              <h2>You ran out of energy.</h2>
+              <p id="finalStats">You survived 1 day.</p>
+              <button class="primary-button" id="restartButton" type="button">TRY AGAIN <span>↻</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="world-footer">
+          <div class="location"><span class="location-icon">⌖</span><span>UNKNOWN FOREST</span></div>
+          <div class="coordinates" id="coordinates">X: 0 · Y: 0</div>
+          <div class="objective"><span class="objective-dot"></span><span id="objectiveText">Find resources to survive</span></div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="panel player-panel">
+          <div class="panel-title"><h3>PLAYER STATUS</h3><span class="status-tag">ALIVE</span></div>
+          <div class="player-card">
+            <div class="avatar-frame"><img src="assets/player.png" alt="Your character"></div>
+            <div><strong>Survivor</strong><span>Wilderness explorer</span></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label"><span>♥ HEALTH</span><strong id="healthValue">100%</strong></div>
+            <div class="bar"><div class="bar-fill health-fill" id="healthBar"></div></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label"><span>♨ HUNGER</span><strong id="hungerValue">100%</strong></div>
+            <div class="bar"><div class="bar-fill hunger-fill" id="hungerBar"></div></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label"><span>⚡ STAMINA</span><strong id="staminaValue">100%</strong></div>
+            <div class="bar"><div class="bar-fill stamina-fill" id="staminaBar"></div></div>
+          </div>
+        </section>
+
+        <section class="panel inventory-panel">
+          <div class="panel-title"><h3>BACKPACK</h3><span class="small-count" id="itemCount">0 ITEMS</span></div>
+          <div class="inventory-grid">
+            <div class="inventory-item"><span class="item-emoji">🪵</span><span class="item-name">WOOD</span><strong id="woodCount">0</strong></div>
+            <div class="inventory-item"><span class="item-emoji">🪨</span><span class="item-name">STONE</span><strong id="stoneCount">0</strong></div>
+            <div class="inventory-item"><span class="item-emoji">🫐</span><span class="item-name">BERRIES</span><strong id="berryCount">0</strong></div>
+          </div>
+          <button class="eat-button" id="eatButton" type="button">EAT BERRIES <span>+25 HUNGER</span></button>
+        </section>
+
+        <section class="panel controls-panel">
+          <div class="panel-title"><h3>HOW TO PLAY</h3><span class="help-mark">?</span></div>
+          <div class="control-row"><span class="key-group"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Move around</span></div>
+          <div class="control-row"><kbd class="wide-key">E</kbd><span>Gather nearby resources</span></div>
+          <div class="control-row"><kbd class="wide-key">F</kbd><span>Eat berries</span></div>
+          <div class="control-row"><kbd class="wide-key">SHIFT</kbd><span>Run (uses stamina)</span></div>
+          <p class="tip">Stay moving. Hunger drops as time passes, so keep collecting berries.</p>
+        </section>
+      </aside>
+    </section>
+    <footer class="footer"><span>HBU SURVIVAL <span class="footer-muted">· EARLY BUILD</span></span><span>MADE TO SURVIVE <span class="footer-muted">·</span> <span id="clock">00:00</span></span></footer>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
