@@ -401,6 +401,7 @@ interface RoleDef {
 }
 
 const ROLE_NAME = /^[a-z0-9_-]{2,20}$/;
+const ROLE_POLICY_VERSION = "2026-11-11-v1";
 let rolesCache: { at: number; defs: Map<string, RoleDef> } = { at: 0, defs: new Map() };
 
 // Before supabase/role-editor.sql is run, the roles come from each command's default list.
@@ -446,6 +447,13 @@ async function roleOf(name: string, ignoreBan = false): Promise<Role> {
   const banned = row?.banned_until && new Date(row.banned_until) > new Date();
   if (row?.role && (ignoreBan || !banned) && (await roleDefs()).has(row.role)) return row.role;
   return "user";
+}
+
+async function hasAcceptedRolePolicy(username: string, role: Role): Promise<boolean> {
+  if (role === "user") return true;
+  const rows = await db(`role_policy_acceptances?select=role_name,policy_version&username=eq.${enc(username)}&limit=1`) ?? [];
+  const acceptance = rows[0];
+  return acceptance?.role_name === role && acceptance?.policy_version === ROLE_POLICY_VERSION;
 }
 
 function parseMinutes(token: string | undefined): number | null {
@@ -1229,7 +1237,36 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
 }
 
 async function handleAdmin(action: string, staff: string, body: Record<string, unknown>) {
-  const role = await roleOf(staff);
+  const role = await roleOf(staff, true);
+  if (action === "admin_role_policy_status") {
+    let required = role !== "user";
+    if (required) {
+      try {
+        required = !(await hasAcceptedRolePolicy(staff, role));
+      } catch (error) {
+        console.error("Could not check role policy acceptance", error);
+        throw new UserError("HBU could not verify your policy acceptance. Run supabase/role-policy-acceptance.sql and deploy the updated send-message function.", 503);
+      }
+    }
+    return json({ role, label: await roleLabel(role), required, policy_version: ROLE_POLICY_VERSION });
+  }
+  if (action === "admin_role_policy_accept") {
+    if (role === "user") return json({ ok: true, required: false });
+    if (body.accept !== true || body.policy_version !== ROLE_POLICY_VERSION) {
+      throw new UserError("Confirm that you have read the current HBU Staff Abuse & Consequences Policy.");
+    }
+    try {
+      await db("role_policy_acceptances?on_conflict=username", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ username: staff, role_name: role, policy_version: ROLE_POLICY_VERSION, accepted_at: new Date().toISOString() }),
+      });
+    } catch (error) {
+      console.error("Could not save role policy acceptance", error);
+      throw new UserError("Could not save your policy acceptance. Make sure supabase/role-policy-acceptance.sql has been run.", 503);
+    }
+    return json({ ok: true, required: false, role, policy_version: ROLE_POLICY_VERSION });
+  }
   if (action === "admin_role") {
     const def = (await roleDefs()).get(role);
     return json({ role, staff: await isStaffRole(role), label: await roleLabel(role), commands: def?.commands ?? [] });
@@ -1694,6 +1731,13 @@ async function handleRequest(req: Request): Promise<Response> {
     await enforceDevice(realName, password, body.device_id);
     recordIp(req, realName);
     await requireRateLimit(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60);
+    const isRolePolicyAction = action === "admin_role_policy_status" || action === "admin_role_policy_accept";
+    if (!isRolePolicyAction) {
+      const currentRole = await roleOf(realName, true);
+      if (currentRole !== "user" && !(await hasAcceptedRolePolicy(realName, currentRole))) {
+        throw new UserError("You must read and accept the HBU Staff Abuse & Consequences Policy before using HBU with this role.", 403);
+      }
+    }
     if (isVoiceAction) {
       const voiceLimits: Record<string, [number, number]> = {
         voice_list: [60, 60],
