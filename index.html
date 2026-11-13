@@ -821,7 +821,7 @@
     }
     @media (prefers-reduced-motion: reduce) { .splash { animation: splash-rainbow 6s linear infinite; } .app-window { animation: none; } }
 
-    .active-users-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; white-space:nowrap; }
+    .active-users-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; white-space:nowrap; } .chat-bar > .active-users-pill { flex: 0 0 auto; margin-right: auto; }
     .active-users-pill::before { content:""; width:7px; height:7px; border-radius:50%; background:#4ade80; box-shadow:0 0 8px #4ade80; }
     .chat-text-color { width:34px; height:34px; padding:2px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); cursor:pointer; }
     .soc-comments { display:grid; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
@@ -852,7 +852,7 @@
     <header class="statusbar">
       <span class="brand"><span class="brand-mark" aria-hidden="true"><img src="assets/logo.jpg" alt="" onerror="this.remove()"><b>✦</b></span><span>HbuOS</span></span>
       <span class="nav-spacer"></span>
-      <span class="active-users-pill" id="active-users-pill" title="People active in the last 2 minutes">0 active</span>
+      
       <button class="music-btn" id="music-button" type="button" aria-pressed="false" aria-label="Toggle background music" title="Background music">🔇</button>
       <span class="clock" id="clock" aria-label="Time"></span>
       <a class="coin-pill" id="coin-pill" href="#rewards" aria-label="Your coins. Open rewards">🪙 <span id="coin-count">0</span></a>
@@ -1127,6 +1127,7 @@
           <div id="chat-room" hidden>
             <div class="chat-bar">
               <span>Signed in as <strong id="chat-user"></strong></span>
+              <span class="active-users-pill" id="active-users-pill" title="People active in the last 2 minutes" aria-live="polite">0 active</span>
               <span class="chat-bar-actions">
                 <button class="icon-button" id="admin-toggle" type="button" aria-pressed="true" hidden>🛡 Admin board ▾</button>
                 <span class="view-menu">
