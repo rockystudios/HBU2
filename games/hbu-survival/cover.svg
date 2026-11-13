@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="HBU Survival forest game cover">
+<defs>
+  <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#234b32"/><stop offset="1" stop-color="#0c1b12"/></linearGradient>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#8fc79a" stroke-opacity=".08"/></pattern>
+</defs>
+<rect width="640" height="360" fill="url(#bg)"/><rect width="640" height="360" fill="url(#grid)"/>
+<circle cx="520" cy="75" r="42" fill="#d8edaa" opacity=".9"/>
+<g fill="#1b3e27"><path d="M40 290 110 100l70 190zM150 300l75-220 75 220zM430 310l85-230 85 230z"/></g>
+<g fill="#6a4a2c"><rect x="101" y="225" width="18" height="72"/><rect x="216" y="225" width="18" height="78"/><rect x="507" y="220" width="18" height="88"/></g>
+<g transform="translate(300 145)"><rect x="10" y="0" width="65" height="55" rx="3" fill="#f0c27c" stroke="#111" stroke-width="8"/><rect x="0" y="54" width="85" height="86" fill="#073bdb" stroke="#111" stroke-width="8"/><rect x="26" y="18" width="8" height="16" fill="#111"/><rect x="55" y="18" width="8" height="16" fill="#111"/><rect x="31" y="42" width="27" height="7" fill="#111"/></g>
+<text x="28" y="45" fill="#eaf5e9" font-family="Arial,sans-serif" font-size="24" font-weight="700" letter-spacing="4">HBU SURVIVAL</text>
+<text x="30" y="333" fill="#b4d9b9" font-family="Arial,sans-serif" font-size="13" letter-spacing="3">GATHER · EXPLORE · SURVIVE</text>
+</svg>
