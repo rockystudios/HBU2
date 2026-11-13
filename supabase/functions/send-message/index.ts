@@ -1538,6 +1538,42 @@ async function verifyAltchaChallenge(body: Record<string, unknown>) {
   }
 }
 
+async function enforceDevice(username: string, password: string, deviceId: unknown) {
+  if (typeof deviceId !== "string" || !/^[a-f0-9-]{36}$/i.test(deviceId)) {
+    throw new UserError("Device verification is missing. Refresh HBU2 and try again.", 400);
+  }
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_device_attach`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_username: username, p_password: password, p_device_id: deviceId }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    if (/hbu_device_attach|schema cache|does not exist/i.test(result?.message ?? "")) {
+      throw new UserError("Device security is not installed yet. Run supabase/device-security.sql, then retry.", 503);
+    }
+    throw new UserError(result?.message ?? "This device could not be verified.", 403);
+  }
+}
+
+async function checkDeviceBeforeSignup(deviceId: unknown, username: string) {
+  if (typeof deviceId !== "string" || !/^[a-f0-9-]{36}$/i.test(deviceId)) {
+    throw new UserError("Device verification is missing. Refresh HBU2 and try again.", 400);
+  }
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_device_signup_check`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_device_id: deviceId, p_username: username }),
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    if (/hbu_device_signup_check|schema cache|does not exist/i.test(result?.message ?? "")) {
+      throw new UserError("Device security is not installed yet. Run supabase/device-security.sql, then retry.", 503);
+    }
+    throw new UserError(result?.message ?? "This device cannot create another account.", 403);
+  }
+}
+
 async function signup(req: Request, body: Record<string, unknown>) {
   const ipSubject = await requestIpSubject(req);
   await requireRateLimit(ipSubject, "signup_ip", 3, 3600);
@@ -1556,6 +1592,7 @@ async function signup(req: Request, body: Record<string, unknown>) {
     signupHits.set(ip, [...hits, now]);
   }
 
+  await checkDeviceBeforeSignup(body.device_id, String(body.username ?? ""));
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_signup`, {
     method: "POST",
     headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
@@ -1565,6 +1602,7 @@ async function signup(req: Request, body: Record<string, unknown>) {
     const err = await res.json().catch(() => null);
     throw new UserError(err?.message ?? "Could not create the account.", 400);
   }
+  await enforceDevice(String(body.username), String(body.password), body.device_id);
   return json({ ok: true, username: body.username });
 }
 
@@ -1595,6 +1633,7 @@ async function loginImage(req: Request, body: Record<string, unknown>) {
     throw new UserError(result?.message ?? "Could not log in.", response.status);
   }
   if (typeof result !== "string") throw new Error("Login returned an invalid username.");
+  await enforceDevice(result, String(body.password), body.device_id);
   return json({ username: result });
 }
 
@@ -1652,6 +1691,7 @@ async function handleRequest(req: Request): Promise<Response> {
       throw new UserError("Wrong username or password", 401);
     }
     const realName: string = await loginRes.json();
+    await enforceDevice(realName, password, body.device_id);
     recordIp(req, realName);
     await requireRateLimit(`account:${realName.toLowerCase()}`, "hbu_endpoint", 240, 60);
     if (isVoiceAction) {
@@ -1779,7 +1819,7 @@ async function handleRequest(req: Request): Promise<Response> {
     await db("messages", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ user: realName, receiver: target, message: clean }),
+      body: JSON.stringify({ user: realName, receiver: target, message: clean, text_color: /^#[0-9a-fA-F]{6}$/.test(String(body.text_color ?? "")) ? String(body.text_color) : null }),
     });
     const sentAt = new Date().toISOString();
     if (target === "everyone" && /@mod-bot\b/i.test(clean)) {
