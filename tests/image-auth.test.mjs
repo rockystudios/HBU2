@@ -17,6 +17,8 @@ function createServer() {
       if (url.endsWith("/hbu_edge_rate_limit")) return Response.json(true);
       calls.push({ url, body: JSON.parse(options.body) });
       if (url.endsWith("/hbu_reset_pending")) return Response.json(resetPending);
+      if (url.endsWith("/hbu_device_attach")) return Response.json(null);
+      if (url.endsWith("/hbu_device_signup_check")) return Response.json(null);
       if (url.endsWith("/hbu_login")) return Response.json("Tester");
       if (url.endsWith("/hbu_signup")) return Response.json(null);
       throw new Error(`Unexpected request: ${url}`);
@@ -48,33 +50,37 @@ async function submit(handle, body) {
 test("login checks the image before accessing the database, and rejects replay", async () => {
   const { handle, calls } = createServer();
   const image = await challenge(handle);
-  const body = { action: "login_image", username: "tester", password: "password", ...image };
+  const body = { action: "login_image", username: "tester", password: "password", device_id: "123e4567-e89b-42d3-a456-426614174000", ...image };
   const response = await submit(handle, body);
   assert.deepEqual(await response.json(), { username: "Tester" });
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
+  assert.ok(calls.some(call => call.url.endsWith("/hbu_device_attach")));
   const replay = await submit(handle, body);
   assert.equal(replay.status, 400);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   const wrong = await challenge(handle);
   wrong.challenge_answer = wrong.challenge_answer === "AAAAAA" ? "BBBBBB" : "AAAAAA";
   assert.equal((await submit(handle, { ...body, ...wrong })).status, 400);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   const expired = await challenge(handle);
   expired.challenge_id = `1000000000000.${expired.challenge_id.split(".").slice(1).join(".")}`;
   assert.equal((await submit(handle, { ...body, ...expired })).status, 400);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 });
 
 test("signup uses the image and returns the created username", async () => {
   const { handle, calls } = createServer();
   const image = await challenge(handle);
   const response = await submit(handle, {
-    action: "signup_image", username: "tester", password: "password", ...image
+    action: "signup_image", username: "tester", password: "password", device_id: "123e4567-e89b-42d3-a456-426614174000", ...image
   });
   assert.deepEqual(await response.json(), { ok: true, username: "tester" });
-  assert.equal(calls.length, 1);
-  assert.ok(calls[0].url.endsWith("/hbu_signup"));
-  assert.equal(calls[0].body.p_student_id, null);
+  assert.equal(calls.length, 3);
+  assert.ok(calls.some(call => call.url.endsWith("/hbu_signup")));
+  assert.ok(calls.some(call => call.url.endsWith("/hbu_device_signup_check")));
+  assert.ok(calls.some(call => call.url.endsWith("/hbu_device_attach")));
+  const signupCall = calls.find(call => call.url.endsWith("/hbu_signup"));
+  assert.equal(signupCall.body.p_student_id, null);
 });
 
 test("password reset is offered only after image verification", async () => {
