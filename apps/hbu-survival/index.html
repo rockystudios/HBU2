@@ -1322,7 +1322,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
       if (Array.isArray(payload.players)) {
         const active = new Map();
         for (const player of payload.players) {
-          if (!player || typeof player.name !== "string" || player.name.toLowerCase() === account.username.toLowerCase()) continue;
+          if (!player || typeof player.name !== "string" || player.name.trim().toLowerCase() === account.username.trim().toLowerCase()) continue;
           const previous = state.players.get(player.name);
           const targetX = Number.isFinite(Number(player.x)) ? Number(player.x) : 0;
           const targetY = Number.isFinite(Number(player.y)) ? Number(player.y) : 0;
@@ -2201,7 +2201,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     canvas.tabIndex = 0;
     state.pointerWasLockedOnDown = false;
     canvas.addEventListener("pointerdown", event => {
-      if (!state.started || event.button !== 0) return;
+      if (!state.started || event.button !== 0 || event.pointerType === "touch") return;
       state.pointerWasLockedOnDown = state.mouseLocked;
       if (!state.mouseLocked && canvas.requestPointerLock) {
         try {
