@@ -597,8 +597,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
         }
         return THREE;
       })().catch(error => { threeLoadPromise = null; throw new Error("Three.js could not load. Check your internet connection and press Play again."); });
-    }
-    return threeLoadPromise;
+    }    return threeLoadPromise;
   }
   const state = {
     started: false, name: "Survivor", x: 1200, y: 900, health: 100, hunger: 100, thirst: 100,
@@ -998,3 +997,2080 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
         worldGroup3D.remove(group);
         visibleWorldGroups3D.delete(key);
       }
+    }
+    if (refreshExisting) {
+      renderedWorldRevision3D = worldVisualRevision3D;
+      if (sunLight3D) sunLight3D.shadow.needsUpdate = true;
+    }
+  }
+
+  function updateStreamedChunks() {
+    if (!terrainGroup3D) return;
+    chunkGenerationChanged3D = false;
+    const centerX = Math.floor(state.x / CHUNK_SIZE);
+    const centerZ = Math.floor(state.y / CHUNK_SIZE);
+    const wanted = new Set();
+    for (let dz = -CHUNK_RENDER_RADIUS; dz <= CHUNK_RENDER_RADIUS; dz++) {
+      for (let dx = -CHUNK_RENDER_RADIUS; dx <= CHUNK_RENDER_RADIUS; dx++) {
+        const cx = centerX + dx, cz = centerZ + dz;
+        const key = `${cx},${cz}`;
+        wanted.add(key);
+        ensureChunkGenerated(cx, cz);
+        if (!terrainChunks3D.has(key)) {
+          const ground = new THREE.Mesh(
+            geometry3D("chunk-ground", () => new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE)),
+            mat3D("#86bb69", 1)
+          );
+          ground.rotation.x = -Math.PI / 2;
+          ground.position.set(cx * CHUNK_SIZE + CHUNK_SIZE / 2, -2, cz * CHUNK_SIZE + CHUNK_SIZE / 2);
+          ground.receiveShadow = true;
+          terrainGroup3D.add(ground);
+          terrainChunks3D.set(key, ground);
+        }
+      }
+    }
+    if (resourceIndexDirty3D) rebuildResourceIndex3D();
+    for (const [key, mesh] of terrainChunks3D) {
+      if (!wanted.has(key)) {
+        terrainGroup3D.remove(mesh);
+        terrainChunks3D.delete(key);
+      }
+    }
+    if (lastChunkCenter3D !== `${centerX},${centerZ}`) {
+      lastChunkCenter3D = `${centerX},${centerZ}`;
+      gridHelper3D.position.set(state.x, 0.25, state.y);
+    }
+    syncVisibleChunkObjects3D(wanted);
+    // Chunk discoveries are persisted by the normal save timer, not synchronously during movement.
+  }
+
+  function updateThreeActors() {
+    if (!actorGroup3D) return;
+    const desired = new Map();
+    for (const player of state.players.values()) {
+      desired.set(`remote:${player.name}`, {
+        x: player.x, z: player.y, color: player.color || "#9dc76e", name: player.name, self: false
+      });
+    }
+    desired.set(`self:${state.name}`, { x: state.x, z: state.y, color: "#8ab85d", name: state.name, self: true });
+
+    for (const [key, mesh] of actorMeshes3D) {
+      if (!desired.has(key)) {
+        actorGroup3D.remove(mesh);
+        actorMeshes3D.delete(key);
+      }
+    }
+    for (const [key, player] of desired) {
+      let mesh = actorMeshes3D.get(key);
+      if (!mesh) {
+        mesh = createPlayer3D(actorGroup3D, player.x, player.z, player.color, player.name, player.self);
+        actorMeshes3D.set(key, mesh);
+      }
+      mesh.position.x = player.x;
+      mesh.position.z = player.z;
+    }
+  }
+
+  function screenToWorld3D(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (state.mouseLocked || !Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+      pointerNDC3D.set(0, 0);
+    } else {
+      pointerNDC3D.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC3D.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    }
+    raycaster3D.setFromCamera(pointerNDC3D, camera3D);
+    const point = new THREE.Vector3();
+    if (raycaster3D.ray.intersectPlane(groundPlaneForRay3D, point)) {
+      return { x: point.x, y: point.z };
+    }
+    return { x: state.x, y: state.y };
+  }
+
+  function clearGroup3D(group) {
+    while (group.children.length) group.remove(group.children[0]);
+  }
+
+  function renderThreeWorld() {
+    if (!renderer3D) initThreeWorld();
+    updateStreamedChunks();
+
+    camera3D.position.set(state.x, 34, state.y);
+    camera3D.rotation.order = "YXZ";
+    camera3D.rotation.y = state.yaw + Math.PI;
+    camera3D.rotation.x = state.pitch;
+
+    // Move the shadow camera only occasionally. The expensive shadow map is refreshed
+    // when the player has moved a meaningful distance or the visible world changes.
+    if (sunLight3D && (!Number.isFinite(lastShadowCenter3D.x) || Math.hypot(state.x - lastShadowCenter3D.x, state.y - lastShadowCenter3D.z) > 120)) {
+      lastShadowCenter3D.x = state.x;
+      lastShadowCenter3D.z = state.y;
+      sunLight3D.position.set(state.x - 550, 1000, state.y - 650);
+      sunLight3D.target.position.set(state.x, 0, state.y);
+      sunLight3D.target.updateMatrixWorld();
+      sunLight3D.shadow.needsUpdate = true;
+    }
+
+    gridHelper3D.visible = state.gridVisible;
+    if (state.gridVisible) gridHelper3D.position.set(state.x, 0.25, state.y);
+
+    let ghostKey = "hidden";
+    if (state.selectedHotbar === 0 && state.crafted.hammer > 0 && state.crafted.walls > 0) {
+      const placement = getWallPlacement();
+      const valid = Math.hypot(placement.x - state.x, placement.y - state.y) <= 240 && !placementIsBlocked(placement);
+      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${valid}`;
+      if (ghostKey !== lastGhostPreviewKey3D) {
+        clearGroup3D(ghostWall3D);
+        createWall3D(ghostWall3D, placement, true);
+        ghostWall3D.traverse(object => {
+          if (object.material && object.material.color) object.material.color.set(valid ? "#a5e28e" : "#d58a80");
+        });
+        lastGhostPreviewKey3D = ghostKey;
+      }
+    } else if (lastGhostPreviewKey3D !== ghostKey) {
+      clearGroup3D(ghostWall3D);
+      lastGhostPreviewKey3D = ghostKey;
+    }
+
+    updateThreeActors();
+    const selfMesh = actorMeshes3D.get(`self:${state.name}`);
+    if (selfMesh) selfMesh.visible = false;
+    renderer3D.render(scene3D, camera3D);
+  }
+
+  function seededRandom(seed) {
+    let value = seed >>> 0;
+    return () => { value = (value * 1664525 + 1013904223) >>> 0; return value / 4294967296; };
+  }
+
+  function generateWorld() {
+    const random = seededRandom(7142026);
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+    state.resources = [];
+    const add = (type, count, amount) => {
+      for (let i = 0; i < count; i++) {
+        const x = 90 + random() * (WORLD_WIDTH - 180);
+        const y = 90 + random() * (WORLD_HEIGHT - 180);
+        if (Math.hypot(x - 1200, y - 900) < 120) continue;
+        state.resources.push({ id: `${type}-${i}`, type, x, y, amount, active: true });
+      }
+    };
+    add("tree", 92, 2); add("rock", 72, 2); add("berries", 52, 3); add("fiber", 58, 2);
+    state.resources.push({ id: "pond-west", type: "water", x: 390, y: 520, amount: 0, active: true, radius: 100 });
+    state.resources.push({ id: "pond-east", type: "water", x: 1940, y: 1290, amount: 0, active: true, radius: 115 });
+  }
+
+  function showToast(message) {
+    const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
+    clearTimeout(state.toastTimer); state.toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
+  }
+
+  function addActivity(message) {
+    state.activity.unshift(message); state.activity = state.activity.slice(0, 5);
+    $("activity-feed").innerHTML = state.activity.map(item => `<p>${item}</p>`).join("");
+  }
+
+  function updateHud() {
+    for (const stat of ["health", "hunger", "thirst"]) {
+      const value = Math.max(0, Math.min(100, Math.round(state[stat])));
+      const valueElement = $(`${stat}-value`);
+      const meterElement = $(`${stat}-meter`);
+      if (!valueElement || !meterElement) {
+        throw new Error(`Missing HUD element for ${stat}. Check the matching IDs in index.html.`);
+      }
+      valueElement.textContent = value;
+      meterElement.style.width = `${value}%`;
+    }
+    for (const [item, count] of Object.entries(state.inventory)) {
+      // The HTML uses "berry-count" (singular), while the inventory key is "berries".
+      const elementId = item === "berries" ? "berry-count" : `${item}-count`;
+      const element = $(elementId);
+      if (element) element.textContent = count;
+    }
+    $("position-label").textContent = `X: ${Math.round(state.x)} · Y: ${Math.round(state.y)}`;
+    const hour = Math.floor(state.worldMinutes / 60) % 24;
+    const minute = Math.floor(state.worldMinutes % 60 / 10) * 10;
+    $("world-time").textContent = `${hour >= 6 && hour < 19 ? "Daylight" : "Night"} Day ${state.day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      updateHotbar();
+  }
+  function getAccountSession() {
+    try {
+      const account = JSON.parse(sessionStorage.getItem(HBU_SESSION_KEY) || "null");
+      if (account && typeof account.username === "string" && typeof account.password === "string" && !account.offline) {
+        return { username: account.username, password: account.password };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function getAccountName() {
+    return getAccountSession()?.username || "";
+  }
+
+  function getHbuDeviceId() {
+    const key = "hbu-device-id-v1";
+    let value = "";
+    try { value = localStorage.getItem(key) || ""; } catch (_) {}
+    if (!/^[a-f0-9-]{36}$/i.test(value)) {
+      if (window.crypto?.randomUUID) {
+        value = window.crypto.randomUUID();
+      } else {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+        value = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+      try { localStorage.setItem(key, value); } catch (_) {}
+    }
+    return value;
+  }
+
+  function setConnectionStatus(kind, label) {
+    const element = $("connection-status");
+    element.className = `connection-pill ${kind}`;
+    element.innerHTML = `<i></i> ${escapeHtml(label)}`;
+  }
+
+  function buildMultiplayerPayload(account, initialize = false, leave = false) {
+    return {
+      p_username: account.username,
+      p_password: account.password,
+      p_initialize: initialize,
+      p_leave: leave,
+      p_x: state.x,
+      p_y: state.y,
+      p_yaw: state.yaw,
+      p_health: state.health,
+      p_hunger: state.hunger,
+      p_thirst: state.thirst,
+      p_inventory: state.inventory,
+      p_crafted: state.crafted,
+      p_removed: [...state.removed],
+      p_camps: state.camps,
+      p_walls: state.walls,
+      p_world_minutes: state.worldMinutes,
+      p_day: state.day
+    };
+  }
+
+  function applyServerPlayer(player) {
+    if (!player || typeof player !== "object") return;
+    state.x = Number.isFinite(Number(player.x)) ? Number(player.x) : state.x;
+    state.y = Number.isFinite(Number(player.y)) ? Number(player.y) : state.y;
+    state.yaw = Number.isFinite(Number(player.yaw)) ? Number(player.yaw) : state.yaw;
+    state.health = Number.isFinite(Number(player.health)) ? Math.max(0, Math.min(100, Number(player.health))) : state.health;
+    state.hunger = Number.isFinite(Number(player.hunger)) ? Math.max(0, Math.min(100, Number(player.hunger))) : state.hunger;
+    state.thirst = Number.isFinite(Number(player.thirst)) ? Math.max(0, Math.min(100, Number(player.thirst))) : state.thirst;
+    if (player.inventory && typeof player.inventory === "object") state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...player.inventory };
+    if (player.crafted && typeof player.crafted === "object") state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...player.crafted };
+  }
+
+  function applyServerWorld(world) {
+    if (!world || typeof world !== "object") return;
+    state.removed = new Set(Array.isArray(world.removed) ? world.removed : []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number.isFinite(Number(world.world_minutes)) ? Number(world.world_minutes) : state.worldMinutes;
+    state.day = Math.max(1, Number(world.day) || state.day);
+    for (const resource of state.resources) {
+      if (state.removed.has(resource.id)) resource.active = false;
+    }
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+  }
+
+  async function syncMultiplayer(initialize = false, leave = false, keepalive = false) {
+    const account = getAccountSession();
+    if (!account || state.multiplayerBusy) return null;
+    state.multiplayerBusy = true;
+    try {
+      const response = await fetch(`${HBU_GATEWAY_URL}/rest/v1/rpc/hbu_survival_sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: HBU_SUPABASE_ANON_KEY,
+          "X-HBU-Device-ID": getHbuDeviceId()
+        },
+        body: JSON.stringify(buildMultiplayerPayload(account, initialize, leave)),
+        cache: "no-store",
+        keepalive
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.message || payload?.error || `Multiplayer request failed (${response.status}).`;
+        throw new Error(message);
+      }
+      if (!payload || typeof payload !== "object") throw new Error("The multiplayer server returned an invalid response.");
+      if (payload.self) applyServerPlayer(payload.self);
+      if (payload.world) applyServerWorld(payload.world);
+      if (Array.isArray(payload.players)) {
+        const active = new Map();
+        for (const player of payload.players) {
+          if (!player || typeof player.name !== "string" || player.name.toLowerCase() === state.name.toLowerCase()) continue;
+          active.set(player.name, {
+            name: player.name,
+            x: Number(player.x) || 0,
+            y: Number(player.y) || 0,
+            color: "#9dc76e"
+          });
+        }
+        state.players = active;
+      }
+      state.multiplayerReady = !leave;
+      if (initialize && !leave) state.multiplayerInitialized = true;
+      state.multiplayerLastError = "";
+      if (!leave) {
+        setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+        renderSurvivors();
+        updateHud();
+      }
+      return payload;
+    } catch (error) {
+      state.multiplayerLastError = error.message || "Connection problem";
+      state.multiplayerReady = false;
+      if (!leave) setConnectionStatus("offline", "Multiplayer reconnecting");
+      console.warn("HBU Survival multiplayer sync failed:", error);
+      return null;
+    } finally {
+      state.multiplayerBusy = false;
+    }
+  }
+
+
+  function serializeWorld() {
+    return {
+      resources: state.resources,
+      generatedChunks: [...state.generatedChunks],
+      removed: [...state.removed],
+      camps: state.camps,
+      walls: state.walls,
+      worldMinutes: state.worldMinutes,
+      day: state.day
+    };
+  }
+
+  function loadLocalWorld() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WORLD_STORAGE_KEY) || "null");
+      if (saved && Array.isArray(saved.resources) && saved.resources.length) {
+        state.resources = saved.resources;
+        resourceIndexDirty3D = true;
+        markWorldVisualsDirty3D();
+        state.generatedChunks = new Set(saved.generatedChunks || []);
+        state.removed = new Set(saved.removed || []);
+        state.camps = Array.isArray(saved.camps) ? saved.camps : [];
+        state.walls = Array.isArray(saved.walls) ? saved.walls.map(wall => snapWallToGrid(wall)) : [];
+        state.worldMinutes = Number(saved.worldMinutes) || 480;
+        state.day = Math.max(1, Number(saved.day) || 1);
+      } else {
+        generateWorld();
+        saveWorld();
+      }
+    } catch (error) {
+      console.warn("Could not load local world; creating a fresh one.", error);
+      generateWorld();
+      saveWorld();
+    }
+
+    try {
+      const savedPlayer = JSON.parse(localStorage.getItem(PLAYER_STORAGE_PREFIX + state.name) || "null");
+      if (savedPlayer) {
+        state.x = Number.isFinite(Number(savedPlayer.x)) ? Number(savedPlayer.x) : 1200;
+        state.y = Number.isFinite(Number(savedPlayer.y)) ? Number(savedPlayer.y) : 900;
+        state.yaw = Number.isFinite(Number(savedPlayer.yaw)) ? Number(savedPlayer.yaw) : 0;
+        state.health = Number.isFinite(Number(savedPlayer.health)) ? Number(savedPlayer.health) : 100;
+        state.hunger = Number.isFinite(Number(savedPlayer.hunger)) ? Number(savedPlayer.hunger) : 100;
+        state.thirst = Number.isFinite(Number(savedPlayer.thirst)) ? Number(savedPlayer.thirst) : 100;
+        state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...(savedPlayer.inventory || {}) };
+        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...(savedPlayer.crafted || {}) };
+      }
+    } catch (error) {
+      console.warn("Could not load local player save.", error);
+    }
+  }
+
+  function saveWorld() {
+    try {
+      localStorage.setItem(WORLD_STORAGE_KEY, JSON.stringify(serializeWorld()));
+      if (state.channel) state.channel.postMessage({ type: "world", world: serializeWorld() });
+    } catch (error) {
+      console.error("HBU Survival local world save failed:", error);
+      showToast("Could not save the world in this browser.");
+    }
+  }
+
+  function savePlayer() {
+    try {
+      localStorage.setItem(PLAYER_STORAGE_PREFIX + state.name, JSON.stringify({
+        x: state.x, y: state.y, yaw: state.yaw, health: state.health, hunger: state.hunger,
+        thirst: state.thirst, inventory: state.inventory, crafted: state.crafted
+      }));
+    } catch (error) {
+      console.error("HBU Survival local player save failed:", error);
+      showToast("Could not save your survivor in this browser.");
+    }
+  }
+
+  function saveEverything() {
+    saveWorld();
+    savePlayer();
+  }
+
+  function applyRemoteWorld(world) {
+    if (!world || !Array.isArray(world.resources)) return;
+    state.resources = world.resources;
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+    state.removed = new Set(world.removed || []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number(world.worldMinutes) || 480;
+    state.day = Math.max(1, Number(world.day) || 1);
+  }
+
+  function scheduleMultiplayerSync(delay = MULTIPLAYER_SYNC_MS) {
+    if (state.multiplayerTimer) clearTimeout(state.multiplayerTimer);
+    state.multiplayerTimer = window.setTimeout(async () => {
+      if (!state.started || !getAccountSession()) return;
+      await syncMultiplayer(!state.multiplayerInitialized);
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+    }, delay);
+  }
+
+  async function connectWorld() {
+    loadLocalWorld();
+    if ("BroadcastChannel" in window) {
+      state.channel = new BroadcastChannel(WORLD_CHANNEL);
+      state.channel.onmessage = event => {
+        const message = event.data;
+        if (!message) return;
+        if (message.type === "world") applyRemoteWorld(message.world);
+        if (message.type === "collect" && message.payload?.id) {
+          state.removed.add(message.payload.id);
+          const resource = state.resources.find(item => item.id === message.payload.id);
+          if (resource) resource.active = false;
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "campfire" && message.payload && !state.camps.some(camp => camp.id === message.payload.id)) {
+          state.camps.push(message.payload);
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "wall" && message.payload && !state.walls.some(wall => wall.id === message.payload.id)) {
+          state.walls.push(message.payload);
+          markWorldVisualsDirty3D();
+          saveWorld();
+        }
+        if (message.type === "move" && message.player?.name !== state.name) {
+          state.players.set(message.player.name, message.player);
+          renderSurvivors();
+        }
+        if (message.type === "leave") {
+          state.players.delete(message.name);
+          renderSurvivors();
+        }
+      };
+      state.channel.postMessage({ type: "move", player: { name: state.name, x: state.x, y: state.y, color: "#b6d77d" } });
+    }
+
+    const account = getAccountSession();
+    if (account) {
+      const joined = await syncMultiplayer(true);
+      if (!joined) setConnectionStatus("offline", "Multiplayer reconnecting · Local save active");
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+      if (joined) setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+    } else {
+      setConnectionStatus("offline", "Local save · Sign in for multiplayer");
+    }
+  }
+
+  function renderSurvivors() {
+    const all = [{ name: state.name, self: true }, ...[...state.players.values()].map(player => ({ name: player.name, self: false }))];
+    $("online-count").textContent = all.length;
+    $("player-count").textContent = `${all.length} survivor${all.length === 1 ? "" : "s"}`;
+    $("survivor-list").innerHTML = all.map(player => `<div class="survivor"><i class="survivor-dot"></i><b>${escapeHtml(player.name)}</b><small>${player.self ? "YOU" : "ONLINE"}</small></div>`).join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+  }
+
+  function startGame() {
+    $("lobby").hidden = true; $("game").hidden = false;
+    $("hud-name").textContent = state.name; $("player-avatar").textContent = state.name.slice(0, 1).toUpperCase();
+    state.started = true;
+    state.lastTick = performance.now();
+    renderSurvivors();
+    updateHud();
+    // Paint immediately so the world is visible even before the first animation frame.
+    drawWorld();
+    requestAnimationFrame(loop);
+  }
+
+  async function enterWorld() {
+    const authenticatedName = getAccountName();
+    const typedName = $("player-name").value.trim();
+    state.name = (authenticatedName || typedName || "Survivor").slice(0, 18);
+    if (!state.name) { $("lobby-status").textContent = "Enter your HBU username first."; return; }
+    $("lobby-status").textContent = "Loading your world…";
+    $("hbu-survival-join").disabled = true;
+    try {
+      if (!window.WebGLRenderingContext) throw new Error("This browser does not support WebGL.");
+      await ensureThreeLoaded();
+      await connectWorld();
+      initThreeWorld();
+      startGame();
+      addActivity(`<b>${escapeHtml(state.name)}</b> entered the Greenwild.`);
+      showToast("Welcome back. Your survivor has been loaded.");
+      saveEverything();
+      state.saveTimer = window.setInterval(() => saveEverything(), 5000);
+    } catch (error) {
+      console.error("HBU Survival could not enter:", error);
+      $("lobby-status").textContent = `${error.message} The local world could not start. Try refreshing the page.`;
+      $("connection-status").className = "connection-pill offline";
+      $("connection-status").innerHTML = "<i></i> Not connected";
+      $("hbu-survival-join").disabled = false;
+    }
+  }
+
+  function nearestResource(maxDistance = 68, type = null) {
+    let nearest = null; let distance = maxDistance;
+    for (const resource of state.resources) {
+      if (!resource.active || state.removed.has(resource.id) || (type && resource.type !== type)) continue;
+      const current = Math.hypot(resource.x - state.x, resource.y - state.y);
+      if (current < distance) { nearest = resource; distance = current; }
+    }
+    return nearest;
+  }
+
+  function broadcast(event, payload) {
+    if (!state.channel) return;
+    state.channel.postMessage({ type: event, payload });
+  }
+
+  async function collectResource() {
+    const resource = nearestResource(72);
+    if (!resource) { showToast("Nothing nearby to gather."); return; }
+    if (resource.type === "water") { showToast("Press G to drink from the water."); return; }
+    resource.active = false; state.removed.add(resource.id); markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    state.inventory[item] += resource.amount;
+    updateHud();
+    const label = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    showToast(`Collected ${resource.amount} ${label}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${resource.amount} ${label}.`);
+    broadcast("collect", { id: resource.id, name: state.name });
+    saveEverything();
+  }
+
+  async function drinkWater() {
+    const pond = nearestResource(150, "water");
+    if (!pond) { showToast("Find a pond to drink water."); return; }
+    state.thirst = Math.min(100, state.thirst + 38); updateHud(); showToast("You drank fresh water."); savePlayer();
+  }
+
+  function eatBerries() {
+    if (state.inventory.berries < 1) { showToast("You don't have any berries."); return; }
+    state.inventory.berries--; state.hunger = Math.min(100, state.hunger + 24); updateHud(); showToast("You ate some berries."); savePlayer();
+  }
+
+  async function craftCampfire() {
+    if (state.inventory.wood < 5 || state.inventory.stone < 3) { showToast("You need 5 wood and 3 stone."); return; }
+    state.inventory.wood -= 5; state.inventory.stone -= 3;
+    const camp = { id: `camp-${state.name}-${Date.now()}`, x: state.x, y: state.y };
+    state.camps.push(camp); markWorldVisualsDirty3D(); updateHud(); showToast("Campfire crafted!");
+    $("craft-status").textContent = "Campfire placed in the shared world.";
+    addActivity(`<b>${escapeHtml(state.name)}</b> built a campfire.`);
+    broadcast("campfire", camp);
+    saveEverything();
+  }
+
+  function drawWorld() {
+    renderThreeWorld();
+  }
+
+  function drawPond(x, y, radius) {
+    const screenX = x - state.cameraX; const screenY = y - state.cameraY;
+    ctx.save();
+    ctx.shadowColor = "rgba(10,25,30,.35)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.ellipse(screenX, screenY, radius, radius * .68, -.2, 0, Math.PI * 2);
+    const water = ctx.createLinearGradient(screenX-radius, screenY-radius, screenX+radius, screenY+radius);      if (account && typeof account.username === "string" && typeof account.password === "string" && !account.offline) {
+        return { username: account.username, password: account.password };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function getAccountName() {
+    return getAccountSession()?.username || "";
+  }
+
+  function getHbuDeviceId() {
+    const key = "hbu-device-id-v1";
+    let value = "";
+    try { value = localStorage.getItem(key) || ""; } catch (_) {}
+    if (!/^[a-f0-9-]{36}$/i.test(value)) {
+      if (window.crypto?.randomUUID) {
+        value = window.crypto.randomUUID();
+      } else {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+        value = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+      try { localStorage.setItem(key, value); } catch (_) {}
+    }
+    return value;
+  }
+
+  function setConnectionStatus(kind, label) {
+    const element = $("connection-status");
+    element.className = `connection-pill ${kind}`;
+    element.innerHTML = `<i></i> ${escapeHtml(label)}`;
+  }
+
+  function buildMultiplayerPayload(account, initialize = false, leave = false) {
+    return {
+      p_username: account.username,
+      p_password: account.password,
+      p_initialize: initialize,
+      p_leave: leave,
+      p_x: state.x,
+      p_y: state.y,
+      p_yaw: state.yaw,
+      p_health: state.health,
+      p_hunger: state.hunger,
+      p_thirst: state.thirst,
+      p_inventory: state.inventory,
+      p_crafted: state.crafted,
+      p_removed: [...state.removed],
+      p_camps: state.camps,
+      p_walls: state.walls,
+      p_world_minutes: state.worldMinutes,
+      p_day: state.day
+    };
+  }
+
+  function applyServerPlayer(player) {
+    if (!player || typeof player !== "object") return;
+    state.x = Number.isFinite(Number(player.x)) ? Number(player.x) : state.x;
+    state.y = Number.isFinite(Number(player.y)) ? Number(player.y) : state.y;
+    state.yaw = Number.isFinite(Number(player.yaw)) ? Number(player.yaw) : state.yaw;
+    state.health = Number.isFinite(Number(player.health)) ? Math.max(0, Math.min(100, Number(player.health))) : state.health;
+    state.hunger = Number.isFinite(Number(player.hunger)) ? Math.max(0, Math.min(100, Number(player.hunger))) : state.hunger;
+    state.thirst = Number.isFinite(Number(player.thirst)) ? Math.max(0, Math.min(100, Number(player.thirst))) : state.thirst;
+    if (player.inventory && typeof player.inventory === "object") state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...player.inventory };
+    if (player.crafted && typeof player.crafted === "object") state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...player.crafted };
+  }
+
+  function applyServerWorld(world) {
+    if (!world || typeof world !== "object") return;
+    state.removed = new Set(Array.isArray(world.removed) ? world.removed : []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number.isFinite(Number(world.world_minutes)) ? Number(world.world_minutes) : state.worldMinutes;
+    state.day = Math.max(1, Number(world.day) || state.day);
+    for (const resource of state.resources) {
+      if (state.removed.has(resource.id)) resource.active = false;
+    }
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+  }
+
+  async function syncMultiplayer(initialize = false, leave = false, keepalive = false) {
+    const account = getAccountSession();
+    if (!account || state.multiplayerBusy) return null;
+    state.multiplayerBusy = true;
+    try {
+      const response = await fetch(`${HBU_GATEWAY_URL}/rest/v1/rpc/hbu_survival_sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: HBU_SUPABASE_ANON_KEY,
+          "X-HBU-Device-ID": getHbuDeviceId()
+        },
+        body: JSON.stringify(buildMultiplayerPayload(account, initialize, leave)),
+        cache: "no-store",
+        keepalive
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.message || payload?.error || `Multiplayer request failed (${response.status}).`;
+        throw new Error(message);
+      }
+      if (!payload || typeof payload !== "object") throw new Error("The multiplayer server returned an invalid response.");
+      if (payload.self) applyServerPlayer(payload.self);
+      if (payload.world) applyServerWorld(payload.world);
+      if (Array.isArray(payload.players)) {
+        const active = new Map();
+        for (const player of payload.players) {
+          if (!player || typeof player.name !== "string" || player.name.toLowerCase() === state.name.toLowerCase()) continue;
+          active.set(player.name, {
+            name: player.name,
+            x: Number(player.x) || 0,
+            y: Number(player.y) || 0,
+            color: "#9dc76e"
+          });
+        }
+        state.players = active;
+      }
+      state.multiplayerReady = !leave;
+      if (initialize && !leave) state.multiplayerInitialized = true;
+      state.multiplayerLastError = "";
+      if (!leave) {
+        setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+        renderSurvivors();
+        updateHud();
+      }
+      return payload;
+    } catch (error) {
+      state.multiplayerLastError = error.message || "Connection problem";
+      state.multiplayerReady = false;
+      if (!leave) setConnectionStatus("offline", "Multiplayer reconnecting");
+      console.warn("HBU Survival multiplayer sync failed:", error);
+      return null;
+    } finally {
+      state.multiplayerBusy = false;
+    }
+  }
+
+
+  function serializeWorld() {
+    return {
+      resources: state.resources,
+      generatedChunks: [...state.generatedChunks],
+      removed: [...state.removed],
+      camps: state.camps,
+      walls: state.walls,
+      worldMinutes: state.worldMinutes,
+      day: state.day
+    };
+  }
+
+  function loadLocalWorld() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WORLD_STORAGE_KEY) || "null");
+      if (saved && Array.isArray(saved.resources) && saved.resources.length) {
+        state.resources = saved.resources;
+        resourceIndexDirty3D = true;
+        markWorldVisualsDirty3D();
+        state.generatedChunks = new Set(saved.generatedChunks || []);
+        state.removed = new Set(saved.removed || []);
+        state.camps = Array.isArray(saved.camps) ? saved.camps : [];
+        state.walls = Array.isArray(saved.walls) ? saved.walls.map(wall => snapWallToGrid(wall)) : [];
+        state.worldMinutes = Number(saved.worldMinutes) || 480;
+        state.day = Math.max(1, Number(saved.day) || 1);
+      } else {
+        generateWorld();
+        saveWorld();
+      }
+    } catch (error) {
+      console.warn("Could not load local world; creating a fresh one.", error);
+      generateWorld();
+      saveWorld();
+    }
+
+    try {
+      const savedPlayer = JSON.parse(localStorage.getItem(PLAYER_STORAGE_PREFIX + state.name) || "null");
+      if (savedPlayer) {
+        state.x = Number.isFinite(Number(savedPlayer.x)) ? Number(savedPlayer.x) : 1200;
+        state.y = Number.isFinite(Number(savedPlayer.y)) ? Number(savedPlayer.y) : 900;
+        state.yaw = Number.isFinite(Number(savedPlayer.yaw)) ? Number(savedPlayer.yaw) : 0;
+        state.health = Number.isFinite(Number(savedPlayer.health)) ? Number(savedPlayer.health) : 100;
+        state.hunger = Number.isFinite(Number(savedPlayer.hunger)) ? Number(savedPlayer.hunger) : 100;
+        state.thirst = Number.isFinite(Number(savedPlayer.thirst)) ? Number(savedPlayer.thirst) : 100;
+        state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...(savedPlayer.inventory || {}) };
+        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...(savedPlayer.crafted || {}) };
+      }
+    } catch (error) {
+      console.warn("Could not load local player save.", error);
+    }
+  }
+
+  function saveWorld() {
+    try {
+      localStorage.setItem(WORLD_STORAGE_KEY, JSON.stringify(serializeWorld()));
+      if (state.channel) state.channel.postMessage({ type: "world", world: serializeWorld() });
+    } catch (error) {
+      console.error("HBU Survival local world save failed:", error);
+      showToast("Could not save the world in this browser.");
+    }
+  }
+
+  function savePlayer() {
+    try {
+      localStorage.setItem(PLAYER_STORAGE_PREFIX + state.name, JSON.stringify({
+        x: state.x, y: state.y, yaw: state.yaw, health: state.health, hunger: state.hunger,
+        thirst: state.thirst, inventory: state.inventory, crafted: state.crafted
+      }));
+    } catch (error) {
+      console.error("HBU Survival local player save failed:", error);
+      showToast("Could not save your survivor in this browser.");
+    }
+  }
+
+  function saveEverything() {
+    saveWorld();
+    savePlayer();
+  }
+
+  function applyRemoteWorld(world) {
+    if (!world || !Array.isArray(world.resources)) return;
+    state.resources = world.resources;
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+    state.removed = new Set(world.removed || []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number(world.worldMinutes) || 480;
+    state.day = Math.max(1, Number(world.day) || 1);
+  }
+
+  function scheduleMultiplayerSync(delay = MULTIPLAYER_SYNC_MS) {
+    if (state.multiplayerTimer) clearTimeout(state.multiplayerTimer);
+    state.multiplayerTimer = window.setTimeout(async () => {
+      if (!state.started || !getAccountSession()) return;
+      await syncMultiplayer(!state.multiplayerInitialized);
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+    }, delay);
+  }
+
+  async function connectWorld() {
+    loadLocalWorld();
+    if ("BroadcastChannel" in window) {
+      state.channel = new BroadcastChannel(WORLD_CHANNEL);
+      state.channel.onmessage = event => {
+        const message = event.data;
+        if (!message) return;
+        if (message.type === "world") applyRemoteWorld(message.world);
+        if (message.type === "collect" && message.payload?.id) {
+          state.removed.add(message.payload.id);
+          const resource = state.resources.find(item => item.id === message.payload.id);
+          if (resource) resource.active = false;
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "campfire" && message.payload && !state.camps.some(camp => camp.id === message.payload.id)) {
+          state.camps.push(message.payload);
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "wall" && message.payload && !state.walls.some(wall => wall.id === message.payload.id)) {
+          state.walls.push(message.payload);
+          markWorldVisualsDirty3D();
+          saveWorld();
+        }
+        if (message.type === "move" && message.player?.name !== state.name) {
+          state.players.set(message.player.name, message.player);
+          renderSurvivors();
+        }
+        if (message.type === "leave") {
+          state.players.delete(message.name);
+          renderSurvivors();
+        }
+      };
+      state.channel.postMessage({ type: "move", player: { name: state.name, x: state.x, y: state.y, color: "#b6d77d" } });
+    }
+
+    const account = getAccountSession();
+    if (account) {
+      const joined = await syncMultiplayer(true);
+      if (!joined) setConnectionStatus("offline", "Multiplayer reconnecting · Local save active");
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+      if (joined) setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+    } else {
+      setConnectionStatus("offline", "Local save · Sign in for multiplayer");
+    }
+  }
+
+  function renderSurvivors() {
+    const all = [{ name: state.name, self: true }, ...[...state.players.values()].map(player => ({ name: player.name, self: false }))];
+    $("online-count").textContent = all.length;
+    $("player-count").textContent = `${all.length} survivor${all.length === 1 ? "" : "s"}`;
+    $("survivor-list").innerHTML = all.map(player => `<div class="survivor"><i class="survivor-dot"></i><b>${escapeHtml(player.name)}</b><small>${player.self ? "YOU" : "ONLINE"}</small></div>`).join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+  }
+
+  function startGame() {
+    $("lobby").hidden = true; $("game").hidden = false;
+    $("hud-name").textContent = state.name; $("player-avatar").textContent = state.name.slice(0, 1).toUpperCase();
+    state.started = true;
+    state.lastTick = performance.now();
+    renderSurvivors();
+    updateHud();
+    // Paint immediately so the world is visible even before the first animation frame.
+    drawWorld();
+    requestAnimationFrame(loop);
+  }
+
+  async function enterWorld() {
+    const authenticatedName = getAccountName();
+    const typedName = $("player-name").value.trim();
+    state.name = (authenticatedName || typedName || "Survivor").slice(0, 18);
+    if (!state.name) { $("lobby-status").textContent = "Enter your HBU username first."; return; }
+    $("lobby-status").textContent = "Loading your world…";
+    $("hbu-survival-join").disabled = true;
+    try {
+      if (!window.WebGLRenderingContext) throw new Error("This browser does not support WebGL.");
+      await ensureThreeLoaded();
+      await connectWorld();
+      initThreeWorld();
+      startGame();
+      addActivity(`<b>${escapeHtml(state.name)}</b> entered the Greenwild.`);
+      showToast("Welcome back. Your survivor has been loaded.");
+      saveEverything();
+      state.saveTimer = window.setInterval(() => saveEverything(), 5000);
+    } catch (error) {
+      console.error("HBU Survival could not enter:", error);
+      $("lobby-status").textContent = `${error.message} The local world could not start. Try refreshing the page.`;
+      $("connection-status").className = "connection-pill offline";
+      $("connection-status").innerHTML = "<i></i> Not connected";
+      $("hbu-survival-join").disabled = false;
+    }
+  }
+
+  function nearestResource(maxDistance = 68, type = null) {
+    let nearest = null; let distance = maxDistance;
+    for (const resource of state.resources) {
+      if (!resource.active || state.removed.has(resource.id) || (type && resource.type !== type)) continue;
+      const current = Math.hypot(resource.x - state.x, resource.y - state.y);
+      if (current < distance) { nearest = resource; distance = current; }
+    }
+    return nearest;
+  }
+
+  function broadcast(event, payload) {
+    if (!state.channel) return;
+    state.channel.postMessage({ type: event, payload });
+  }
+
+  async function collectResource() {
+    const resource = nearestResource(72);
+    if (!resource) { showToast("Nothing nearby to gather."); return; }
+    if (resource.type === "water") { showToast("Press G to drink from the water."); return; }
+    resource.active = false; state.removed.add(resource.id); markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    state.inventory[item] += resource.amount;
+    updateHud();
+    const label = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    showToast(`Collected ${resource.amount} ${label}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${resource.amount} ${label}.`);
+    broadcast("collect", { id: resource.id, name: state.name });
+    saveEverything();
+  }
+
+  async function drinkWater() {
+    const pond = nearestResource(150, "water");
+    if (!pond) { showToast("Find a pond to drink water."); return; }
+    state.thirst = Math.min(100, state.thirst + 38); updateHud(); showToast("You drank fresh water."); savePlayer();
+  }
+
+  function eatBerries() {
+    if (state.inventory.berries < 1) { showToast("You don't have any berries."); return; }
+    state.inventory.berries--; state.hunger = Math.min(100, state.hunger + 24); updateHud(); showToast("You ate some berries."); savePlayer();
+  }
+
+  async function craftCampfire() {
+    if (state.inventory.wood < 5 || state.inventory.stone < 3) { showToast("You need 5 wood and 3 stone."); return; }
+    state.inventory.wood -= 5; state.inventory.stone -= 3;
+    const camp = { id: `camp-${state.name}-${Date.now()}`, x: state.x, y: state.y };
+    state.camps.push(camp); markWorldVisualsDirty3D(); updateHud(); showToast("Campfire crafted!");
+    $("craft-status").textContent = "Campfire placed in the shared world.";
+    addActivity(`<b>${escapeHtml(state.name)}</b> built a campfire.`);
+    broadcast("campfire", camp);
+    saveEverything();
+  }
+
+  function drawWorld() {
+    renderThreeWorld();
+  }
+
+  function drawPond(x, y, radius) {
+    const screenX = x - state.cameraX; const screenY = y - state.cameraY;
+    ctx.save();
+    ctx.shadowColor = "rgba(10,25,30,.35)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.ellipse(screenX, screenY, radius, radius * .68, -.2, 0, Math.PI * 2);
+    const water = ctx.createLinearGradient(screenX-radius, screenY-radius, screenX+radius, screenY+radius);
+    water.addColorStop(0, "#80c8c1"); water.addColorStop(.48, "#397f91"); water.addColorStop(1, "#24566a");
+    ctx.fillStyle = water; ctx.fill(); ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "#a4d8c7"; ctx.lineWidth = 5; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(screenX-18, screenY-12, radius*.48, radius*.18, -.2, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(205,241,220,.2)"; ctx.fill();
+    ctx.restore();
+  }
+
+
+  function drawResourceShadow(type, x, y) {
+    // A consistent upper-left sun casts long, shaped shadows toward the lower-right.
+    // These are silhouette polygons rather than blurred circles.
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "rgba(37, 48, 35, 0.25)";
+    ctx.strokeStyle = "rgba(38, 48, 35, 0.10)";
+    ctx.lineWidth = 2;
+
+    if (type === "tree") {
+      ctx.beginPath();
+      ctx.moveTo(-13, 3);
+      ctx.lineTo(-2, 7);
+      ctx.lineTo(13, 14);
+      ctx.lineTo(29, 27);
+      ctx.lineTo(43, 43);
+      ctx.lineTo(29, 39);
+      ctx.lineTo(15, 31);
+      ctx.lineTo(2, 22);
+      ctx.lineTo(-12, 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-19, -11);
+      ctx.lineTo(-7, -27);
+      ctx.lineTo(5, -30);
+      ctx.lineTo(18, -22);
+      ctx.lineTo(22, -8);
+      ctx.lineTo(11, 4);
+      ctx.lineTo(-6, 8);
+      ctx.closePath();
+      ctx.fill();
+    } else if (type === "rock") {
+      ctx.beginPath();
+      ctx.moveTo(-13, 7);
+      ctx.lineTo(-5, 13);
+      ctx.lineTo(12, 18);
+      ctx.lineTo(27, 26);
+      ctx.lineTo(35, 34);
+      ctx.lineTo(13, 31);
+      ctx.lineTo(-8, 23);
+      ctx.lineTo(-22, 14);
+      ctx.closePath();
+      ctx.fill();
+    } else if (type === "berries" || type === "fiber") {
+      ctx.beginPath();
+      ctx.moveTo(-11, 8);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(13, 17);
+      ctx.lineTo(22, 24);
+      ctx.lineTo(7, 22);
+      ctx.lineTo(-8, 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawGroundLighting() {
+    // Bright outdoor bounce light and a soft directional sun wash.
+    const wash = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    wash.addColorStop(0, "rgba(255, 250, 218, 0.13)");
+    wash.addColorStop(0.42, "rgba(255, 255, 244, 0.025)");
+    wash.addColorStop(1, "rgba(74, 105, 57, 0.045)");
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // A restrained top-left sun glow, broad and atmospheric rather than a circle effect.
+    const glow = ctx.createRadialGradient(
+      canvas.width * 0.12, canvas.height * 0.08, 10,
+      canvas.width * 0.12, canvas.height * 0.08, Math.max(canvas.width, canvas.height) * 0.85
+    );
+    glow.addColorStop(0, "rgba(255, 248, 205, 0.13)");
+    glow.addColorStop(0.55, "rgba(255, 248, 205, 0.035)");
+    glow.addColorStop(1, "rgba(255, 248, 205, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function drawResource(type, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    if (type === "tree") {
+      ctx.fillStyle = "#674b32"; ctx.fillRect(-5, 4, 10, 25);
+      ctx.fillStyle = "#315b3d"; ctx.beginPath(); ctx.arc(0,-5,20,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#477b4b"; ctx.beginPath(); ctx.arc(-8,-13,13,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#6b9854"; ctx.beginPath(); ctx.arc(7,-17,8,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = "rgba(202,231,163,.24)"; ctx.beginPath(); ctx.arc(-7,-18,4,0,Math.PI*2); ctx.fill();
+    } else if (type === "rock") {
+      ctx.fillStyle = "#6e7d78"; ctx.beginPath(); ctx.moveTo(-17,8); ctx.lineTo(-13,-8); ctx.lineTo(-2,-16); ctx.lineTo(14,-11); ctx.lineTo(19,5); ctx.lineTo(8,15); ctx.lineTo(-10,14); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = "#aebbb1"; ctx.beginPath(); ctx.moveTo(-10,-7); ctx.lineTo(-2,-13); ctx.lineTo(5,-10); ctx.lineTo(-4,-2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(30,48,43,.45)"; ctx.lineWidth = 2; ctx.stroke();
+    } else if (type === "berries") {
+      ctx.fillStyle = "#315b3b"; ctx.beginPath(); ctx.arc(0,3,16,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#4d8050"; ctx.beginPath(); ctx.arc(-8,-5,10,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#b879b9";
+      for (const [bx,by] of [[-8,-4],[5,-8],[9,4],[-2,7]]) { ctx.beginPath(); ctx.arc(bx,by,3.5,0,Math.PI*2); ctx.fill(); }
+      ctx.fillStyle = "#e5b4e5"; ctx.beginPath(); ctx.arc(-9,-5,1.2,0,Math.PI*2); ctx.fill();
+    } else if (type === "fiber") {
+      ctx.shadowColor = "transparent"; ctx.strokeStyle = "#9dbb59"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      for (const angle of [-1.15,-.55,0,.55,1.15]) {
+        ctx.beginPath(); ctx.moveTo(0,12); ctx.quadraticCurveTo(Math.sin(angle)*8,-2,Math.sin(angle)*15,-18); ctx.stroke();
+      }
+      ctx.fillStyle = "#d1dc83"; ctx.beginPath(); ctx.arc(0,10,3,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawCampfire(x,y) {
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle="#594633"; ctx.fillRect(-13,5,26,5); ctx.save(); ctx.rotate(-.35); ctx.fillRect(-14,0,28,5); ctx.restore();
+    const flame=ctx.createRadialGradient(0,-5,2,0,-4,19);
+    flame.addColorStop(0,"#fff2a2");flame.addColorStop(.45,"#f5a343");flame.addColorStop(1,"rgba(218,72,35,0)");
+    ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(0,-27);ctx.quadraticCurveTo(18,-9,8,1);ctx.quadraticCurveTo(0,9,-8,1);ctx.quadraticCurveTo(-17,-10,0,-27);ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlayer(x, y, name, color, self = false) {
+    const screenX = x - state.cameraX; const screenY = y - state.cameraY;
+    ctx.save();
+    ctx.fillStyle = "rgba(35, 43, 32, .27)";
+    ctx.beginPath();
+    ctx.moveTo(screenX - 8, screenY + 9);
+    ctx.lineTo(screenX + 7, screenY + 9);
+    ctx.lineTo(screenX + 20, screenY + 19);
+    ctx.lineTo(screenX + 5, screenY + 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = self ? "#c7e58a" : color; ctx.beginPath(); ctx.arc(screenX,screenY,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#e7c4a0"; ctx.beginPath(); ctx.arc(screenX,screenY-3,5.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#354d39"; ctx.fillRect(screenX-7,screenY+3,14,8);
+    ctx.strokeStyle = "#f5f7dc"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "#f5f4e8"; ctx.font = "600 11px Manrope"; ctx.textAlign = "center";
+    ctx.shadowColor = "#102017"; ctx.shadowBlur = 4; ctx.fillText(name.slice(0,18),screenX,screenY-19);
+    ctx.restore();
+  }
+
+  function drawGroundDetails() {
+    // Deterministic grass flecks make the terrain feel textured without random flicker.
+    const startX = Math.floor(state.cameraX / 31) * 31;
+    const startY = Math.floor(state.cameraY / 29) * 29;
+    for (let wx=startX; wx<state.cameraX+canvas.width+31; wx+=31) {
+      for (let wy=startY; wy<state.cameraY+canvas.height+29; wy+=29) {
+        const seed = ((wx*73856093) ^ (wy*19349663)) >>> 0;
+        if (seed % 5 === 0) {
+          const sx=wx-state.cameraX+(seed%17), sy=wy-state.cameraY+((seed>>>5)%15);
+          ctx.strokeStyle = seed%2 ? "rgba(221,244,190,.34)" : "rgba(34,91,42,.24)";
+          ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(sx,sy+3); ctx.lineTo(sx+2,sy-2); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function updatePlayer(delta = 1 / 60) {
+    let forward = 0;
+    let strafe = 0;
+    if (state.keys.has("w") || state.keys.has("arrowup")) forward += 1;
+    if (state.keys.has("s") || state.keys.has("arrowdown")) forward -= 1;
+    if (state.keys.has("a") || state.keys.has("arrowleft")) strafe += 1;
+    if (state.keys.has("d") || state.keys.has("arrowright")) strafe -= 1;
+    if (!forward && !strafe) return;
+    const length = Math.hypot(forward, strafe);
+    forward /= length;
+    strafe /= length;
+    const speed = 190 * Math.min(delta, 0.05);
+    const sin = Math.sin(state.yaw), cos = Math.cos(state.yaw);
+    // Camera forward is (sin(yaw), cos(yaw)); screen-right is (cos(yaw), -sin(yaw)).
+    // A and D are mapped to the corrected lateral directions.
+    const moveX = (sin * forward + cos * strafe) * speed;
+    const moveY = (cos * forward - sin * strafe) * speed;
+    const nextX = state.x + moveX;
+    const nextY = state.y + moveY;
+    // Infinite world: no outer boundary. Existing resource and wall collision still applies.
+    if (!isBlocked(nextX, state.y, 11)) state.x = nextX;
+    if (!isBlocked(state.x, nextY, 11)) state.y = nextY;
+  }
+
+  function loop(now) {
+    if (!state.started) return;
+    try {
+      const delta = Math.min(0.1, (now - state.lastTick) / 1000 || 0);
+      state.lastTick = now;
+      updatePlayer(delta);
+      state.hunger = Math.max(0, state.hunger - delta * .12);
+      state.thirst = Math.max(0, state.thirst - delta * .2);
+      if (state.hunger <= 0 || state.thirst <= 0) state.health = Math.max(0, state.health - delta * 1.5);
+      state.worldMinutes += delta * 2.5;
+      if (state.worldMinutes >= 1440) { state.worldMinutes = 0; state.day++; }
+      if (now - state.lastMoveSent > 130) {
+        state.lastMoveSent = now;
+        if (state.channel) {
+          broadcast("move", { name: state.name, x: state.x, y: state.y, color: "#b6d77d" });
+        }
+      }
+      drawWorld();
+      if (now - state.lastHudUpdate >= 250) {
+        state.lastHudUpdate = now;
+        updateHud();
+      }
+    } catch (error) {
+      console.error("HBU Survival rendering error:", error);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  const MATERIALS = {
+    wood: { label: "Wood", color: "#a8794f" },
+    stone: { label: "Stone", color: "#899b96" },
+    berries: { label: "Berries", color: "#b77bb7" },
+    fiber: { label: "Fiber", color: "#a8c96a" }
+  };
+  const RECIPES = [
+    { id:"campfire", name:"Campfire", needs:{wood:4,stone:5}, pattern:["WWW","SWS","SSS"], description:"A warm place to rest." },
+    { id:"hammer", name:"Wooden hammer", needs:{wood:2,stone:1,fiber:1}, pattern:[".S.","FW.","W.."], description:"Required to build wooden structures." },
+    { id:"axe", name:"Stone axe", needs:{wood:1,stone:4,fiber:1}, pattern:[".S.","SWS","FW."], description:"A basic gathering tool." },
+    { id:"pickaxe", name:"Wooden pickaxe", needs:{wood:4,fiber:1}, pattern:["WWW",".W.",".F."], description:"Required to mine rocks." },
+    { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
+    { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A wall section. Requires a wooden hammer." }
+  ];
+
+  function openCrafting() {
+    if (!state.started || !$("crafting-modal").hidden) return;
+    state.relockAfterCrafting = document.pointerLockElement === canvas;
+    if (state.relockAfterCrafting && document.exitPointerLock) document.exitPointerLock();
+    state.keys.clear();
+    $("crafting-modal").hidden = false;
+    renderCrafting();
+  }
+  function closeCrafting() {
+    state.craftSlots.forEach(key=>{if(key)state.inventory[key]++;});
+    state.craftSlots.fill(null);
+    updateHud();
+    $("crafting-modal").hidden = true;
+    if (state.relockAfterCrafting && state.started && canvas.requestPointerLock) {
+      // This runs directly from the close button / Escape key gesture so the browser can relock.
+      try {
+        const lockRequest = canvas.requestPointerLock();
+        if (lockRequest && typeof lockRequest.catch === "function") lockRequest.catch(error => console.warn("Could not restore pointer lock:", error));
+      } catch (error) { console.warn("Could not restore pointer lock:", error); }
+    }
+    state.relockAfterCrafting = false;
+  }
+  function renderCrafting() {
+    const tray=$("craft-material-list");
+    tray.innerHTML=Object.entries(MATERIALS).map(([key,meta]) => {
+      const count=state.inventory[key]||0;
+      return `<button class="material-chip" type="button" draggable="${count>0}" data-material="${key}" ${count<1?"disabled":""}><i style="--material:${meta.color}"></i><span>${meta.label}</span><b>${count}</b></button>`;
+    }).join("");
+    tray.querySelectorAll("[data-material]").forEach(chip=>{
+      chip.addEventListener("dragstart",event=>{
+        if ((state.inventory[chip.dataset.material]||0)<1) { event.preventDefault(); return; }
+        event.dataTransfer.setData("text/plain",chip.dataset.material);
+      });
+      chip.addEventListener("click",()=>{
+        const key=chip.dataset.material;
+        const index=state.craftSlots.findIndex(value=>value===null);
+        if (index<0) { showToast("The crafting grid is full."); return; }
+        if ((state.inventory[key]||0)<1) { showToast(`You need more ${MATERIALS[key].label.toLowerCase()}.`); return; }
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+    });
+    document.querySelectorAll(".craft-slot").forEach(slot=>{
+      const key=state.craftSlots[Number(slot.dataset.slot)];
+      slot.innerHTML=key?`<i class="slot-material" style="--material:${MATERIALS[key].color}"></i><small>${MATERIALS[key].label}</small>`:"<span>+</span>";
+      slot.classList.toggle("filled",!!key);
+    });
+    const recipe=findRecipe();
+    $("craft-result").textContent=recipe?`Ready to craft: ${recipe.name}`:"Match the exact pattern shown in the recipe book.";
+    $("craft-create").disabled=!recipe;
+    $("crafted-tools").innerHTML=`<b>Tools & building</b><span>Hammer: ${state.crafted.hammer||0}</span><span>Walls: ${state.crafted.walls||0}</span><span>Axes: ${state.crafted.axe||0}</span><span>Pickaxes: ${state.crafted.pickaxe||0}</span><span>Torches: ${state.crafted.torch||0}</span>`;
+    renderRecipeBook();
+  }
+  function findRecipe() {
+    const pattern=state.craftSlots.map(key=>key?({wood:"W",stone:"S",fiber:"F",berries:"B"}[key]):".");
+    return RECIPES.find(recipe => {
+      if (recipe.requires && !(state.crafted[recipe.requires] > 0)) return false;
+      return pattern.join("")===recipe.pattern.join("");
+    }) || null;
+  }
+
+  function recipePatternMarkup(recipe) {
+    return `<div class="recipe-pattern" aria-label="Recipe pattern">${recipe.pattern.join("").split("").map(code=>`<i class="pattern-cell ${code==="."?"empty":code.toLowerCase()}">${code==="."?"":code}</i>`).join("")}</div>`;
+  }
+
+  function renderRecipeBook() {
+    $("recipe-book-list").innerHTML=RECIPES.map(recipe=>{
+      const locked=recipe.requires && !(state.crafted[recipe.requires]>0);
+      const ingredients=Object.entries(recipe.needs).map(([key,count])=>`${count} ${MATERIALS[key].label}`).join(" + ");
+      return `<article class="book-recipe ${locked?"locked":""}"><div class="book-recipe-top"><b>${recipe.name}</b><span>${locked?"LOCKED":recipe.id==="wall"?"BUILDING":"RECIPE"}</span></div>${recipePatternMarkup(recipe)}<p>${recipe.description}</p><small>${ingredients}${recipe.requires?` · Requires ${RECIPES.find(r=>r.id===recipe.requires).name}`:""}</small></article>`;
+    }).join("");
+  }
+
+  function craftFromGrid() {
+    const recipe=findRecipe(); if(!recipe)return;
+    if(recipe.id==="campfire") {
+      const camp={id:`camp-${state.name}-${Date.now()}`,x:state.x,y:state.y};
+      state.camps.push(camp); markWorldVisualsDirty3D(); broadcast("campfire",camp);
+      $("craft-status").textContent="Campfire placed in the world.";
+      addActivity(`<b>${escapeHtml(state.name)}</b> crafted a campfire.`);
+    } else if(recipe.id==="wall") {
+      state.crafted.walls=(state.crafted.walls||0)+1;
+      showToast("Wall added to building inventory. Press B to place it.");
+    } else {
+      state.crafted[recipe.id]=(state.crafted[recipe.id]||0)+1;
+      showToast(`Crafted ${recipe.name}!`);
+    }
+    state.craftSlots.fill(null); updateHud(); saveEverything(); renderCrafting();
+  }
+
+  const BUILD_GRID = 48;
+
+  function drawWall(x,y,rotation=0,ghost=false) {
+    if (!ghost) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.fillStyle = "rgba(35, 43, 32, 0.30)";
+      ctx.beginPath();
+      ctx.moveTo(-24, 8);
+      ctx.lineTo(24, 8);
+      ctx.lineTo(43, 22);
+      ctx.lineTo(-5, 22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.save();ctx.translate(x,y);ctx.rotate(rotation);
+    ctx.globalAlpha=ghost?0.48:1;
+    ctx.shadowColor=ghost?"transparent":"rgba(30,22,12,.25)";
+    ctx.shadowBlur=ghost?0:7;ctx.shadowOffsetY=ghost?0:4;
+    ctx.fillStyle=ghost?"#8ecb75":"#805b39";ctx.fillRect(-24,-8,48,16);
+    ctx.shadowColor="transparent";
+    ctx.fillStyle=ghost?"#c4edaa":"#b48755";ctx.fillRect(-22,-6,44,4);
+    ctx.strokeStyle=ghost?"#397b43":"#5e4028";ctx.lineWidth=2;ctx.strokeRect(-24,-8,48,16);
+    ctx.beginPath();ctx.moveTo(-12,-7);ctx.lineTo(-12,7);ctx.moveTo(5,-7);ctx.lineTo(5,7);ctx.stroke();
+    ctx.restore();
+  }
+
+  function snapWallToGrid(wall) {
+    const rotation = Number(wall.rotation) || 0;
+    const vertical = Math.abs(Math.sin(rotation)) > 0.5;
+    const x = Number(wall.x) || 0;
+    const y = Number(wall.y) || 0;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      ...wall,
+      x: vertical ? nearestLine(x) : nearestCellCenter(x),
+      y: vertical ? nearestCellCenter(y) : nearestLine(y),
+      rotation
+    };
+  }
+
+  function getWallPlacement() {
+    const fallbackX=state.x+72;
+    const fallbackY=state.y;
+    const worldX=state.pointerOnCanvas?state.pointerCanvasX:fallbackX;
+    const worldY=state.pointerOnCanvas?state.pointerCanvasY:fallbackY;
+    const vertical = Math.abs(Math.sin(state.wallRotation)) > 0.5;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      x: vertical ? nearestLine(worldX) : nearestCellCenter(worldX),
+      y: vertical ? nearestCellCenter(worldY) : nearestLine(worldY),
+      rotation: state.wallRotation
+    };
+  }
+
+  function wallIntersectsCircle(wall, x, y, radius) {
+    const angle = -(wall.rotation || 0);
+    const dx = x - wall.x;
+    const dy = y - wall.y;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+    const halfLength = BUILD_GRID / 2;
+    const halfThickness = 9;
+    const closestX = Math.max(-halfLength, Math.min(halfLength, localX));
+    const closestY = Math.max(-halfThickness, Math.min(halfThickness, localY));
+    return Math.hypot(localX - closestX, localY - closestY) < radius;
+  }
+
+  function isBlocked(x, y, radius = 11) {
+    for (const resource of resourcesNear3D(x, y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type === "tree" && Math.hypot(x-resource.x, y-resource.y) < radius + 21) return true;
+      if (resource.type === "rock" && Math.hypot(x-resource.x, y-resource.y) < radius + 17) return true;
+    }
+    for (const wall of state.walls) {
+      if (wallIntersectsCircle(wall, x, y, radius)) return true;
+    }
+    return false;
+  }
+
+  function placementIsBlocked(candidate) {
+    // Keep walls in a clear grid cell and prevent them from overlapping solid objects.
+    for (const resource of resourcesNear3D(candidate.x, candidate.y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type !== "tree" && resource.type !== "rock") continue;
+      if (wallIntersectsCircle(candidate, resource.x, resource.y, resource.type === "tree" ? 25 : 21)) return true;
+    }
+    return state.walls.some(wall => {
+      const sameCell = Math.abs(wall.x-candidate.x) < 1 && Math.abs(wall.y-candidate.y) < 1;
+      return sameCell || wallIntersectsCircle(candidate, wall.x, wall.y, 10);
+    });
+  }
+
+  function placeWall() {
+    if (state.selectedHotbar!==0 || !(state.crafted.hammer>0)) {
+      showToast("Equip your hammer in hotbar slot 1 to build.");return;
+    }
+    if (!(state.crafted.walls>0)) { showToast("Craft a wooden wall first.");return; }
+    const {x,y,rotation}=getWallPlacement();
+    if(Math.hypot(x-state.x,y-state.y)>240){showToast("That spot is too far away.");return;}
+    if(placementIsBlocked({x,y,rotation})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
+    const wall=snapWallToGrid({id:`wall-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation});
+    state.walls.push(wall);markWorldVisualsDirty3D();state.crafted.walls--;saveWorld();savePlayer();drawWorld();updateHud();
+    broadcast("wall",wall);showToast("Wall placed on the grid!");
+  }
+
+  function rotateWall() {
+    state.wallRotation=(state.wallRotation+Math.PI/2)%(Math.PI*2);
+    updateHotbar();drawWorld();
+  }
+
+  function updateHotbar() {
+    const slots=$("hotbar");if(!slots)return;
+    const entries=[
+      state.crafted.hammer>0?{name:"Hammer",count:state.crafted.hammer,icon:"hammer",hint:"Build walls"}:null,
+      state.crafted.axe>0?{name:"Axe",count:state.crafted.axe,icon:"axe",hint:"Gather resources"}:null,
+      state.crafted.walls>0?{name:"Wall",count:state.crafted.walls,icon:"wall",hint:"Wall pieces"}:null,
+      state.crafted.pickaxe>0?{name:"Pickaxe",count:state.crafted.pickaxe,icon:"pickaxe",hint:"Mine rocks"}:null
+    ];
+    slots.innerHTML=Array.from({length:9},(_,index)=>{
+      const item=entries[index];
+      const disabledAttribute = item ? "" : 'aria-disabled="true"';
+      return `<button type="button" class="hotbar-slot ${state.selectedHotbar===index && item?"selected":""}" data-hotbar="${index}" ${disabledAttribute} title="${item?`${item.name} · ${item.hint}`:"Empty slot"}"><kbd>${index+1}</kbd>${item?`<span class="tool-drawing tool-${item.icon}" aria-hidden="true"></span><small>${item.name}</small><b>${item.count}</b>`:""}</button>`;
+    }).join("");
+    slots.querySelectorAll("[data-hotbar]").forEach(button=>button.addEventListener("click",()=>selectHotbar(Number(button.dataset.hotbar))));
+    $("rotate-wall").textContent=`Rotate wall · ${state.wallRotation===0?"0°":"90°"}`;
+    $("grid-toggle").classList.toggle("active",state.gridVisible);
+  }
+
+  function selectHotbar(index) {
+    const item=index===0?state.crafted.hammer:index===1?state.crafted.axe:index===2?state.crafted.walls:index===3?state.crafted.pickaxe:0;
+    if(!item){showToast("That hotbar slot is empty. Craft the item first.");return;}
+    state.selectedHotbar=index;updateHotbar();drawWorld();
+    showToast(index===0?"Hammer equipped. Click the world to place a wall.":index===1?"Axe equipped. Click a resource to gather.":index===2?"Wall pieces selected.":"Pickaxe ready. Look at a rock and click to mine it.");
+  }
+
+  function toggleGrid() {
+    state.gridVisible=!state.gridVisible;updateHotbar();drawWorld();
+    showToast(state.gridVisible?"Building grid enabled.":"Building grid hidden.");
+  }
+
+  function setupCrafting() {
+    $("craft-grid").querySelectorAll(".craft-slot").forEach(slot=>{
+      slot.addEventListener("dragover",event=>event.preventDefault());
+      slot.addEventListener("drop",event=>{
+        event.preventDefault();
+        const key=event.dataTransfer.getData("text/plain");
+        if(!MATERIALS[key] || state.inventory[key]<1)return;
+        const index=Number(slot.dataset.slot);
+        if(state.craftSlots[index])return;
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("click",()=>{
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(!key)return;
+        state.inventory[key]++; state.craftSlots[index]=null; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("contextmenu",event=>{
+        event.preventDefault();
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(key){state.inventory[key]++;state.craftSlots[index]=null;updateHud();renderCrafting();}
+      });
+    });
+    $("craft-create").addEventListener("click",craftFromGrid);
+    $("close-crafting").addEventListener("click",closeCrafting);
+    $("crafting-modal").addEventListener("click",event=>{if(event.target===$("crafting-modal"))closeCrafting();});
+  }
+
+  function gatherAtPointer(event) {
+    if(state.selectedHotbar===0 && state.crafted.hammer>0) {
+      showToast("Your hammer is equipped. Select another slot to gather.");
+      return;
+    }
+    const worldPoint = screenToWorld3D(event.clientX, event.clientY);
+    const worldX = worldPoint.x;
+    const worldY = worldPoint.y;
+    let nearest=null,best=48;
+    for(const resource of resourcesNear3D(worldX, worldY)){
+      if(!resource.active||state.removed.has(resource.id)||resource.type==="water")continue;
+      const d=Math.hypot(resource.x-worldX,resource.y-worldY);
+      if(d<best){best=d;nearest=resource;}
+    }
+    if(!nearest){showToast("Click a nearby tree, rock, bush, or plant to gather.");return;}
+    if(nearest.type==="rock" && !(state.crafted.pickaxe>0)){showToast("You need to craft a pickaxe before mining rocks.");return;}
+    if(Math.hypot(nearest.x-state.x,nearest.y-state.y)>110){showToast("Move closer before gathering.");return;}
+    nearest.active=false;state.removed.add(nearest.id);markWorldVisualsDirty3D();
+    const item={tree:"wood",rock:"stone",berries:"berries",fiber:"fiber"}[nearest.type];
+    state.inventory[item]+=nearest.amount;updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect",{id:nearest.id,name:state.name});saveEverything();
+  }
+
+  function gatherInFrontOfPlayer() {
+    // In first-person mode the cursor is locked, so gather the resource under the center crosshair.
+    // The camera looks along (sin(yaw), cos(yaw)) in world X/Z coordinates.
+    if (state.selectedHotbar === 0 && state.crafted.hammer > 0) {
+      const targetX = state.x + Math.sin(state.yaw) * 90;
+      const targetY = state.y + Math.cos(state.yaw) * 90;
+      state.pointerCanvasX = targetX;
+      state.pointerCanvasY = targetY;
+      placeWall();
+      return;
+    }
+    const dirX = Math.sin(state.yaw);
+    const dirY = Math.cos(state.yaw);
+    let nearest = null;
+    let nearestDistance = 115;
+    for (const resource of resourcesNear3D(state.x, state.y)) {
+      if (!resource.active || state.removed.has(resource.id) || resource.type === "water") continue;
+      const dx = resource.x - state.x;
+      const dy = resource.y - state.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 8 || distance > 115) continue;
+      const dot = (dx * dirX + dy * dirY) / distance;
+      // Only gather what the player is actually looking toward, not objects behind them.
+      if (dot < 0.88) continue;
+      if (distance < nearestDistance) {
+        nearest = resource;
+        nearestDistance = distance;
+      }
+    }
+    if (!nearest) {
+      showToast("Look at a nearby tree, rock, bush, or plant and click to gather.");
+      return;
+    }
+    if (nearest.type === "rock" && !(state.crafted.pickaxe > 0)) {
+      showToast("You need to craft a pickaxe before mining rocks.");
+      return;
+    }
+    nearest.active = false;
+    state.removed.add(nearest.id);
+    markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[nearest.type];
+    state.inventory[item] += nearest.amount;
+    updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect", { id: nearest.id, name: state.name });
+    saveEverything();
+  }
+
+  function bindControls() {
+    window.addEventListener("keydown", event => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
+      if (!$("crafting-modal").hidden && key !== "escape") return;
+      state.keys.add(key);
+      if (key === "b" && !event.repeat && state.started) placeWall();
+      if (key === "f6" && !event.repeat && state.started) { event.preventDefault(); toggleGrid(); }
+      if (key === "r" && !event.repeat && state.started) rotateWall();
+      if (/^[1-9]$/.test(key) && !event.repeat && state.started) selectHotbar(Number(key)-1);
+      if (key === "e" && !event.repeat && state.started) openCrafting();
+      if (key === "escape" && !event.repeat && !$("crafting-modal").hidden) closeCrafting();
+      if (key === "f" && !event.repeat && state.started) eatBerries();
+      if (key === "g" && !event.repeat && state.started) drinkWater();
+    });
+    window.addEventListener("keyup", event => state.keys.delete(event.key.toLowerCase()));
+    window.addEventListener("blur", () => state.keys.clear());
+    $("hbu-survival-join").addEventListener("click", enterWorld);
+    // True first-person mouse look: clicking captures the pointer, and movementX/Y
+    // rotate the camera without dragging the cursor around the page.
+    canvas.tabIndex = 0;
+    state.pointerWasLockedOnDown = false;
+    canvas.addEventListener("pointerdown", event => {
+      if (!state.started || event.button !== 0) return;
+      state.pointerWasLockedOnDown = state.mouseLocked;
+      if (!state.mouseLocked && canvas.requestPointerLock) {
+        try {
+          const request = canvas.requestPointerLock();
+          if (request && typeof request.catch === "function") request.catch(error => {
+            console.warn("Pointer lock request failed:", error);
+            showToast("Mouse capture was blocked by the browser. Try opening the HTML directly in Chrome.");
+          });
+        } catch (error) {
+          console.warn("Pointer lock request failed:", error);
+          showToast("Mouse capture was blocked by the browser.");        if (state.channel) {
+          broadcast("move", { name: state.name, x: state.x, y: state.y, color: "#b6d77d" });
+        }
+      }
+      drawWorld();
+      if (now - state.lastHudUpdate >= 250) {
+        state.lastHudUpdate = now;
+        updateHud();
+      }
+    } catch (error) {
+      console.error("HBU Survival rendering error:", error);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  const MATERIALS = {
+    wood: { label: "Wood", color: "#a8794f" },
+    stone: { label: "Stone", color: "#899b96" },
+    berries: { label: "Berries", color: "#b77bb7" },
+    fiber: { label: "Fiber", color: "#a8c96a" }
+  };
+  const RECIPES = [
+    { id:"campfire", name:"Campfire", needs:{wood:4,stone:5}, pattern:["WWW","SWS","SSS"], description:"A warm place to rest." },
+    { id:"hammer", name:"Wooden hammer", needs:{wood:2,stone:1,fiber:1}, pattern:[".S.","FW.","W.."], description:"Required to build wooden structures." },
+    { id:"axe", name:"Stone axe", needs:{wood:1,stone:4,fiber:1}, pattern:[".S.","SWS","FW."], description:"A basic gathering tool." },
+    { id:"pickaxe", name:"Wooden pickaxe", needs:{wood:4,fiber:1}, pattern:["WWW",".W.",".F."], description:"Required to mine rocks." },
+    { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
+    { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A wall section. Requires a wooden hammer." }
+  ];
+
+  function openCrafting() {
+    if (!state.started || !$("crafting-modal").hidden) return;
+    state.relockAfterCrafting = document.pointerLockElement === canvas;
+    if (state.relockAfterCrafting && document.exitPointerLock) document.exitPointerLock();
+    state.keys.clear();
+    $("crafting-modal").hidden = false;
+    renderCrafting();
+  }
+  function closeCrafting() {
+    state.craftSlots.forEach(key=>{if(key)state.inventory[key]++;});
+    state.craftSlots.fill(null);
+    updateHud();
+    $("crafting-modal").hidden = true;
+    if (state.relockAfterCrafting && state.started && canvas.requestPointerLock) {
+      // This runs directly from the close button / Escape key gesture so the browser can relock.
+      try {
+        const lockRequest = canvas.requestPointerLock();
+        if (lockRequest && typeof lockRequest.catch === "function") lockRequest.catch(error => console.warn("Could not restore pointer lock:", error));
+      } catch (error) { console.warn("Could not restore pointer lock:", error); }
+    }
+    state.relockAfterCrafting = false;
+  }
+  function renderCrafting() {
+    const tray=$("craft-material-list");
+    tray.innerHTML=Object.entries(MATERIALS).map(([key,meta]) => {
+      const count=state.inventory[key]||0;
+      return `<button class="material-chip" type="button" draggable="${count>0}" data-material="${key}" ${count<1?"disabled":""}><i style="--material:${meta.color}"></i><span>${meta.label}</span><b>${count}</b></button>`;
+    }).join("");
+    tray.querySelectorAll("[data-material]").forEach(chip=>{
+      chip.addEventListener("dragstart",event=>{
+        if ((state.inventory[chip.dataset.material]||0)<1) { event.preventDefault(); return; }
+        event.dataTransfer.setData("text/plain",chip.dataset.material);
+      });
+      chip.addEventListener("click",()=>{
+        const key=chip.dataset.material;
+        const index=state.craftSlots.findIndex(value=>value===null);
+        if (index<0) { showToast("The crafting grid is full."); return; }
+        if ((state.inventory[key]||0)<1) { showToast(`You need more ${MATERIALS[key].label.toLowerCase()}.`); return; }
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+    });
+    document.querySelectorAll(".craft-slot").forEach(slot=>{
+      const key=state.craftSlots[Number(slot.dataset.slot)];
+      slot.innerHTML=key?`<i class="slot-material" style="--material:${MATERIALS[key].color}"></i><small>${MATERIALS[key].label}</small>`:"<span>+</span>";
+      slot.classList.toggle("filled",!!key);
+    });
+    const recipe=findRecipe();
+    $("craft-result").textContent=recipe?`Ready to craft: ${recipe.name}`:"Match the exact pattern shown in the recipe book.";
+    $("craft-create").disabled=!recipe;
+    $("crafted-tools").innerHTML=`<b>Tools & building</b><span>Hammer: ${state.crafted.hammer||0}</span><span>Walls: ${state.crafted.walls||0}</span><span>Axes: ${state.crafted.axe||0}</span><span>Pickaxes: ${state.crafted.pickaxe||0}</span><span>Torches: ${state.crafted.torch||0}</span>`;
+    renderRecipeBook();
+  }
+  function findRecipe() {
+    const pattern=state.craftSlots.map(key=>key?({wood:"W",stone:"S",fiber:"F",berries:"B"}[key]):".");
+    return RECIPES.find(recipe => {
+      if (recipe.requires && !(state.crafted[recipe.requires] > 0)) return false;
+      return pattern.join("")===recipe.pattern.join("");
+    }) || null;
+  }
+
+  function recipePatternMarkup(recipe) {
+    return `<div class="recipe-pattern" aria-label="Recipe pattern">${recipe.pattern.join("").split("").map(code=>`<i class="pattern-cell ${code==="."?"empty":code.toLowerCase()}">${code==="."?"":code}</i>`).join("")}</div>`;
+  }
+
+  function renderRecipeBook() {
+    $("recipe-book-list").innerHTML=RECIPES.map(recipe=>{
+      const locked=recipe.requires && !(state.crafted[recipe.requires]>0);
+      const ingredients=Object.entries(recipe.needs).map(([key,count])=>`${count} ${MATERIALS[key].label}`).join(" + ");
+      return `<article class="book-recipe ${locked?"locked":""}"><div class="book-recipe-top"><b>${recipe.name}</b><span>${locked?"LOCKED":recipe.id==="wall"?"BUILDING":"RECIPE"}</span></div>${recipePatternMarkup(recipe)}<p>${recipe.description}</p><small>${ingredients}${recipe.requires?` · Requires ${RECIPES.find(r=>r.id===recipe.requires).name}`:""}</small></article>`;
+    }).join("");
+  }
+
+  function craftFromGrid() {
+    const recipe=findRecipe(); if(!recipe)return;
+    if(recipe.id==="campfire") {
+      const camp={id:`camp-${state.name}-${Date.now()}`,x:state.x,y:state.y};
+      state.camps.push(camp); markWorldVisualsDirty3D(); broadcast("campfire",camp);
+      $("craft-status").textContent="Campfire placed in the world.";
+      addActivity(`<b>${escapeHtml(state.name)}</b> crafted a campfire.`);
+    } else if(recipe.id==="wall") {
+      state.crafted.walls=(state.crafted.walls||0)+1;
+      showToast("Wall added to building inventory. Press B to place it.");
+    } else {
+      state.crafted[recipe.id]=(state.crafted[recipe.id]||0)+1;
+      showToast(`Crafted ${recipe.name}!`);
+    }
+    state.craftSlots.fill(null); updateHud(); saveEverything(); renderCrafting();
+  }
+
+  const BUILD_GRID = 48;
+
+  function drawWall(x,y,rotation=0,ghost=false) {
+    if (!ghost) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.fillStyle = "rgba(35, 43, 32, 0.30)";
+      ctx.beginPath();
+      ctx.moveTo(-24, 8);
+      ctx.lineTo(24, 8);
+      ctx.lineTo(43, 22);
+      ctx.lineTo(-5, 22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.save();ctx.translate(x,y);ctx.rotate(rotation);
+    ctx.globalAlpha=ghost?0.48:1;
+    ctx.shadowColor=ghost?"transparent":"rgba(30,22,12,.25)";
+    ctx.shadowBlur=ghost?0:7;ctx.shadowOffsetY=ghost?0:4;
+    ctx.fillStyle=ghost?"#8ecb75":"#805b39";ctx.fillRect(-24,-8,48,16);
+    ctx.shadowColor="transparent";
+    ctx.fillStyle=ghost?"#c4edaa":"#b48755";ctx.fillRect(-22,-6,44,4);
+    ctx.strokeStyle=ghost?"#397b43":"#5e4028";ctx.lineWidth=2;ctx.strokeRect(-24,-8,48,16);
+    ctx.beginPath();ctx.moveTo(-12,-7);ctx.lineTo(-12,7);ctx.moveTo(5,-7);ctx.lineTo(5,7);ctx.stroke();
+    ctx.restore();
+  }
+
+  function snapWallToGrid(wall) {
+    const rotation = Number(wall.rotation) || 0;
+    const vertical = Math.abs(Math.sin(rotation)) > 0.5;
+    const x = Number(wall.x) || 0;
+    const y = Number(wall.y) || 0;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      ...wall,
+      x: vertical ? nearestLine(x) : nearestCellCenter(x),
+      y: vertical ? nearestCellCenter(y) : nearestLine(y),
+      rotation
+    };
+  }
+
+  function getWallPlacement() {
+    const fallbackX=state.x+72;
+    const fallbackY=state.y;
+    const worldX=state.pointerOnCanvas?state.pointerCanvasX:fallbackX;
+    const worldY=state.pointerOnCanvas?state.pointerCanvasY:fallbackY;
+    const vertical = Math.abs(Math.sin(state.wallRotation)) > 0.5;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      x: vertical ? nearestLine(worldX) : nearestCellCenter(worldX),
+      y: vertical ? nearestCellCenter(worldY) : nearestLine(worldY),
+      rotation: state.wallRotation
+    };
+  }
+
+  function wallIntersectsCircle(wall, x, y, radius) {
+    const angle = -(wall.rotation || 0);
+    const dx = x - wall.x;
+    const dy = y - wall.y;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+    const halfLength = BUILD_GRID / 2;
+    const halfThickness = 9;
+    const closestX = Math.max(-halfLength, Math.min(halfLength, localX));
+    const closestY = Math.max(-halfThickness, Math.min(halfThickness, localY));
+    return Math.hypot(localX - closestX, localY - closestY) < radius;
+  }
+
+  function isBlocked(x, y, radius = 11) {
+    for (const resource of resourcesNear3D(x, y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type === "tree" && Math.hypot(x-resource.x, y-resource.y) < radius + 21) return true;
+      if (resource.type === "rock" && Math.hypot(x-resource.x, y-resource.y) < radius + 17) return true;
+    }
+    for (const wall of state.walls) {
+      if (wallIntersectsCircle(wall, x, y, radius)) return true;
+    }
+    return false;
+  }
+
+  function placementIsBlocked(candidate) {
+    // Keep walls in a clear grid cell and prevent them from overlapping solid objects.
+    for (const resource of resourcesNear3D(candidate.x, candidate.y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type !== "tree" && resource.type !== "rock") continue;
+      if (wallIntersectsCircle(candidate, resource.x, resource.y, resource.type === "tree" ? 25 : 21)) return true;
+    }
+    return state.walls.some(wall => {
+      const sameCell = Math.abs(wall.x-candidate.x) < 1 && Math.abs(wall.y-candidate.y) < 1;
+      return sameCell || wallIntersectsCircle(candidate, wall.x, wall.y, 10);
+    });
+  }
+
+  function placeWall() {
+    if (state.selectedHotbar!==0 || !(state.crafted.hammer>0)) {
+      showToast("Equip your hammer in hotbar slot 1 to build.");return;
+    }
+    if (!(state.crafted.walls>0)) { showToast("Craft a wooden wall first.");return; }
+    const {x,y,rotation}=getWallPlacement();
+    if(Math.hypot(x-state.x,y-state.y)>240){showToast("That spot is too far away.");return;}
+    if(placementIsBlocked({x,y,rotation})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
+    const wall=snapWallToGrid({id:`wall-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation});
+    state.walls.push(wall);markWorldVisualsDirty3D();state.crafted.walls--;saveWorld();savePlayer();drawWorld();updateHud();
+    broadcast("wall",wall);showToast("Wall placed on the grid!");
+  }
+
+  function rotateWall() {
+    state.wallRotation=(state.wallRotation+Math.PI/2)%(Math.PI*2);
+    updateHotbar();drawWorld();
+  }
+
+  function updateHotbar() {
+    const slots=$("hotbar");if(!slots)return;
+    const entries=[
+      state.crafted.hammer>0?{name:"Hammer",count:state.crafted.hammer,icon:"hammer",hint:"Build walls"}:null,
+      state.crafted.axe>0?{name:"Axe",count:state.crafted.axe,icon:"axe",hint:"Gather resources"}:null,
+      state.crafted.walls>0?{name:"Wall",count:state.crafted.walls,icon:"wall",hint:"Wall pieces"}:null,
+      state.crafted.pickaxe>0?{name:"Pickaxe",count:state.crafted.pickaxe,icon:"pickaxe",hint:"Mine rocks"}:null
+    ];
+    slots.innerHTML=Array.from({length:9},(_,index)=>{
+      const item=entries[index];
+      const disabledAttribute = item ? "" : 'aria-disabled="true"';
+      return `<button type="button" class="hotbar-slot ${state.selectedHotbar===index && item?"selected":""}" data-hotbar="${index}" ${disabledAttribute} title="${item?`${item.name} · ${item.hint}`:"Empty slot"}"><kbd>${index+1}</kbd>${item?`<span class="tool-drawing tool-${item.icon}" aria-hidden="true"></span><small>${item.name}</small><b>${item.count}</b>`:""}</button>`;
+    }).join("");
+    slots.querySelectorAll("[data-hotbar]").forEach(button=>button.addEventListener("click",()=>selectHotbar(Number(button.dataset.hotbar))));
+    $("rotate-wall").textContent=`Rotate wall · ${state.wallRotation===0?"0°":"90°"}`;
+    $("grid-toggle").classList.toggle("active",state.gridVisible);
+  }
+
+  function selectHotbar(index) {
+    const item=index===0?state.crafted.hammer:index===1?state.crafted.axe:index===2?state.crafted.walls:index===3?state.crafted.pickaxe:0;
+    if(!item){showToast("That hotbar slot is empty. Craft the item first.");return;}
+    state.selectedHotbar=index;updateHotbar();drawWorld();
+    showToast(index===0?"Hammer equipped. Click the world to place a wall.":index===1?"Axe equipped. Click a resource to gather.":index===2?"Wall pieces selected.":"Pickaxe ready. Look at a rock and click to mine it.");
+  }
+
+  function toggleGrid() {
+    state.gridVisible=!state.gridVisible;updateHotbar();drawWorld();
+    showToast(state.gridVisible?"Building grid enabled.":"Building grid hidden.");
+  }
+
+  function setupCrafting() {
+    $("craft-grid").querySelectorAll(".craft-slot").forEach(slot=>{
+      slot.addEventListener("dragover",event=>event.preventDefault());
+      slot.addEventListener("drop",event=>{
+        event.preventDefault();
+        const key=event.dataTransfer.getData("text/plain");
+        if(!MATERIALS[key] || state.inventory[key]<1)return;
+        const index=Number(slot.dataset.slot);
+        if(state.craftSlots[index])return;
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("click",()=>{
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(!key)return;
+        state.inventory[key]++; state.craftSlots[index]=null; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("contextmenu",event=>{
+        event.preventDefault();
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(key){state.inventory[key]++;state.craftSlots[index]=null;updateHud();renderCrafting();}
+      });
+    });
+    $("craft-create").addEventListener("click",craftFromGrid);
+    $("close-crafting").addEventListener("click",closeCrafting);
+    $("crafting-modal").addEventListener("click",event=>{if(event.target===$("crafting-modal"))closeCrafting();});
+  }
+
+  function gatherAtPointer(event) {
+    if(state.selectedHotbar===0 && state.crafted.hammer>0) {
+      showToast("Your hammer is equipped. Select another slot to gather.");
+      return;
+    }
+    const worldPoint = screenToWorld3D(event.clientX, event.clientY);
+    const worldX = worldPoint.x;
+    const worldY = worldPoint.y;
+    let nearest=null,best=48;
+    for(const resource of resourcesNear3D(worldX, worldY)){
+      if(!resource.active||state.removed.has(resource.id)||resource.type==="water")continue;
+      const d=Math.hypot(resource.x-worldX,resource.y-worldY);
+      if(d<best){best=d;nearest=resource;}
+    }
+    if(!nearest){showToast("Click a nearby tree, rock, bush, or plant to gather.");return;}
+    if(nearest.type==="rock" && !(state.crafted.pickaxe>0)){showToast("You need to craft a pickaxe before mining rocks.");return;}
+    if(Math.hypot(nearest.x-state.x,nearest.y-state.y)>110){showToast("Move closer before gathering.");return;}
+    nearest.active=false;state.removed.add(nearest.id);markWorldVisualsDirty3D();
+    const item={tree:"wood",rock:"stone",berries:"berries",fiber:"fiber"}[nearest.type];
+    state.inventory[item]+=nearest.amount;updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect",{id:nearest.id,name:state.name});saveEverything();
+  }
+
+  function gatherInFrontOfPlayer() {
+    // In first-person mode the cursor is locked, so gather the resource under the center crosshair.
+    // The camera looks along (sin(yaw), cos(yaw)) in world X/Z coordinates.
+    if (state.selectedHotbar === 0 && state.crafted.hammer > 0) {
+      const targetX = state.x + Math.sin(state.yaw) * 90;
+      const targetY = state.y + Math.cos(state.yaw) * 90;
+      state.pointerCanvasX = targetX;
+      state.pointerCanvasY = targetY;
+      placeWall();
+      return;
+    }
+    const dirX = Math.sin(state.yaw);
+    const dirY = Math.cos(state.yaw);
+    let nearest = null;
+    let nearestDistance = 115;
+    for (const resource of resourcesNear3D(state.x, state.y)) {
+      if (!resource.active || state.removed.has(resource.id) || resource.type === "water") continue;
+      const dx = resource.x - state.x;
+      const dy = resource.y - state.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 8 || distance > 115) continue;
+      const dot = (dx * dirX + dy * dirY) / distance;
+      // Only gather what the player is actually looking toward, not objects behind them.
+      if (dot < 0.88) continue;
+      if (distance < nearestDistance) {
+        nearest = resource;
+        nearestDistance = distance;
+      }
+    }
+    if (!nearest) {
+      showToast("Look at a nearby tree, rock, bush, or plant and click to gather.");
+      return;
+    }
+    if (nearest.type === "rock" && !(state.crafted.pickaxe > 0)) {
+      showToast("You need to craft a pickaxe before mining rocks.");
+      return;
+    }
+    nearest.active = false;
+    state.removed.add(nearest.id);
+    markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[nearest.type];
+    state.inventory[item] += nearest.amount;
+    updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect", { id: nearest.id, name: state.name });
+    saveEverything();
+  }
+
+  function bindControls() {
+    window.addEventListener("keydown", event => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
+      if (!$("crafting-modal").hidden && key !== "escape") return;
+      state.keys.add(key);
+      if (key === "b" && !event.repeat && state.started) placeWall();
+      if (key === "f6" && !event.repeat && state.started) { event.preventDefault(); toggleGrid(); }
+      if (key === "r" && !event.repeat && state.started) rotateWall();
+      if (/^[1-9]$/.test(key) && !event.repeat && state.started) selectHotbar(Number(key)-1);
+      if (key === "e" && !event.repeat && state.started) openCrafting();
+      if (key === "escape" && !event.repeat && !$("crafting-modal").hidden) closeCrafting();
+      if (key === "f" && !event.repeat && state.started) eatBerries();
+      if (key === "g" && !event.repeat && state.started) drinkWater();
+    });
+    window.addEventListener("keyup", event => state.keys.delete(event.key.toLowerCase()));
+    window.addEventListener("blur", () => state.keys.clear());
+    $("hbu-survival-join").addEventListener("click", enterWorld);
+    // True first-person mouse look: clicking captures the pointer, and movementX/Y
+    // rotate the camera without dragging the cursor around the page.
+    canvas.tabIndex = 0;
+    state.pointerWasLockedOnDown = false;
+    canvas.addEventListener("pointerdown", event => {
+      if (!state.started || event.button !== 0) return;
+      state.pointerWasLockedOnDown = state.mouseLocked;
+      if (!state.mouseLocked && canvas.requestPointerLock) {
+        try {
+          const request = canvas.requestPointerLock();
+          if (request && typeof request.catch === "function") request.catch(error => {
+            console.warn("Pointer lock request failed:", error);
+            showToast("Mouse capture was blocked by the browser. Try opening the HTML directly in Chrome.");
+          });
+        } catch (error) {
+          console.warn("Pointer lock request failed:", error);
+          showToast("Mouse capture was blocked by the browser.");
+        }
+      }
+    });
+    canvas.addEventListener("click", event => {
+      if (!state.started) return;
+      if (state.mouseLocked) {
+        gatherInFrontOfPlayer();
+        return;
+      }
+      // The first click is only for capturing the mouse; it never gathers accidentally.
+      if (document.pointerLockElement !== canvas && canvas.requestPointerLock) return;
+      if (state.selectedHotbar === 0 && state.crafted.hammer > 0) placeWall();
+      else gatherAtPointer(event);
+    });
+    document.addEventListener("pointerlockchange", () => {
+      state.mouseLocked = document.pointerLockElement === canvas;
+      if (!state.mouseLocked) state.keys.clear();
+      const hint = document.querySelector(".canvas-hint");
+      if (hint) hint.innerHTML = state.mouseLocked
+        ? '<kbd>WASD</kbd> Move <span>·</span> Mouse Look <span>·</span> <kbd>Esc</kbd> Unlock <span>·</span> <kbd>Click</kbd> Gather'
+        : '<kbd>Click game</kbd> Capture mouse <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>E</kbd> Craft';
+    });
+    document.addEventListener("pointerlockerror", () => {
+      state.mouseLocked = false;
+      showToast("Could not capture mouse. Check browser permissions and try clicking the game again.");
+    });
+    document.addEventListener("mousemove", event => {
+      if (!state.started || !state.mouseLocked) return;
+      // Moving the mouse left turns the view left; moving it right turns right.
+      state.yaw -= event.movementX * 0.0024;
+      state.pitch -= event.movementY * 0.0020;
+      state.pitch = Math.max(-1.35, Math.min(1.35, state.pitch));
+    });
+    canvas.addEventListener("pointermove", event => {
+      if (state.mouseLocked) return;
+      const point = screenToWorld3D(event.clientX, event.clientY);
+      state.pointerCanvasX = point.x;
+      state.pointerCanvasY = point.y;
+      state.pointerOnCanvas = true;
+      if (state.selectedHotbar === 0) drawWorld();
+    });
+    canvas.addEventListener("mouseleave",()=>{state.pointerOnCanvas=false;});
+    $("rotate-wall").addEventListener("click",rotateWall);
+    $("grid-toggle").addEventListener("click",toggleGrid);
+    setupCrafting();
+    $("craft-campfire").addEventListener("click", openCrafting);
+    $("leave-world").addEventListener("click", async () => {
+      state.started = false;
+      if (document.pointerLockElement === canvas && document.exitPointerLock) document.exitPointerLock();
+      if (state.saveTimer) { clearInterval(state.saveTimer); state.saveTimer = 0; }
+      if (state.multiplayerTimer) { clearTimeout(state.multiplayerTimer); state.multiplayerTimer = 0; }
+      saveEverything();
+      if (getAccountSession()) syncMultiplayer(false, true, true);
+      if (state.channel) { state.channel.postMessage({ type: "leave", name: state.name }); state.channel.close(); state.channel = null; }
+      $("game").hidden = true; $("lobby").hidden = false;
+      $("connection-status").className = "connection-pill offline"; $("connection-status").innerHTML = "<i></i> Not connected";
+      $("lobby-status").textContent = "You left your world. Press Play to return.";
+    });
+    window.addEventListener("pagehide", () => {
+      saveEverything();
+      if (getAccountSession() && state.started) syncMultiplayer(false, true, true);
+      if (state.multiplayerTimer) clearTimeout(state.multiplayerTimer);
+      if (state.channel) state.channel.close();
+    });
+  }
+
+  function boot() {
+    const accountName = getAccountName();
+    if (accountName) { $("player-name").value = accountName; $("player-name").readOnly = true; }
+    bindControls(); generateWorld();
+    $("lobby-status").textContent = "Three.js 3D world ready. Local saves stay in this browser.";
+  }
+
+  boot();
+})();
+
+</script>
+</body>
+</html>
