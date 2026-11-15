@@ -756,12 +756,11 @@
     .app-badge { position: absolute; right: -6px; top: -6px; min-width: 24px; height: 24px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: #ff4d6d; box-shadow: 0 0 12px rgba(255,77,109,.8); color: white; font-size: 12px; font-weight: 800; }
     .home-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; color: #817a8e; font-size: 11px; }
     .home-footer strong { color: #c7b1df; }
-    .home-ad { flex: 0 0 auto; display: grid; justify-items: center; gap: 5px; max-width: 100%; color: var(--muted); font-size: 11px; }
-    .home-ad-slot { width: 300px; max-width: 100%; min-height: 250px; }
-    .home-ad-status { max-width: 300px; margin: 0; text-align: center; }
-    .arcade-ad { display: grid; justify-items: center; gap: 5px; width: 300px; max-width: 100%; margin: 28px auto; color: var(--muted); font-size: 11px; }
-    .arcade-ad-slot { width: 300px; max-width: 100%; min-height: 250px; }
-    .phone-device .home-ad, .phone-device .arcade-ad { display: none; }
+    .home-ad { flex: 0 0 auto; display: grid; justify-items: center; gap: 5px; width: 300px; max-width: 100%; color: var(--muted); font-size: 11px; }
+    .home-ad-link { display: block; width: 300px; max-width: 100%; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.04); }
+    .home-ad-image { display: block; width: 100%; height: 250px; object-fit: cover; }
+    .home-ad-credit { color: var(--muted); font-size: 11px; }
+    .home-ad-link:focus-visible { outline: 3px solid #c084fc; outline-offset: 3px; }
     .toast-stack { position: fixed; z-index: 1000; top: 64px; }
     .toast-stack { right: 16px; }
 
@@ -868,31 +867,11 @@
 </style>
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/dist/livekit-client.umd.min.js"></script>
   <script>
-    // Detect phones before any advertising script can be requested.
+    // Responsive layout only. HBU does not load third-party ad scripts.
     window.hbuIsPhone = Boolean(navigator.userAgentData?.mobile) ||
       /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent) ||
       window.matchMedia("(max-width: 650px)").matches;
     if (window.hbuIsPhone) document.documentElement.classList.add("phone-device");
-
-    window.hbuPopunder = (() => {
-      const disabled = window.hbuIsPhone;
-      const state = {
-        enabled: !disabled,
-        phase: disabled ? "disabled" : "loading",
-        script: null,
-        onChange: null
-      };
-      if (disabled) return state;
-
-      const script = document.createElement("script");
-      script.setAttribute("data-cfasync", "false");
-      script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
-      script.onload = () => { state.phase = "loaded"; if (state.onChange) state.onChange(); };
-      script.onerror = () => { state.phase = "error"; if (state.onChange) state.onChange(); };
-      state.script = script;
-      document.head.append(script);
-      return state;
-    })();
   </script>
 </head>
 <body>
@@ -1044,9 +1023,10 @@
       </nav>
       </section>
       <aside class="home-ad" aria-label="Advertisement">
-        <span>Advertisement</span>
-        <p class="home-ad-status" id="home-ad-status" hidden>Ad unavailable. Check your browser's content blocker or Adsterra site approval.</p>
-        <div class="home-ad-slot" id="home-ad-slot"></div>
+        <a class="home-ad-link" id="home-ad-link" href="advertise.html" aria-label="Advertise on HBU">
+          <img class="home-ad-image" id="home-ad-image" src="assets/ad-your-here.svg" alt="Your ad here. Contact Rocky for more information.">
+        </a>
+        <span class="home-ad-credit" id="home-ad-credit">From HBU</span>
       </aside>
       <footer class="home-footer">
         <span><strong>Clever</strong> &nbsp;·&nbsp; Yw now your not bored</span>
@@ -1078,10 +1058,6 @@
         <p class="game-count" id="game-count" aria-live="polite"></p>
         <div class="game-grid" id="game-grid"></div>
         <p class="empty-state" id="empty-state" hidden>No games match those filters yet.</p>
-        <aside class="arcade-ad" aria-label="Advertisement">
-          <span>Advertisement</span>
-          <div class="arcade-ad-slot"></div>
-        </aside>
       </section>
 </div>
 <section class="player-view" id="player-view" aria-labelledby="player-title" hidden>
@@ -1332,12 +1308,6 @@
           <p>Manage who you see in the chat and your username.</p>
         </div>
       </div>
-      <div class="rewards-card">
-        <h3>Popunder ads</h3>
-        <p>Ads may appear on desktop to support HbuOS. All advertisements, including popunders and banners, are disabled on phones.</p>
-        <p class="app-note" id="popunder-status" role="status">Loading the popunder ad service...</p>
-        <button class="icon-button" id="popunder-retry" type="button" hidden>Reload and retry</button>
-      </div>
       <p class="rewards-login" id="settings-login" hidden>Log in from <a href="#messages">Messages</a> to use settings.</p>
       <div class="settings-grid" id="settings-grid">
         <div class="rewards-card">
@@ -1400,7 +1370,7 @@
 <section class="site-info" aria-labelledby="site-info-title">
       <h2 id="site-info-title">About HBU Arcade & privacy</h2>
       <p>Games are provided by their original publishers and may load third-party content. HbuOS does not assign age ratings; check the publisher's information and supervise younger players as appropriate.</p>
-      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HbuOS does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information. The home screen also loads an advertisement from Adsterra, which may collect information through its ad services; see <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener noreferrer">Adsterra's privacy policy</a>.</p>
+      <p>Favorites, recent games, and basic usage counts are saved only in this browser on this device. HbuOS does not send analytics to a tracking service. Publishers may collect data when you play their games; review their privacy information. HBU may display advertiser-submitted images after Rocky approves the request. The advertiser's destination opens when you click an approved ad.</p>
       <p>Accounts, global chat messages, and DMs are stored in Supabase. Passwords are hashed, but DMs are not end-to-end encrypted, so avoid sharing private information. Every message is checked by an AI moderator (mod-bot, using OpenAI): curse words are removed, hateful messages can lead to a chat ban of up to a week, and you can ask it questions with @mod-bot in the main chat. Your student ID is stored with your account but never shown. Usernames and main-chat messages are visible to all visitors.</p>
       <div class="site-info-actions">
         <p id="usage-summary" aria-live="polite"></p>
@@ -1943,6 +1913,21 @@
           </form>
           <p class="app-note" id="owner-status"></p>
           <ul class="owner-list" id="owner-list"></ul>
+          <h2>Advertisement requests</h2>
+          <p class="app-note">Review advertiser images, destination links, contact details, and requested durations. Approved ads appear in the home-screen banner immediately and expire automatically.</p>
+          <button class="button" id="owner-ads-refresh" type="button">Refresh ad requests</button>
+          <p class="app-note" id="owner-ads-status" role="status" aria-live="polite"></p>
+          <ul class="owner-list" id="owner-ads-list"></ul>
+          <div class="rewards-card" id="owner-ad-review" hidden>
+            <h3 id="owner-ad-review-title">Ad request</h3>
+            <img id="owner-ad-preview" alt="Submitted advertisement preview" style="display:block;width:100%;max-width:300px;max-height:250px;object-fit:contain;border-radius:10px;background:#080611">
+            <p class="app-note" id="owner-ad-details"></p>
+            <a id="owner-ad-destination" href="#" target="_blank" rel="noopener noreferrer">Open destination link</a>
+            <div class="role-actions" style="margin-top:12px">
+              <button class="button button-primary" id="owner-ad-approve" type="button">Approve and publish</button>
+              <button class="button" id="owner-ad-reject" type="button">Reject request</button>
+            </div>
+          </div>
           <h2>Custom name plates</h2>
           <p class="app-note">Upload an image, crop it to the chat name-plate shape, and assign it to a username. The player can equip or remove it in Settings.</p>
           <form class="settings-form" id="owner-custom-plate-form">
@@ -2671,58 +2656,29 @@
     let adminTimer;
     const phoneDevice = Boolean(window.hbuIsPhone);
     document.documentElement.classList.toggle("phone-device", phoneDevice);
-    const phoneViewport = window.matchMedia("(max-width: 650px)");
-    let adsLoaded = false;
 
-    async function loadAds() {
-      if (adsLoaded || phoneDevice || phoneViewport.matches) return;
-      adsLoaded = true;
-      for (const slot of document.querySelectorAll(".home-ad-slot, .arcade-ad-slot")) {
-        window.atOptions = {
-          key: "4efa01070ee461f1aeea8eef32a10955",
-          format: "iframe",
-          height: 250,
-          width: 300,
-          params: {}
-        };
-        const ad = document.createElement("script");
-        ad.src = "https://bauval.org/22/4efa01070ee461f1aeea8eef32a10955";
-        await new Promise(resolve => {
-          ad.onload = resolve;
-          ad.onerror = () => {
-            const status = document.querySelector("#home-ad-status");
-            if (status) status.hidden = false;
-            resolve();
-          };
-          slot.append(ad);
-        });
+    async function loadSponsoredAd() {
+      const link = document.querySelector("#home-ad-link");
+      const image = document.querySelector("#home-ad-image");
+      const credit = document.querySelector("#home-ad-credit");
+      if (!link || !image || !credit) return;
+      try {
+        const ad = await rpc("hbu_get_active_ad", {});
+        if (!ad || typeof ad.image_data !== "string" || !ad.image_data.startsWith("data:image/")) return;
+        const destination = new URL(ad.target_url);
+        if (destination.protocol !== "https:") return;
+        image.src = ad.image_data;
+        image.alt = "Advertisement from " + String(ad.advertiser_name || "HBU advertiser").slice(0, 60);
+        link.href = destination.href;
+        link.target = "_blank";
+        link.rel = "sponsored noopener noreferrer";
+        link.setAttribute("aria-label", "Sponsored advertisement from " + String(ad.advertiser_name || "an advertiser").slice(0, 60));
+        credit.textContent = "Sponsored · From HBU";
+      } catch (error) {
+        console.warn("Could not load the approved HBU advertisement.", error);
       }
     }
-
-    const viewportChanged = event => {
-      if (!event.matches && !phoneDevice) void loadAds();
-    };
-    if (phoneViewport.addEventListener) phoneViewport.addEventListener("change", viewportChanged);
-    else phoneViewport.addListener(viewportChanged);
-
-    function setupPopunderAds() {
-      const status = document.querySelector("#popunder-status");
-      const retry = document.querySelector("#popunder-retry");
-      const state = window.hbuPopunder;
-      function render() {
-        retry.hidden = state.phase !== "error";
-        status.textContent = ({
-          disabled: "All ads are disabled on phones.",
-          loading: "Loading the popunder ad service...",
-          loaded: "Popunder ads are enabled on desktop. They are disabled on phones.",
-          error: "Could not load the ad service. Check your connection or content blocker, then retry."
-        })[state.phase] || (phoneDevice ? "All ads are disabled on phones." : "Popunder ads are enabled on desktop.");
-      }
-      state.onChange = render;
-      render();
-      retry.addEventListener("click", () => window.location.reload());
-    }
-    setupPopunderAds();
+    void loadSponsoredAd();
 
     async function authFetch(url, options = {}) {
       // Supabase Edge Functions can take longer during cold starts or when the
@@ -4183,7 +4139,7 @@
       updateOwnerApp();
       if (!document.querySelector("#win-profiles").hidden) openProfiles();
       refreshWallet();
-      void loadAds();
+      void loadSponsoredAd();
       if (account) {
         void hbuPresencePing();
         authChallengeRequest++;
@@ -6040,7 +5996,7 @@
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
-      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
+      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); loadOwnerAdRequests(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
     function openApp(name, allowUninstalled = false) {
@@ -7160,6 +7116,86 @@
         status.textContent = error.message;
       }
     });
+
+    // Owner: review advertiser submissions. The Edge Function checks owner permissions.
+    const ownerAdsList = document.querySelector("#owner-ads-list");
+    const ownerAdsStatus = document.querySelector("#owner-ads-status");
+    const ownerAdReview = document.querySelector("#owner-ad-review");
+    const ownerAdPreview = document.querySelector("#owner-ad-preview");
+    const ownerAdDetails = document.querySelector("#owner-ad-details");
+    const ownerAdDestination = document.querySelector("#owner-ad-destination");
+    let selectedOwnerAdId = null;
+
+    async function loadOwnerAdRequests() {
+      if (!isOwner()) return;
+      ownerAdsStatus.textContent = "Loading advertisement requests…";
+      ownerAdsList.replaceChildren();
+      ownerAdReview.hidden = true;
+      try {
+        const data = await adminCall("admin_owner_ads_list");
+        const requests = data.requests || [];
+        for (const request of requests) {
+          const item = document.createElement("li");
+          const summary = document.createElement("span");
+          summary.textContent = request.advertiser_name + " · " + request.status + " · " + request.duration_days + " day(s)";
+          const contact = document.createElement("small");
+          contact.textContent = request.contact;
+          const review = document.createElement("button");
+          review.type = "button";
+          review.className = "button";
+          review.textContent = "Review";
+          review.addEventListener("click", async () => {
+            review.disabled = true;
+            try {
+              const result = await adminCall("admin_owner_ad_get", { id: request.id });
+              const ad = result.request;
+              selectedOwnerAdId = ad.id;
+              ownerAdPreview.src = ad.image_data;
+              ownerAdDetails.textContent = "Advertiser: " + ad.advertiser_name + "\nContact: " + ad.contact + "\nRequested duration: " + ad.duration_days + " day(s)\nSubmitted: " + new Date(ad.requested_at).toLocaleString() + "\nStatus: " + ad.status;
+              ownerAdDestination.href = ad.target_url;
+              ownerAdDestination.textContent = ad.target_url;
+              ownerAdReview.querySelector("#owner-ad-review-title").textContent = "Review: " + ad.advertiser_name;
+              ownerAdReview.hidden = false;
+            } catch (error) {
+              ownerAdsStatus.textContent = "Could not load request: " + error.message;
+            } finally {
+              review.disabled = false;
+            }
+          });
+          item.append(summary, contact, review);
+          ownerAdsList.append(item);
+        }
+        ownerAdsStatus.textContent = requests.length ? requests.length + " request(s). Pending requests need your review." : "No advertisement requests yet.";
+      } catch (error) {
+        ownerAdsStatus.textContent = error.message;
+      }
+    }
+
+    async function reviewOwnerAd(decision) {
+      if (!isOwner() || !selectedOwnerAdId) return;
+      const approve = document.querySelector("#owner-ad-approve");
+      const reject = document.querySelector("#owner-ad-reject");
+      approve.disabled = true;
+      reject.disabled = true;
+      ownerAdsStatus.textContent = decision === "approve" ? "Publishing advertisement…" : "Rejecting request…";
+      try {
+        await adminCall("admin_owner_ad_review", { id: selectedOwnerAdId, decision });
+        ownerAdsStatus.textContent = decision === "approve" ? "Advertisement approved and published." : "Advertisement rejected.";
+        ownerAdReview.hidden = true;
+        selectedOwnerAdId = null;
+        await loadOwnerAdRequests();
+        if (decision === "approve") await loadSponsoredAd();
+      } catch (error) {
+        ownerAdsStatus.textContent = error.message;
+      } finally {
+        approve.disabled = false;
+        reject.disabled = false;
+      }
+    }
+
+    document.querySelector("#owner-ads-refresh").addEventListener("click", loadOwnerAdRequests);
+    document.querySelector("#owner-ad-approve").addEventListener("click", () => reviewOwnerAd("approve"));
+    document.querySelector("#owner-ad-reject").addEventListener("click", () => reviewOwnerAd("reject"));
 
     // Shared links
     const linksList = document.querySelector("#links-list");
