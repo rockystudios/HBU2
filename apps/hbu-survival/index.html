@@ -530,8 +530,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
         <div id="survivor-list" class="survivor-list"><p class="muted">Waiting for survivors…</p></div>
         <div class="panel-divider"></div>
         <div class="panel-heading">FIELD NOTES</div>
-        <div class="field-note"><b>Find supplies</b><p>Walk close to trees, rocks, berry bushes, and plants. Press E to gather.</p></div>
-        <div class="field-note"><b>Stay hydrated</b><p>Find a pond and press G when you're standing beside it.</p></div>
+        <div class="field-note"><b>Find supplies</b><p>Walk close to trees, rocks, berry bushes, and plants. Press E to gather. Tap EAT on mobile to eat berries.</p></div>
+        <div class="field-note"><b>Stay hydrated</b><p>Find a pond and press G when you're standing beside it. On mobile, tap DRINK.</p></div>
         <div class="field-note"><b>Night is coming</b><p>Your hunger and thirst slowly decrease as time passes.</p></div>
         <div class="panel-divider"></div>
         <div class="panel-heading">ACTIVITY</div>
@@ -819,6 +819,9 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const core = new THREE.Mesh(geometry3D("campfire-core", () => new THREE.ConeGeometry(4.5, 17, 7)), emissiveMat3D("#fff0a0", "#ffc34b", 1.8));
     core.position.y = 16;
     group.add(core);
+    const glow = new THREE.PointLight("#ff8a36", 1.7, 190, 2);
+    glow.position.y = 24;
+    group.add(glow);
     parent.add(group);
   }
 
@@ -880,7 +883,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     rayPoint3D = new THREE.Vector3();
     raycaster3D = new THREE.Raycaster();
     renderer3D = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer3D.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    renderer3D.setPixelRatio(Math.min(window.devicePixelRatio || 1, HAS_TOUCH_INPUT ? 1.5 : 2));
     renderer3D.setSize(canvas.clientWidth || 960, canvas.clientHeight || 600, false);
     renderer3D.shadowMap.enabled = true;
     renderer3D.shadowMap.type = THREE.PCFShadowMap;
@@ -1927,7 +1930,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
     { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A reinforced wall section for your shelter." },
     { id:"floor", name:"Wooden floor", needs:{wood:6,fiber:3}, pattern:["WWW","FFF","WWW"], requires:"hammer", description:"A solid 3D floor panel. Place panels side by side." },
-    { id:"doors", name:"Door frame", needs:{wood:6,fiber:2}, pattern:["WFW","W.W","WWW"], requires:"hammer", description:"A framed entrance for your base." },
+    { id:"doors", name:"Door frame", needs:{wood:7,fiber:1}, pattern:["WFW","W.W","WWW"], requires:"hammer", description:"A framed entrance for your base." },
     { id:"windows", name:"Window wall", needs:{wood:8,fiber:1}, pattern:["WWW","WFW","WWW"], requires:"hammer", description:"A timber wall with a glass window." }
   ];
 
