@@ -278,7 +278,7 @@ BEGIN
     '[]'::jsonb
   ) INTO v_players
   FROM (
-    SELECT username, x, y, yaw
+    SELECT username, x, y, yaw, last_seen
     FROM public.hbu_survival_players
     WHERE last_seen > now() - interval '90 seconds'
     ORDER BY last_seen DESC

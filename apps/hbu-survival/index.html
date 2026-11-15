@@ -435,6 +435,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
 .mobile-look-tip{display:none;position:absolute;right:12px;bottom:18px;padding:6px 9px;border-radius:7px;background:#14241dc9;color:#fff;font-size:9px;pointer-events:none}
 .survivor{flex-wrap:wrap}.survivor b{flex:1;min-width:70px}.survivor-coords{width:100%;margin-left:24px!important;font:8px 'DM Mono',monospace;color:#718075!important}
 @media(max-width:720px),(pointer:coarse){.mobile-joystick{display:block}.mobile-look-tip{display:block}.canvas-hint{left:50%;bottom:158px;max-width:90%;overflow:hidden;text-overflow:ellipsis}.world-panel{min-height:560px}.canvas-wrap{min-height:440px;touch-action:pan-y}#hbu-survival-canvas{touch-action:none}}
+/* Always activate the mobile controls on touchscreens, including tablets with a mouse/trackpad attached. */
+html.touch-device .mobile-joystick{display:block!important;position:absolute!important;left:14px!important;bottom:14px!important;width:132px!important;height:132px!important;z-index:100!important;pointer-events:auto!important;opacity:1!important;visibility:visible!important}
+html.touch-device .mobile-look-tip{display:block!important;z-index:99!important;bottom:18px!important;right:12px!important}
+html.touch-device .canvas-wrap{touch-action:none!important;min-height:460px!important}
+html.touch-device #hbu-survival-canvas{touch-action:none!important}
+.coordinate-overlay{position:absolute;z-index:15;top:12px;right:12px;padding:8px 11px;border:1px solid #ffffff88;border-radius:8px;background:#13251dcc;color:#fff;font:11px 'DM Mono',monospace;letter-spacing:.3px;box-shadow:0 3px 12px #0003;pointer-events:none}
+html.touch-device .coordinate-overlay{top:12px;right:10px;font-size:10px}
+html.touch-device .canvas-hint{display:none!important}
+html.touch-device .mobile-joystick-knob{touch-action:none}
 </style>
 </head>
 <body>
@@ -492,7 +501,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
 
       <section class="world-panel">
         <div class="world-toolbar"><div><span class="world-kicker">THE GREENWILD</span><strong>Survival World</strong></div><div class="world-meta"><span id="world-time"> Day 1 · 08:00</span><span id="player-count">1 survivor</span></div></div>
-        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="mobile-joystick" class="mobile-joystick" aria-label="Movement joystick"><div id="mobile-joystick-knob" class="mobile-joystick-knob"></div></div><div class="mobile-look-tip">Drag the world to look around</div><div id="toast" class="toast" aria-live="polite"></div></div>
+        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="mobile-joystick" class="mobile-joystick" aria-label="Movement joystick"><div id="mobile-joystick-knob" class="mobile-joystick-knob"></div></div><div id="coordinate-overlay" class="coordinate-overlay" aria-live="off">X 1200 · Y 900</div><div class="mobile-look-tip">Drag the world to look around</div><div id="toast" class="toast" aria-live="polite"></div></div>
         <div class="hotbar-panel">
           <div class="hotbar-label">HOTBAR <span>Select a tool with 1–9</span></div>
           <div id="hotbar" class="hotbar" aria-label="Nine-slot hotbar"></div>
@@ -581,6 +590,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
   let THREE = window.THREE || null;
   let threeLoadPromise = null;
   const $ = id => document.getElementById(id);
+  const HAS_TOUCH_INPUT = (navigator.maxTouchPoints || 0) > 0 || window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(max-width: 850px)").matches;
+  if (HAS_TOUCH_INPUT) document.documentElement.classList.add("touch-device");
 
   function loadThreeFrom(url) {
     return new Promise((resolve, reject) => {
@@ -1197,7 +1208,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
       const element = $(elementId);
       if (element) element.textContent = count;
     }
-    $("position-label").textContent = `X: ${Math.round(state.x)} · Y: ${Math.round(state.y)}`;
+    const coordinateText = `X: ${Math.round(state.x)} · Y: ${Math.round(state.y)}`;
+    $("position-label").textContent = coordinateText;
+    const coordinateOverlay = $("coordinate-overlay");
+    if (coordinateOverlay) coordinateOverlay.textContent = coordinateText;
     const hour = Math.floor(state.worldMinutes / 60) % 24;
     const minute = Math.floor(state.worldMinutes % 60 / 10) * 10;
     $("world-time").textContent = `${hour >= 6 && hour < 19 ? "Daylight" : "Night"} Day ${state.day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
@@ -1347,7 +1361,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     } catch (error) {
       state.multiplayerLastError = error.message || "Connection problem";
       state.multiplayerReady = false;
-      if (!leave) setConnectionStatus("offline", "Multiplayer reconnecting");
+      if (!leave) setConnectionStatus("offline", `Sync error · ${(state.multiplayerLastError || "unknown error").slice(0, 42)}`);
       console.warn("HBU Survival multiplayer sync failed:", error);
       return null;
     } finally {
@@ -1785,9 +1799,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     if (state.keys.has("d") || state.keys.has("arrowright")) strafe -= 1;
     if (!forward && !strafe) return;
     const length = Math.hypot(forward, strafe);
+    const inputStrength = Math.min(1, length);
     forward /= length;
     strafe /= length;
-    const speed = 190 * Math.min(delta, 0.05);
+    const speed = 190 * Math.min(delta, 0.05) * inputStrength;
     const sin = Math.sin(state.yaw), cos = Math.cos(state.yaw);
     // Camera forward is (sin(yaw), cos(yaw)); screen-right is (cos(yaw), -sin(yaw)).
     // A and D are mapped to the corrected lateral directions.
