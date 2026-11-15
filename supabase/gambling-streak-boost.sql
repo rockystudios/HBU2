@@ -212,6 +212,10 @@ begin
 end;
 $$;
 
+revoke all on function public.hbu_wallet(text, text) from public;
+revoke all on function public.hbu_spin(text, text) from public;
+revoke all on function public.hbu_gamble(text, text, text, integer, text) from public;
+
 grant execute on function public.hbu_wallet(text, text) to anon, authenticated;
 grant execute on function public.hbu_spin(text, text) to anon, authenticated;
 grant execute on function public.hbu_gamble(text, text, text, integer, text) to anon, authenticated;
