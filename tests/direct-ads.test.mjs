@@ -10,7 +10,7 @@ const [home, form, migration, edge] = await Promise.all([
   readFile(new URL("supabase/functions/send-message/index.ts", root), "utf8"),
 ]);
 
-test("HBU home banner is a first-party advertiser invitation and no Adsterra code remains", () => {
+test("HBU home banner is a first-party advertiser invitation and no external ad scripts remain", () => {
   assert.match(home, /id="home-ad-link" href="advertise\.html"/);
   assert.match(home, /src="assets\/ad-your-here\.svg"/);
   assert.match(home, /From HBU/);
