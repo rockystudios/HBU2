@@ -14,12 +14,12 @@ const CORS_HEADERS = {
 };
 
 const ROUTE_LIMITS = [
-  { match: /\/functions\/v1\/send-message\?action=image_challenge(?:&|$)/, name: "image_challenge", ip: 20, device: 10, window: 60 },
-  { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 20, device: 5, window: 900 },
-  { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 10, device: 3, window: 3600 },
-  { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 60, device: 20, window: 60 },
+  { match: /\/functions\/v1\/send-message\?action=image_challenge(?:&|$)/, name: "image_challenge", ip: 10, device: 5, window: 60 },
+  { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 30, device: 5, window: 900 },
+  { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 5, device: 2, window: 3600 },
+  { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 30, device: 15, window: 60 },
   { match: /\/functions\/v1\/send-message$/, name: "function", ip: 60, device: 20, window: 60 },
-  { match: /\/rest\/v1\//, name: "rest", ip: 120, device: 40, window: 60 },
+  { match: /\/rest\/v1\//, name: "rest", ip: 60, device: 30, window: 60 },
 ];
 
 function json(body, status, origin) {
@@ -50,8 +50,8 @@ function getRouteLimit(pathAndQuery, body) {
   }
   return ROUTE_LIMITS.find((rule) => rule.match.test(pathAndQuery)) ?? {
     name: "default",
-    ip: 60,
-    device: 20,
+    ip: 30,
+    device: 15,
     window: 60,
   };
 }
@@ -125,6 +125,11 @@ export default {
       return json({ error: "Missing Supabase publishable API key." }, 401, origin);
     }
 
+    const gatewayToken = env.HBU_GATEWAY_TOKEN;
+    if (typeof gatewayToken !== "string" || gatewayToken.length < 40) {
+      return json({ error: "HBU2 gateway secret is not configured. Requests are blocked until setup is complete." }, 503, origin);
+    }
+
     const maxBodyBytes = 256 * 1024;
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
     if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
@@ -181,6 +186,9 @@ export default {
     headers.delete("x-hbu-device-id");
     headers.delete("cf-connecting-ip");
     headers.delete("x-forwarded-for");
+    headers.delete("x-hbu-gateway-token");
+    headers.set("x-hbu-gateway-token", gatewayToken);
+    if (ip !== "unknown") headers.set("x-forwarded-for", ip);
 
     let upstream;
     try {
