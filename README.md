@@ -24,6 +24,8 @@ Submissions are private and remain pending until Rocky reviews them in the Owner
 
 Run `supabase/advertising.sql` once in the Supabase SQL editor before deploying the updated site and `send-message` Edge Function. The public submission RPC accepts image data URLs for PNG, JPEG, WEBP, or GIF files up to 650 KB and HTTPS destination links. The request table itself is not readable by browser users; only the Owner app's authenticated owner actions can review submissions. The approved-ad RPC exposes only the current approved ad.
 
+Student ID is completely optional when creating an account. Run `supabase/optional-student-id.sql` once in the Supabase SQL editor to update the signup function in an existing project.
+
 ## Dev role
 
 The Dev role has a `</>` chat badge and no staff access or extra commands by default. For an existing role-editor setup, run `supabase/dev-role.sql` in the Supabase SQL editor; new setups get it from `supabase/role-editor.sql`. An existing Dev role is not overwritten. The owner can assign the role from the moderation panel and edit its permissions in the Owner app.
