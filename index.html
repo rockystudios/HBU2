@@ -767,6 +767,8 @@
 
     .app-window { position: absolute; z-index: 10; min-width: 300px; min-height: 260px; display: flex; flex-direction: column; border: 1px solid rgba(190,160,255,.3); border-radius: 16px; overflow: hidden; background: #0f0b1a; box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 40px rgba(168,85,247,.2); animation: win-in .22s ease-out; }
     .app-window.active { border-color: rgba(192,132,252,.6); box-shadow: 0 30px 90px rgba(0,0,0,.65), 0 0 50px rgba(168,85,247,.35); }
+    .survival-app-body { display: flex; flex: 1 1 auto; min-height: 0; padding: 0; overflow: hidden; background: #f7f9f6; }
+    .survival-app-frame { display: block; width: 100%; height: 100%; min-height: 0; flex: 1 1 auto; border: 0; background: #f7f9f6; }
     @keyframes win-in { from { opacity: 0; transform: scale(.94); } }
     .win-titlebar { flex: none; height: 44px; padding: 0 10px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.04); cursor: grab; user-select: none; touch-action: none; }
     .app-window.dragging .win-titlebar { cursor: grabbing; }
@@ -872,6 +874,7 @@
           <option value="all">All apps</option>
           <option value="pinned">Pinned</option>
           <option value="games">Games and rewards</option>
+          <option value="survival">Survival</option>
           <option value="social">Social</option>
           <option value="tools">Tools and settings</option>
           <option value="custom">Player apps</option>
@@ -887,6 +890,10 @@
         <button class="app-icon" type="button" data-app="arcade">
           <span class="app-glyph app-arcade" aria-hidden="true"><span class="app-badge" id="badge-arcade" hidden></span></span>
           <span class="app-label">Arcade</span>
+        </button>
+        <button class="app-icon" type="button" data-app="survival">
+          <span class="app-glyph" aria-hidden="true">🌲</span>
+          <span class="app-label">HBU Survival</span>
         </button>
         <button class="app-icon" type="button" data-app="chat">
           <span class="app-glyph app-chat" aria-hidden="true"><span class="app-badge" id="badge-chat" hidden></span></span>
@@ -1063,6 +1070,26 @@
         </div>
       </section>
     </section>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
+    <section class="app-window" id="win-survival" data-app="survival" role="dialog" aria-label="HBU Survival" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🌲</span> HBU Survival</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close HBU Survival" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body survival-app-body">
+        <iframe
+          class="survival-app-frame"
+          id="survival-app-frame"
+          data-src="apps/hbu-survival/index.html"
+          title="HBU Survival"
+          allow="autoplay; fullscreen; gamepad; pointer-lock"
+          loading="lazy"
+          referrerpolicy="same-origin"></iframe>
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
@@ -2225,14 +2252,6 @@
         image: "assets/game-covers/web-game.svg",
         url: "https://skiingbeast2025.github.io/webdickers/"
       },
-      {
-        id: "hbu-survival",
-        name: "HBU Survival",
-        genre: "Survival",
-        emoji: "🌲",
-        image: "games/hbu-survival/cover.svg",
-        url: "games/hbu-survival/index.html"
-      }
     ];
     const homeView = document.querySelector("#home-view");
     const playerView = document.querySelector("#player-view");
@@ -5575,7 +5594,7 @@
     updateUsageSummary();
 
     const windowEls = Object.fromEntries([...document.querySelectorAll(".app-window")].map(el => [el.dataset.app, el]));
-    const windowSizes = { arcade: [940, 640], chat: [960, 640], settings: [760, 620], rewards: [820, 620], profiles: [520, 520], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], social: [620, 700], creator: [1100, 700], store: [720, 620], owner: [560, 680], voice: [680, 640] };
+    const windowSizes = { arcade: [940, 640], survival: [1280, 860], chat: [960, 640], settings: [760, 620], rewards: [820, 620], profiles: [520, 520], leaderboard: [520, 600], friends: [480, 560], notes: [520, 520], calculator: [400, 560], clock: [480, 640], themes: [560, 480], browser: [900, 640], paint: [720, 600], casino: [520, 620], quests: [520, 640], links: [620, 620], pet: [480, 640], clicker: [460, 680], achievements: [680, 620], requests: [620, 620], logs: [520, 560], social: [620, 700], creator: [1100, 700], store: [720, 620], owner: [560, 680], voice: [680, 640] };
     const mobileQuery = window.matchMedia("(max-width: 700px)");
     let windowZ = 10;
     let windowCount = 0;
@@ -5945,6 +5964,15 @@
 
     const appHooks = {
       arcade: { open: () => renderGames() },
+      survival: {
+        open: () => {
+          const survivalFrame = document.querySelector("#survival-app-frame");
+          if (survivalFrame && survivalFrame.dataset.loaded !== "true") {
+            survivalFrame.src = survivalFrame.dataset.src;
+            survivalFrame.dataset.loaded = "true";
+          }
+        }
+      },
       chat: { open: () => { if (account) { loadMessages(); renderConvos(); } else { void loadImageChallenge(); } } },
       voice: { open: () => { voiceActive.hidden = !voiceState.room; voiceLobby.hidden = Boolean(voiceState.room); if (!voiceState.room) void voiceLoadRooms(); } },
       settings: { open: () => renderSettings() },
@@ -5992,6 +6020,12 @@
         stopGame();
         if (location.hash.startsWith("#play/")) history.replaceState(null, "", location.pathname + location.search);
         document.title = "Clever";
+      }
+      if (name === "survival") {
+        const survivalFrame = win.querySelector("#survival-app-frame");
+        if (survivalFrame?.contentWindow && survivalFrame.dataset.loaded === "true") {
+          survivalFrame.contentWindow.postMessage({ type: "hbu-survival-app-hidden" }, location.origin);
+        }
       }
       const next = Object.values(windowEls).filter(el => !el.hidden).sort((a, b) => Number(b.style.zIndex) - Number(a.style.zIndex))[0];
       if (next) focusWindow(next);
@@ -6347,6 +6381,7 @@
     let appPins = Array.isArray(savedAppPins) ? savedAppPins.filter(id => typeof id === "string") : [];
     const appCategories = {
       games: ["arcade", "rewards", "leaderboard", "quests", "casino", "pet", "clicker", "achievements", "requests"],
+      survival: ["survival"],
       social: ["chat", "voice", "profiles", "friends", "social"],
       tools: ["settings", "notes", "calculator", "clock", "themes", "browser", "paint", "creator", "store", "links", "logs", "owner"]
     };
