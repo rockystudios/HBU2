@@ -31,12 +31,18 @@ CREATE INDEX IF NOT EXISTS hbu_survival_players_last_seen_idx
 
 -- Separate existing first-time accounts that were previously stacked at the
 -- shared default spawn. The coordinates are stable for each username.
-UPDATE public.hbu_survival_players
+WITH default_spawn_players AS (
+  SELECT username, row_number() OVER (ORDER BY username) - 1 AS spawn_slot
+  FROM public.hbu_survival_players
+  WHERE x = 1200 AND y = 900
+)
+UPDATE public.hbu_survival_players AS player
 SET
-  x = 1200 + (mod(abs(hashtext(lower(username))::bigint), 9) - 4) * 72,
-  y = 900 + (mod(abs(hashtext(lower(username))::bigint) / 9, 9) - 4) * 72,
+  x = 1200 + ((default_spawn_players.spawn_slot % 9) - 4) * 72,
+  y = 900 + ((default_spawn_players.spawn_slot / 9) - 4) * 72,
   updated_at = now()
-WHERE x = 1200 AND y = 900;
+FROM default_spawn_players
+WHERE player.username = default_spawn_players.username;
 
 CREATE TABLE IF NOT EXISTS public.hbu_survival_world (
   world_id text PRIMARY KEY DEFAULT 'greenwild' CHECK (world_id = 'greenwild'),
@@ -115,12 +121,6 @@ BEGIN
     RAISE EXCEPTION 'Wrong username or password';
   END IF;
 
-  -- Give each new account a stable nearby spawn instead of stacking every
-  -- first-time survivor at the exact center of the world.
-  v_spawn_hash := abs(hashtext(lower(v_username))::bigint);
-  v_spawn_x := 1200 + (mod(v_spawn_hash, 9) - 4) * 72;
-  v_spawn_y := 900 + (mod(v_spawn_hash / 9, 9) - 4) * 72;
-
   IF jsonb_typeof(COALESCE(p_inventory, '{}'::jsonb)) <> 'object'
      OR jsonb_typeof(COALESCE(p_crafted, '{}'::jsonb)) <> 'object' THEN
     RAISE EXCEPTION 'Invalid survivor inventory data';
@@ -164,6 +164,29 @@ BEGIN
   -- The first request for an account creates its save. Later initialization
   -- requests preserve the server save and only refresh online presence.
   IF COALESCE(p_initialize, false) THEN
+    -- Allocate a nearby free grid cell so new accounts do not overlap.
+    -- The transaction lock prevents two simultaneous first joins selecting
+    -- the same cell.
+    PERFORM pg_advisory_xact_lock(hashtext('hbu_survival_spawn'));
+    v_spawn_hash := abs(hashtext(lower(v_username))::bigint);
+    SELECT
+      1200 + ((slots.slot % 9) - 4) * 72,
+      900 + ((slots.slot / 9) - 4) * 72
+    INTO v_spawn_x, v_spawn_y
+    FROM generate_series(0, 80) AS slots(slot)
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM public.hbu_survival_players AS existing
+      WHERE abs(existing.x - (1200 + ((slots.slot % 9) - 4) * 72)) < 36
+        AND abs(existing.y - (900 + ((slots.slot / 9) - 4) * 72)) < 36
+    )
+    ORDER BY mod(slots.slot + v_spawn_hash, 81)
+    LIMIT 1;
+
+    IF v_spawn_x IS NULL OR v_spawn_y IS NULL THEN
+      RAISE EXCEPTION 'The shared world has no available survivor spawn positions';
+    END IF;
+
     INSERT INTO public.hbu_survival_players (
       username, x, y, yaw, health, hunger, thirst, inventory, crafted, last_seen, updated_at
     ) VALUES (
