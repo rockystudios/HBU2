@@ -1186,7 +1186,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     if (sunLight3D && (!Number.isFinite(lastShadowCenter3D.x) || Math.hypot(state.x - lastShadowCenter3D.x, state.y - lastShadowCenter3D.z) > 120)) {
       lastShadowCenter3D.x = state.x;
       lastShadowCenter3D.z = state.y;
-      sunLight3D.position.set(state.x - 550, 1000, state.y - 650);
+      sunLight3D.position.set(state.x - 550, sunLight3D.position.y, state.y - 650);
       sunLight3D.target.position.set(state.x, 0, state.y);
       sunLight3D.target.updateMatrixWorld();
       sunLight3D.shadow.needsUpdate = true;
@@ -1200,7 +1200,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       const placement = getWallPlacement();
       placement.type = ({2:"wall",4:"floor",5:"door",6:"window"})[state.selectedHotbar];
       const valid = Math.hypot(placement.x - state.x, placement.y - state.y) <= 240 && !placementIsBlocked(placement);
-      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${valid}`;
+      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${placement.type}:${valid}`;
       if (ghostKey !== lastGhostPreviewKey3D) {
         clearGroup3D(ghostWall3D);
         createWall3D(ghostWall3D, placement, true);
@@ -1927,7 +1927,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
     { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A reinforced wall section for your shelter." },
     { id:"floor", name:"Wooden floor", needs:{wood:6,fiber:3}, pattern:["WWW","FFF","WWW"], requires:"hammer", description:"A solid 3D floor panel. Place panels side by side." },
-    { id:"doors", name:"Door frame", needs:{wood:5,fiber:2}, pattern:["W.W","W.W","WWW"], requires:"hammer", description:"A framed entrance for your base." },
+    { id:"doors", name:"Door frame", needs:{wood:6,fiber:2}, pattern:["WFW","W.W","WWW"], requires:"hammer", description:"A framed entrance for your base." },
     { id:"windows", name:"Window wall", needs:{wood:8,fiber:1}, pattern:["WWW","WFW","WWW"], requires:"hammer", description:"A timber wall with a glass window." }
   ];
 
@@ -2087,6 +2087,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
     const halfLength = BUILD_GRID / 2;
     const halfThickness = 9;
+    if (wall.type === "door") return Math.hypot(localX + 19, localY) < radius + 6 || Math.hypot(localX - 19, localY) < radius + 6;
     const closestX = Math.max(-halfLength, Math.min(halfLength, localX));
     const closestY = Math.max(-halfThickness, Math.min(halfThickness, localY));
     return Math.hypot(localX - closestX, localY - closestY) < radius;
@@ -2345,7 +2346,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       state.pointerCanvasX = point.x;
       state.pointerCanvasY = point.y;
       state.pointerOnCanvas = true;
-      if (state.selectedHotbar === 0) drawWorld();
+      if ([0,2,4,5,6].includes(state.selectedHotbar)) drawWorld();
     });
     canvas.addEventListener("mouseleave",()=>{state.pointerOnCanvas=false;});
     // Left-thumb movement joystick and touch-drag camera look.
