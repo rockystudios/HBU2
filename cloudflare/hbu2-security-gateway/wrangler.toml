@@ -10,3 +10,6 @@ class_name = "HbuRateLimiter"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["HbuRateLimiter"]
+
+# Worker Previews require an explicit previews block.
+[previews]
