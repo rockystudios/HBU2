@@ -14,12 +14,12 @@ const CORS_HEADERS = {
 };
 
 const ROUTE_LIMITS = [
-  { match: /\/functions\/v1\/send-message\?action=image_challenge(?:&|$)/, name: "image_challenge", ip: 180, device: 30, window: 60 },
-  { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 120, device: 10, window: 900 },
-  { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 60, device: 5, window: 3600 },
-  { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 1200, device: 240, window: 60 },
-  { match: /\/functions\/v1\/send-message$/, name: "function", ip: 900, device: 180, window: 60 },
-  { match: /\/rest\/v1\//, name: "rest", ip: 1500, device: 300, window: 60 },
+  { match: /\/functions\/v1\/send-message\?action=image_challenge(?:&|$)/, name: "image_challenge", ip: 20, device: 10, window: 60 },
+  { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 20, device: 5, window: 900 },
+  { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 10, device: 3, window: 3600 },
+  { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 60, device: 20, window: 60 },
+  { match: /\/functions\/v1\/send-message$/, name: "function", ip: 60, device: 20, window: 60 },
+  { match: /\/rest\/v1\//, name: "rest", ip: 120, device: 40, window: 60 },
 ];
 
 function json(body, status, origin) {
@@ -50,8 +50,8 @@ function getRouteLimit(pathAndQuery, body) {
   }
   return ROUTE_LIMITS.find((rule) => rule.match.test(pathAndQuery)) ?? {
     name: "default",
-    ip: 600,
-    device: 120,
+    ip: 60,
+    device: 20,
     window: 60,
   };
 }
