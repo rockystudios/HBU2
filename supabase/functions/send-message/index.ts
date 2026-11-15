@@ -1132,6 +1132,48 @@ async function editMessage(name: string, id: unknown, text: string) {
 
 async function handleOwner(action: string, staff: string, body: Record<string, unknown>) {
   const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
+  if (action.startsWith("admin_owner_ad_")) {
+    if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can review advertising requests.", 403);
+    if (action === "admin_owner_ads_list") {
+      const requests = await db("hbu_ad_requests?select=id,advertiser_name,contact,duration_days,status,requested_at,starts_at,expires_at&order=requested_at.desc&limit=100");
+      return json({ requests: requests ?? [] });
+    }
+    const id = Number(body.id);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new UserError("Invalid advertising request.");
+    if (action === "admin_owner_ad_get") {
+      const rows = await db("hbu_ad_requests?select=id,advertiser_name,contact,image_data,target_url,duration_days,status,requested_at,starts_at,expires_at&id=eq." + id + "&limit=1");
+      if (!rows?.length) throw new UserError("That advertising request no longer exists.", 404);
+      return json({ request: rows[0] });
+    }
+    if (action === "admin_owner_ad_review") {
+      const decision = String(body.decision ?? "");
+      if (!["approve", "reject"].includes(decision)) throw new UserError("Choose approve or reject.");
+      const existing = await db("hbu_ad_requests?select=id,duration_days,status&id=eq." + id + "&limit=1");
+      if (!existing?.length || existing[0].status !== "pending") throw new UserError("This request is no longer pending. Refresh the list.", 409);
+      if (decision === "approve") {
+        await db("hbu_ad_requests?status=eq.approved", {
+          method: "PATCH", headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({ status: "expired" }),
+        });
+        const startsAt = new Date().toISOString();
+        const expiresAt = new Date(Date.now() + Number(existing[0].duration_days) * 86400000).toISOString();
+        const updated = await db("hbu_ad_requests?id=eq." + id + "&status=eq.pending", {
+          method: "PATCH", headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ status: "approved", starts_at: startsAt, expires_at: expiresAt, reviewed_at: startsAt, reviewed_by: staff }),
+        });
+        if (!updated?.length) throw new UserError("This request changed while you were approving it. Refresh and try again.", 409);
+      } else {
+        const updated = await db("hbu_ad_requests?id=eq." + id + "&status=eq.pending", {
+          method: "PATCH", headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ status: "rejected", reviewed_at: new Date().toISOString(), reviewed_by: staff }),
+        });
+        if (!updated?.length) throw new UserError("This request changed while you were rejecting it. Refresh and try again.", 409);
+      }
+      await log({ username: staff, action: (decision === "approve" ? "approved" : "rejected") + " advertiser request #" + id });
+      return json({ ok: true });
+    }
+    throw new UserError("Unknown advertising request action.", 400);
+  }
   if (action.startsWith("admin_owner_archive")) {
     if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can access message archives.", 403);
     try {
