@@ -428,6 +428,13 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
 /* Do not recolor the WebGL canvas or any meshes: the playable world stays natural. */
 #hbu-survival-canvas{background:linear-gradient(#cfe8f5,#8ebd75)!important}
 
+/* Mobile joystick and coordinate labels */
+.mobile-joystick{display:none;position:absolute;z-index:20;left:16px;bottom:18px;width:132px;height:132px;border:2px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(28,55,37,.30);backdrop-filter:blur(4px);touch-action:none;user-select:none;-webkit-user-select:none}
+.mobile-joystick:before{content:'';position:absolute;inset:28px;border:1px solid rgba(255,255,255,.28);border-radius:50%}
+.mobile-joystick-knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border:2px solid #fff;border-radius:50%;background:rgba(116,169,89,.88);box-shadow:0 3px 12px #0005;pointer-events:none}
+.mobile-look-tip{display:none;position:absolute;right:12px;bottom:18px;padding:6px 9px;border-radius:7px;background:#14241dc9;color:#fff;font-size:9px;pointer-events:none}
+.survivor{flex-wrap:wrap}.survivor b{flex:1;min-width:70px}.survivor-coords{width:100%;margin-left:24px!important;font:8px 'DM Mono',monospace;color:#718075!important}
+@media(max-width:720px),(pointer:coarse){.mobile-joystick{display:block}.mobile-look-tip{display:block}.canvas-hint{left:50%;bottom:158px;max-width:90%;overflow:hidden;text-overflow:ellipsis}.world-panel{min-height:560px}.canvas-wrap{min-height:440px;touch-action:pan-y}}
 </style>
 </head>
 <body>
@@ -485,7 +492,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
 
       <section class="world-panel">
         <div class="world-toolbar"><div><span class="world-kicker">THE GREENWILD</span><strong>Survival World</strong></div><div class="world-meta"><span id="world-time"> Day 1 · 08:00</span><span id="player-count">1 survivor</span></div></div>
-        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="toast" class="toast" aria-live="polite"></div></div>
+        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="mobile-joystick" class="mobile-joystick" aria-label="Movement joystick"><div id="mobile-joystick-knob" class="mobile-joystick-knob"></div></div><div class="mobile-look-tip">Drag the world to look around</div><div id="toast" class="toast" aria-live="polite"></div></div>
         <div class="hotbar-panel">
           <div class="hotbar-label">HOTBAR <span>Select a tool with 1–9</span></div>
           <div id="hotbar" class="hotbar" aria-label="Nine-slot hotbar"></div>
@@ -605,6 +612,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     inventory: { wood: 0, stone: 0, berries: 0, fiber: 0 }, crafted: { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0 }, craftSlots: Array(9).fill(null), walls: [], keys: new Set(), resources: [], removed: new Set(),
     selectedHotbar: 0, gridVisible: false, wallRotation: 0, pointerCanvasX: 0, pointerCanvasY: 0, pointerOnCanvas: false,
     players: new Map(), camps: [], channel: null, lastMoveSent: 0, lastTick: 0, generatedChunks: new Set(), yaw: 0, pitch: -0.08, mouseLocked: false, mouseDragLook: false, relockAfterCrafting: false,
+    touchForward: 0, touchStrafe: 0, touchLookPointer: null, touchLookX: 0, touchLookY: 0,
     worldMinutes: 480, day: 1, toastTimer: 0, cameraX: 0, cameraY: 0, activity: [], saveTimer: 0,
     multiplayerReady: false, multiplayerInitialized: false, multiplayerTimer: 0, multiplayerBusy: false, multiplayerLastError: ""
   };
@@ -1049,26 +1057,26 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     if (!actorGroup3D) return;
     const desired = new Map();
     for (const player of state.players.values()) {
-      desired.set(`remote:${player.name}`, {
-        x: player.x, z: player.y, color: player.color || "#9dc76e", name: player.name, self: false
-      });
+      desired.set(`remote:${player.name}`, { player, x: player.targetX ?? player.x, z: player.targetY ?? player.y, color: player.color || "#9dc76e", name: player.name, self: false });
     }
     desired.set(`self:${state.name}`, { x: state.x, z: state.y, color: "#8ab85d", name: state.name, self: true });
-
     for (const [key, mesh] of actorMeshes3D) {
-      if (!desired.has(key)) {
-        actorGroup3D.remove(mesh);
-        actorMeshes3D.delete(key);
-      }
+      if (!desired.has(key)) { actorGroup3D.remove(mesh); actorMeshes3D.delete(key); }
     }
-    for (const [key, player] of desired) {
+    for (const [key, actor] of desired) {
       let mesh = actorMeshes3D.get(key);
       if (!mesh) {
-        mesh = createPlayer3D(actorGroup3D, player.x, player.z, player.color, player.name, player.self);
+        mesh = createPlayer3D(actorGroup3D, actor.x, actor.z, actor.color, actor.name, actor.self);
         actorMeshes3D.set(key, mesh);
+        if (actor.player) { actor.player.renderX = actor.x; actor.player.renderY = actor.z; }
       }
-      mesh.position.x = player.x;
-      mesh.position.z = player.z;
+      if (actor.player) {
+        const px = Number.isFinite(actor.player.renderX) ? actor.player.renderX : actor.x;
+        const py = Number.isFinite(actor.player.renderY) ? actor.player.renderY : actor.z;
+        actor.player.renderX = px + (actor.x - px) * 0.12;
+        actor.player.renderY = py + (actor.z - py) * 0.12;
+        mesh.position.x = actor.player.renderX; mesh.position.z = actor.player.renderY;
+      } else { mesh.position.x = actor.x; mesh.position.z = actor.z; }
     }
   }
 
@@ -1308,16 +1316,20 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
       // A request already in flight when the app closes may finish afterward.
       // Keep its database save, but do not resurrect online UI state while stopped.
       if (!state.started && !initialize && !leave) return payload;
-      if (payload.self) applyServerPlayer(payload.self);
+      // Only load the server save on first join. Heartbeat responses contain an older snapshot and must not rewind local movement.
+      if (initialize && payload.self) applyServerPlayer(payload.self);
       if (payload.world) applyServerWorld(payload.world);
       if (Array.isArray(payload.players)) {
         const active = new Map();
         for (const player of payload.players) {
-          if (!player || typeof player.name !== "string" || player.name.toLowerCase() === account.username.toLowerCase()) continue;
+          if (!player || typeof player.name !== "string" || player.name.trim().toLowerCase() === account.username.trim().toLowerCase()) continue;
+          const previous = state.players.get(player.name);
+          const targetX = Number.isFinite(Number(player.x)) ? Number(player.x) : 0;
+          const targetY = Number.isFinite(Number(player.y)) ? Number(player.y) : 0;
           active.set(player.name, {
-            name: player.name,
-            x: Number(player.x) || 0,
-            y: Number(player.y) || 0,
+            name: player.name, x: targetX, y: targetY, targetX, targetY,
+            renderX: previous ? previous.renderX : targetX,
+            renderY: previous ? previous.renderY : targetY,
             color: "#9dc76e"
           });
         }
@@ -1491,10 +1503,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
   }
 
   function renderSurvivors() {
-    const all = [{ name: state.name, self: true }, ...[...state.players.values()].map(player => ({ name: player.name, self: false }))];
+    const all = [{ name: state.name, self: true, x: state.x, y: state.y }, ...[...state.players.values()].map(player => ({ name: player.name, self: false, x: player.targetX ?? player.x, y: player.targetY ?? player.y }))];
     $("online-count").textContent = all.length;
     $("player-count").textContent = `${all.length} survivor${all.length === 1 ? "" : "s"}`;
-    $("survivor-list").innerHTML = all.map(player => `<div class="survivor"><i class="survivor-dot"></i><b>${escapeHtml(player.name)}</b><small>${player.self ? "YOU" : "ONLINE"}</small></div>`).join("");
+    $("survivor-list").innerHTML = all.map(player => `<div class="survivor"><i class="survivor-dot"></i><b>${escapeHtml(player.name)}</b><small>${player.self ? "YOU" : "ONLINE"}</small><small class="survivor-coords">X ${Math.round(player.x)} · Y ${Math.round(player.y)}</small></div>`).join("");
   }
 
   function escapeHtml(value) {
@@ -1765,8 +1777,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
   }
 
   function updatePlayer(delta = 1 / 60) {
-    let forward = 0;
-    let strafe = 0;
+    let forward = state.touchForward || 0;
+    let strafe = state.touchStrafe || 0;
     if (state.keys.has("w") || state.keys.has("arrowup")) forward += 1;
     if (state.keys.has("s") || state.keys.has("arrowdown")) forward -= 1;
     if (state.keys.has("a") || state.keys.has("arrowleft")) strafe += 1;
@@ -2189,7 +2201,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     canvas.tabIndex = 0;
     state.pointerWasLockedOnDown = false;
     canvas.addEventListener("pointerdown", event => {
-      if (!state.started || event.button !== 0) return;
+      if (!state.started || event.button !== 0 || event.pointerType === "touch") return;
       state.pointerWasLockedOnDown = state.mouseLocked;
       if (!state.mouseLocked && canvas.requestPointerLock) {
         try {
@@ -2243,6 +2255,27 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
       if (state.selectedHotbar === 0) drawWorld();
     });
     canvas.addEventListener("mouseleave",()=>{state.pointerOnCanvas=false;});
+    // Left-thumb movement joystick and touch-drag camera look.
+    const joystick = $("mobile-joystick"); const joystickKnob = $("mobile-joystick-knob"); let joystickPointer = null;
+    const resetJoystick = () => { joystickPointer = null; state.touchForward = 0; state.touchStrafe = 0; if (joystickKnob) joystickKnob.style.transform = "translate(0px, 0px)"; };
+    const moveJoystick = event => {
+      if (joystickPointer !== event.pointerId || !joystick) return;
+      const rect = joystick.getBoundingClientRect(); const maxRadius = rect.width * 0.34;
+      let dx = event.clientX - (rect.left + rect.width / 2); let dy = event.clientY - (rect.top + rect.height / 2);
+      const length = Math.hypot(dx, dy); if (length > maxRadius) { dx = dx / length * maxRadius; dy = dy / length * maxRadius; }
+      state.touchStrafe = dx / maxRadius; state.touchForward = -dy / maxRadius;
+      if (joystickKnob) joystickKnob.style.transform = "translate(" + dx + "px, " + dy + "px)";
+    };
+    if (joystick) {
+      joystick.addEventListener("pointerdown", event => { event.preventDefault(); event.stopPropagation(); joystickPointer = event.pointerId; joystick.setPointerCapture(event.pointerId); moveJoystick(event); });
+      joystick.addEventListener("pointermove", event => { if (joystickPointer === event.pointerId) { event.preventDefault(); moveJoystick(event); } });
+      joystick.addEventListener("pointerup", event => { if (joystickPointer === event.pointerId) resetJoystick(); });
+      joystick.addEventListener("pointercancel", resetJoystick); joystick.addEventListener("lostpointercapture", resetJoystick);
+    }
+    canvas.addEventListener("pointerdown", event => { if (event.pointerType !== "touch" || !state.started) return; state.touchLookPointer = event.pointerId; state.touchLookX = event.clientX; state.touchLookY = event.clientY; });
+    canvas.addEventListener("pointermove", event => { if (event.pointerType !== "touch" || state.touchLookPointer !== event.pointerId) return; const dx = event.clientX - state.touchLookX; const dy = event.clientY - state.touchLookY; state.touchLookX = event.clientX; state.touchLookY = event.clientY; state.yaw -= dx * 0.008; state.pitch = Math.max(-1.15, Math.min(1.15, state.pitch - dy * 0.006)); });
+    const stopTouchLook = event => { if (state.touchLookPointer === event.pointerId) state.touchLookPointer = null; };
+    canvas.addEventListener("pointerup", stopTouchLook); canvas.addEventListener("pointercancel", stopTouchLook); window.addEventListener("blur", resetJoystick);
     $("rotate-wall").addEventListener("click",rotateWall);
     $("grid-toggle").addEventListener("click",toggleGrid);
     setupCrafting();
