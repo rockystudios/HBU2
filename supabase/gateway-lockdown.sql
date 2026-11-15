@@ -75,8 +75,17 @@ begin
   then
     raise sqlstate 'PGRST'
       using
-        message = json_build_object('message', 'HBU2 gateway authorization required')::text,
-        detail = json_build_object('status', 403, 'status_text', 'Forbidden')::text;
+        message = json_build_object(
+          'code', 'HBU_GATEWAY_REQUIRED',
+          'message', 'HBU2 gateway authorization required',
+          'details', null,
+          'hint', null
+        )::text,
+        detail = json_build_object(
+          'status', 403,
+          'status_text', 'Forbidden',
+          'headers', '{}'::json
+        )::text;
   end if;
 end;
 $$;
