@@ -20,6 +20,7 @@ const BOT = "mod-bot";
 const LIVEKIT_URL = Deno.env.get("LIVEKIT_URL") ?? "";
 const LIVEKIT_API_KEY = Deno.env.get("LIVEKIT_API_KEY") ?? "";
 const LIVEKIT_API_SECRET = Deno.env.get("LIVEKIT_API_SECRET") ?? "";
+const HBU_GATEWAY_TOKEN = Deno.env.get("HBU_GATEWAY_TOKEN") ?? "";
 const VOICE_ROOM_PREFIX = "hbu-voice-";
 const VOICE_DEFAULT_ROOM_CAPACITY = 20;
 const VOICE_MAX_ROOM_CAPACITY = 20;
@@ -1886,6 +1887,14 @@ async function handleRequest(req: Request): Promise<Response> {
 // Enforce the allowlist before any database, authentication, or LiveKit work.
 // Only requests from the two configured browser origins receive CORS permission.
 export async function handle(req: Request): Promise<Response> {
+  const suppliedGatewayToken = req.headers.get("x-hbu-gateway-token") ?? "";
+  if (!HBU_GATEWAY_TOKEN || suppliedGatewayToken.length < 40 || suppliedGatewayToken !== HBU_GATEWAY_TOKEN) {
+    return new Response(JSON.stringify({ error: "HBU2 gateway authorization required." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
+
   const origin = req.headers.get("Origin");
   if (!origin || !ALLOWED_ORIGINS.has(origin)) return originDenied();
 
