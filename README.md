@@ -18,11 +18,11 @@ This is a multiplayer prototype, not a cheat-proof competitive game: a modified 
 
 ## Advertising
 
-The home screen contains one 300×250 Adsterra banner in its supplied placement. The ad script is supplied by Adsterra and may be blocked by browsers or ad blockers; the rest of the site does not depend on it. Review Adsterra's ad-content settings and applicable privacy and consent requirements before enabling ads for the site's audience.
+HBU uses a first-party advertiser-request system and does not load external ad-network scripts. The home-screen banner displays a "Your ad here" invitation linking to `advertise.html`. Advertisers can submit a contact name, contact details, an image, a secure HTTPS destination link, and a requested duration of 1–30 days.
 
-Settings offers optional Adsterra popunder ads, off by default and saved in the browser. The script loads early on page load only after opt-in and not on phones or screens at most 650px wide. Popunders open behind the current page and may appear while Arcade is open. Changing the setting or crossing the narrow-screen threshold reloads the page; the reload is needed to start or stop the provider script. Settings reports script loading errors and offers a reload to retry. Loading the script does not guarantee an ad: the ad provider controls availability and timing, and browser or content blockers may prevent ads from loading or opening.
+Submissions are private and remain pending until Rocky reviews them in the Owner app. Approving a request publishes it in the home-screen banner immediately and starts its requested duration; approving a new request replaces the previous live ad. Expired ads stop displaying automatically. HBU does not collect payments through the website; the confirmation tells advertisers Rocky will contact them about payment shortly.
 
-The Settings pop-up test opens a local test window, not an advertisement. It checks whether the browser permits a directly requested window; a successful test does not guarantee Adsterra popunders can open or that ads are available.
+Run `supabase/advertising.sql` once in the Supabase SQL editor before deploying the updated site and `send-message` Edge Function. The public submission RPC accepts image data URLs for PNG, JPEG, WEBP, or GIF files up to 650 KB and HTTPS destination links. The request table itself is not readable by browser users; only the Owner app's authenticated owner actions can review submissions. The approved-ad RPC exposes only the current approved ad.
 
 Student ID is completely optional when creating an account. Run `supabase/optional-student-id.sql` once in the Supabase SQL editor to update the signup function in an existing project.
 
