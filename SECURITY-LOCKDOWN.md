@@ -15,20 +15,9 @@ The SQL migration `supabase/gateway-lockdown.sql` installs a PostgREST pre-reque
 
 ## 1. Set the shared secret
 
-Use one random 64-character hexadecimal token, and use exactly the same value in both services.
+Use the exact 64-character token supplied to the project owner in the private incident-response conversation. The SQL file in this commit already contains the SHA-256 hash for that exact token. Generating a different token will not match the SQL migration unless its hash is updated first.
 
-PowerShell can generate one locally:
-
-```powershell
-$bytes = New-Object byte[] 32
-$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-$rng.GetBytes($bytes)
-$token = -join ($bytes | ForEach-Object { $_.ToString("x2") })
-Set-Clipboard $token
-$token
-```
-
-Do not put this token in `index.html`, any other browser file, a GitHub commit, chat, or a public issue.
+Do not put this token in `index.html`, any other browser file, a GitHub commit, or a public issue. Store it only as a Secret in Cloudflare and Supabase.
 
 ### Cloudflare Worker secret
 1. Cloudflare Dashboard → Workers & Pages → Worker **hbu2**.
