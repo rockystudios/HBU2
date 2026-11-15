@@ -52,7 +52,7 @@ After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/socia
 
 ## Casino and streak rewards
 
-Run `supabase/gambling-streak-boost.sql` after `supabase/coins.sql`, `supabase/streaks-ips.sql`, and `supabase/gambling.sql`. Coin Flip and Dice now have a 52% win chance, and Slots has a 48% chance of a matching payout. Daily spins award a larger streak bonus; every third streak day adds a milestone bonus, and every seventh streak day grants a random unowned name plate (or extra coins if all plates are already owned).
+Run `supabase/gambling-streak-boost.sql` after `supabase/coins.sql`, `supabase/streaks-ips.sql`, and `supabase/gambling.sql`. Coin Flip and Dice now have a 52% win chance, and Slots has a 52% chance of a matching payout. Daily spins award a larger streak bonus; every third streak day adds a milestone bonus, and every seventh streak day grants a random unowned name plate (or extra coins if all plates are already owned).
 
 ## What's New announcement
 
