@@ -15,21 +15,15 @@ jobs:
   deploy:
     name: Deploy Cloudflare Worker
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install Wrangler
-        run: npm install --global wrangler
+        uses: actions/checkout@v6
 
       - name: Deploy Worker
-        working-directory: cloudflare/hbu2-security-gateway
-        run: wrangler deploy --config wrangler.toml
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare/hbu2-security-gateway
+          command: deploy --config wrangler.toml
