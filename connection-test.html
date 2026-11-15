@@ -23,10 +23,21 @@
     <p><a href="./">Back to HbuOS</a></p>
   </main>
   <script>
-    const base = "https://xvkjvuxhawlljakfkllu.supabase.co";
+    const base = "https://YOUR-WORKER-NAME.YOUR-CLOUDFLARE-SUBDOMAIN.workers.dev";
     const key = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const button = document.querySelector("#run");
     const output = document.querySelector("#results");
+
+    function getDeviceId() {
+      const storageKey = "hbu-device-id-v1";
+      let value = "";
+      try { value = localStorage.getItem(storageKey) || ""; } catch {}
+      if (!/^[a-f0-9-]{36}$/i.test(value)) {
+        value = crypto.randomUUID();
+        try { localStorage.setItem(storageKey, value); } catch {}
+      }
+      return value;
+    }
 
     async function check(name, path, options = {}, expected, includeKey = true) {
       const controller = new AbortController();
@@ -34,7 +45,7 @@
       try {
         const response = await fetch(base + path, {
           ...options,
-          headers: { ...(includeKey ? { apikey: key } : {}), ...options.headers },
+          headers: { ...(includeKey ? { apikey: key } : {}), "X-HBU-Device-ID": getDeviceId(), ...options.headers },
           signal: controller.signal,
           cache: "no-store"
         });
@@ -62,8 +73,7 @@
       });
       try {
         const results = await Promise.all([
-          check("Basic connection (no key)", "/rest/v1/", {}, (response, data) => response.status === 401 && /no api key/i.test(data?.message || ""), false),
-          check("Database (key in URL)", `/rest/v1/messages?select=created_at&limit=1&apikey=${encodeURIComponent(key)}`, {}, (response, data) => response.ok && Array.isArray(data), false),
+          check("Gateway blocks missing API key", "/rest/v1/", {}, (response, data) => response.status === 401 && /missing.*api key/i.test(data?.error || ""), false),
           check("Database", "/rest/v1/messages?select=created_at&limit=1", {}, (response, data) => response.ok && Array.isArray(data)),
           check("Password reset check", "/rest/v1/rpc/hbu_reset_pending", post({ p_username: username }), (response, data) => response.ok && typeof data === "boolean"),
           check("Login service", "/rest/v1/rpc/hbu_login", post({ p_username: username, p_password: "connection-test-only" }), (response, data) => !response.ok && /wrong username or password/i.test(data?.message || "")),
