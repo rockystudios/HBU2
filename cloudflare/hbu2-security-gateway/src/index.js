@@ -27,6 +27,9 @@ const ROUTE_LIMITS = [
   // Coin-changing actions get their own modest bucket, separate from routine reads.
   { match: /\/rest\/v1\/rpc\/hbu_(?:spin|gamble|buy_plate|equip_plate|transfer_coins)$/, name: "economy_action", ip: 60, device: 20, window: 60 },
   { match: /\/rest\/v1\/rpc\/hbu_(?:inbox|dm_partners|get_dms)$/, name: "dm_read", ip: 120, device: 60, window: 60 },
+  // Announcements are checked on login and dismissed once per account.
+  // Do not let unrelated RPC traffic prevent a user from closing the popup.
+  { match: /\/rest\/v1\/rpc\/hbu_whats_new_(?:status|dismiss)$/, name: "whats_new", ip: 120, device: 30, window: 60 },
   { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 30, device: 15, window: 60 },
   { match: /\/functions\/v1\/send-message$/, name: "function", ip: 30, device: 15, window: 60 },
   { match: /\/rest\/v1\//, name: "rest", ip: 60, device: 30, window: 60 },
