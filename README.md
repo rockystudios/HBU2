@@ -18,7 +18,7 @@ This is a multiplayer prototype, not a cheat-proof competitive game: a modified 
 
 ## Advertising
 
-HBU uses a first-party advertiser-request system and does not load external ad-network scripts or popunders. The home-screen banner displays a "Your ad here" invitation linking to `advertise.html`. Advertisers can submit a contact name, contact details, an image, a secure HTTPS destination link, and a requested duration of 1–30 days.
+HBU uses a first-party advertiser-request system and does not load external ad-network scripts. The home-screen banner displays a "Your ad here" invitation linking to `advertise.html`. Advertisers can submit a contact name, contact details, an image, a secure HTTPS destination link, and a requested duration of 1–30 days.
 
 Submissions are private and remain pending until Rocky reviews them in the Owner app. Approving a request publishes it in the home-screen banner immediately and starts its requested duration; approving a new request replaces the previous live ad. Expired ads stop displaying automatically. HBU does not collect payments through the website; the confirmation tells advertisers Rocky will contact them about payment shortly.
 
