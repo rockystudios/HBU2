@@ -1,31 +1,4 @@
-# Note: This website will never work again due to some clever hackers who know what they are doing! Please use https://skiingbeast2025.github.io/lunamix/ for the time being.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Note: This website will ALWAYS continue even though some dumb ah hackers who know don't what they are doing tried to hack us XD! Please use https://skiingbeast2025.github.io/lunamix/ 
 
 # HBU2
 
