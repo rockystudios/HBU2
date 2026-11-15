@@ -178,7 +178,6 @@ export default {
     const upstreamUrl = new URL(url.pathname + url.search, SUPABASE_ORIGIN);
     const headers = new Headers(request.headers);
     headers.delete("host");
-    headers.delete("origin");
     headers.delete("x-hbu-device-id");
     headers.delete("cf-connecting-ip");
     headers.delete("x-forwarded-for");
