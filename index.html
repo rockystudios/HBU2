@@ -647,7 +647,7 @@
       .hero-art { right: 8%; width: 135px; height: 135px; font-size: 68px; }
     }
     @media (max-width: 650px) {
-      .home-ad, .arcade-ad { display: none; }
+      .arcade-ad { display: none; }
       .shell { width: min(100% - 32px, 520px); }
       .nav { min-height: 64px; gap: 20px; }
       .nav-links { gap: 15px; font-size: 12px; }
@@ -2664,7 +2664,16 @@
       if (!link || !image || !credit) return;
       try {
         const ad = await rpc("hbu_get_active_ad", {});
-        if (!ad || typeof ad.image_data !== "string" || !ad.image_data.startsWith("data:image/")) return;
+        if (!ad || typeof ad.image_data !== "string" || !ad.image_data.startsWith("data:image/")) {
+          image.src = "assets/ad-your-here.svg";
+          image.alt = "Your ad here. Contact Rocky for more information.";
+          link.href = "advertise.html";
+          link.removeAttribute("target");
+          link.removeAttribute("rel");
+          link.setAttribute("aria-label", "Advertise on HBU");
+          credit.textContent = "From HBU";
+          return;
+        }
         const destination = new URL(ad.target_url);
         if (destination.protocol !== "https:") return;
         image.src = ad.image_data;
@@ -2679,6 +2688,7 @@
       }
     }
     void loadSponsoredAd();
+    window.setInterval(() => { void loadSponsoredAd(); }, 60000);
 
     async function authFetch(url, options = {}) {
       // Supabase Edge Functions can take longer during cold starts or when the
@@ -7132,7 +7142,7 @@
       ownerAdsList.replaceChildren();
       ownerAdReview.hidden = true;
       try {
-        const data = await adminCall("admin_owner_ads_list");
+        const data = await adminCall("admin_owner_ad_list");
         const requests = data.requests || [];
         for (const request of requests) {
           const item = document.createElement("li");
