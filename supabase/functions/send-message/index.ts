@@ -1134,7 +1134,7 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
   const all = Object.entries(COMMANDS).map(([name, cmd]) => ({ name, usage: cmd.usage, help: cmd.help, open: cmd.roles.includes("user") })).filter((cmd) => cmd.name !== "spy");
   if (action.startsWith("admin_owner_ad_")) {
     if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can review advertising requests.", 403);
-    if (action === "admin_owner_ads_list") {
+    if (action === "admin_owner_ad_list") {
       const requests = await db("hbu_ad_requests?select=id,advertiser_name,contact,duration_days,status,requested_at,starts_at,expires_at&order=requested_at.desc&limit=100");
       return json({ requests: requests ?? [] });
     }
