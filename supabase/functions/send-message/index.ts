@@ -1174,6 +1174,18 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
     }
     throw new UserError("Unknown advertising request action.", 400);
   }
+  if (action === "admin_owner_presence") {
+    if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can monitor account presence.", 403);
+    const cutoff = encodeURIComponent(new Date(Date.now() - 120000).toISOString());
+    const users = await db("hbu_presence?select=username,last_seen&last_seen=gte." + cutoff + "&order=last_seen.desc&limit=1000").catch((error) => {
+      const message = String((error as Error).message ?? error);
+      if (/hbu_presence|PGRST205|42P01/i.test(message)) {
+        throw new UserError("Presence tracking is not installed. Run supabase/device-security.sql in the Supabase SQL editor.", 500);
+      }
+      throw error;
+    });
+    return json({ users: users ?? [] });
+  }
   if (action.startsWith("admin_owner_archive")) {
     if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can access message archives.", 403);
     try {
