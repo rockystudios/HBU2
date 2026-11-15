@@ -1,4 +1,4 @@
-name = "hbu2-security-gateway"
+name = "hbu2"
 main = "src/index.js"
 compatibility_date = "2026-11-14"
 workers_dev = true
