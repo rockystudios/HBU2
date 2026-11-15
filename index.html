@@ -1869,6 +1869,7 @@
             <div class="casino-net" id="casino-net">Session: 0</div>
           </div>
           <p class="rewards-login" id="casino-login" hidden>Log in from <a href="#messages">Messages</a> to gamble your coins.</p>
+          <p class="muted" id="casino-odds-note" style="margin:0">Improved odds: 52% win chance on Coin Flip and Dice, and a 48% chance of a Slots payout.</p>
           <div class="casino-games">
             <button class="casino-card" type="button" data-casino="flip" aria-pressed="true"><span class="ci">🪙</span><b>Coin flip</b><small>Pays 2×</small></button>
             <button class="casino-card" type="button" data-casino="dice" aria-pressed="false"><span class="ci">🎲</span><b>Dice</b><small>Pays 2×</small></button>
@@ -1912,6 +1913,15 @@
           </form>
           <p class="app-note" id="owner-status"></p>
           <ul class="owner-list" id="owner-list"></ul>
+          <h2>User presence tracker</h2>
+          <p class="app-note">Track selected usernames and see whether they are online in HBU. Online means their account pinged within the last 2 minutes. Your tracked list is saved in this browser.</p>
+          <form class="friends-form" id="owner-presence-form">
+            <input id="owner-presence-name" type="text" maxlength="20" placeholder="Username to track" autocomplete="off" required>
+            <button class="button button-primary" type="submit">Track user</button>
+          </form>
+          <button class="button" id="owner-presence-refresh" type="button">Refresh statuses</button>
+          <p class="app-note" id="owner-presence-status" role="status" aria-live="polite"></p>
+          <ul class="owner-list" id="owner-presence-list"></ul>
           <h2>Advertisement requests</h2>
           <p class="app-note">Review advertiser images, destination links, contact details, and requested durations. Approved ads appear in the home-screen banner immediately and expire automatically.</p>
           <button class="button" id="owner-ads-refresh" type="button">Refresh ad requests</button>
@@ -3230,7 +3240,6 @@
         return;
       }
       const current = account;
-      showRolePolicyGate("");
       if (!(await checkRolePolicy())) return;
       if (account !== current) return;
       window.clearInterval(rolePolicyTimer);
@@ -3883,6 +3892,117 @@
     const plateById = id => plateCatalog.find(item => item.id === id);
     const walletAuth = () => ({ p_username: account.username, p_password: account.password });
 
+    const WHATS_NEW_ID = "hbu-gambling-streaks-2026-11-15";
+    let whatsNewOverlay = null;
+    let whatsNewCheckBusy = false;
+    let whatsNewCheckedUser = "";
+
+    function hideWhatsNew() {
+      if (whatsNewOverlay) whatsNewOverlay.remove();
+      whatsNewOverlay = null;
+    }
+
+    function showWhatsNew() {
+      if (whatsNewOverlay || !account) return;
+      const overlay = document.createElement("div");
+      overlay.id = "hbu-whats-new-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "hbu-whats-new-title");
+      Object.assign(overlay.style, {
+        position: "fixed", inset: "0", zIndex: "2147483646", display: "flex",
+        alignItems: "center", justifyContent: "center", padding: "18px",
+        background: "rgba(5, 4, 12, .88)", backdropFilter: "blur(9px)"
+      });
+
+      const panel = document.createElement("section");
+      Object.assign(panel.style, {
+        width: "min(560px, 100%)", display: "flex", flexDirection: "column",
+        gap: "14px", padding: "clamp(20px, 5vw, 30px)", color: "#f7f1ff",
+        background: "linear-gradient(145deg, #211438, #100b1d)",
+        border: "1px solid rgba(192,132,252,.55)", borderRadius: "20px",
+        boxShadow: "0 24px 90px rgba(0,0,0,.65)", fontFamily: "system-ui, sans-serif"
+      });
+
+      const eyebrow = document.createElement("p");
+      eyebrow.textContent = "FROM HBU";
+      Object.assign(eyebrow.style, { margin: "0", color: "#c4b5fd", fontSize: "12px", fontWeight: "800", letterSpacing: ".16em" });
+      const title = document.createElement("h2");
+      title.id = "hbu-whats-new-title";
+      title.textContent = "WHATS NEW";
+      Object.assign(title.style, { margin: "0", fontSize: "clamp(30px, 7vw, 42px)", letterSpacing: ".02em" });
+      const intro = document.createElement("p");
+      intro.textContent = "HBU has new Casino odds and better daily streak rewards!";
+      Object.assign(intro.style, { margin: "0", color: "#e9ddf7", lineHeight: "1.5" });
+      const details = document.createElement("div");
+      details.innerHTML = `
+        <ul style="margin:0;padding-left:22px;display:grid;gap:10px;line-height:1.55;color:#d8cbe8">
+          <li><strong>Casino:</strong> Coin Flip and Dice now have a 52% chance to win. Slots now have a 48% chance to pay out.</li>
+          <li><strong>Daily streaks:</strong> Every consecutive day gives extra bonus coins. Every 3rd streak day adds another 50 coins.</li>
+          <li><strong>Streak prizes:</strong> Every 7th consecutive day unlocks a free name plate if you do not already own them all.</li>
+        </ul>
+      `;
+      const status = document.createElement("p");
+      status.setAttribute("role", "status");
+      status.setAttribute("aria-live", "polite");
+      Object.assign(status.style, { margin: "0", minHeight: "18px", color: "#fcdba8", fontSize: "13px" });
+      const dismiss = document.createElement("button");
+      dismiss.type = "button";
+      dismiss.disabled = true;
+      dismiss.textContent = "Please wait 3 seconds…";
+      Object.assign(dismiss.style, {
+        minHeight: "46px", border: "0", borderRadius: "12px", padding: "12px 18px",
+        background: "#c084fc", color: "#1b1028", fontWeight: "850", fontSize: "15px",
+        cursor: "not-allowed", opacity: ".55"
+      });
+      const current = account;
+      const countdown = window.setTimeout(() => {
+        dismiss.disabled = false;
+        dismiss.textContent = "Got it!";
+        dismiss.style.cursor = "pointer";
+        dismiss.style.opacity = "1";
+      }, 3000);
+      dismiss.addEventListener("click", async () => {
+        if (dismiss.disabled || account !== current) return;
+        dismiss.disabled = true;
+        dismiss.textContent = "Saving…";
+        status.textContent = "Saving this announcement to your account…";
+        try {
+          await rpc("hbu_whats_new_dismiss", { ...walletAuth(), p_notice_id: WHATS_NEW_ID });
+          if (account !== current) return;
+          window.clearTimeout(countdown);
+          whatsNewCheckedUser = current.username.toLowerCase();
+          hideWhatsNew();
+        } catch (error) {
+          status.textContent = "Could not save your dismissal: " + error.message + ". Click Retry to try again.";
+          dismiss.disabled = false;
+          dismiss.textContent = "Retry";
+          dismiss.style.cursor = "pointer";
+          dismiss.style.opacity = "1";
+        }
+      });
+      panel.append(eyebrow, title, intro, details, status, dismiss);
+      overlay.append(panel);
+      document.body.append(overlay);
+      whatsNewOverlay = overlay;
+    }
+
+    async function checkWhatsNew() {
+      if (!account || whatsNewCheckBusy || whatsNewCheckedUser === account.username.toLowerCase()) return;
+      const current = account;
+      whatsNewCheckBusy = true;
+      try {
+        const result = await rpc("hbu_whats_new_status", { ...walletAuth(), p_notice_id: WHATS_NEW_ID });
+        if (account !== current) return;
+        whatsNewCheckedUser = current.username.toLowerCase();
+        if (result && result.show) showWhatsNew();
+      } catch (error) {
+        console.warn("Could not check the HBU What's New announcement.", error);
+      } finally {
+        whatsNewCheckBusy = false;
+      }
+    }
+
     function applyPlate(entry, nameEl, plateId, username) {
       if (username.toLowerCase() === "rocky") {
         entry.classList.add("owner-matrix");
@@ -3972,10 +4092,12 @@
       const streak = wallet && wallet.streak ? wallet.streak : 0;
       streakLine.hidden = !(loggedIn && wallet);
       if (!streakLine.hidden) {
-        const bonus = Math.min(streak, 10) * 5;
+        const nextStreak = streak + 1;
+        const nextBonus = Math.min(nextStreak, 10) * 10 + (nextStreak % 3 === 0 ? 50 : 0);
+        const nextReward = nextStreak % 7 === 0 ? " + free name plate" : nextStreak % 3 === 0 ? " + milestone bonus" : "";
         streakLine.textContent = streak
-          ? `🔥 ${streak}-day streak${wallet.can_spin ? ` · spin today for +${bonus} bonus coins` : ` · come back tomorrow for +${Math.min(streak + 1, 11) * 5 - 5} bonus`}${wallet.best_streak > streak ? ` · best ${wallet.best_streak}` : ""}`
-          : "🔥 No streak yet. Spin today to start one!";
+          ? `🔥 ${streak}-day streak${wallet.can_spin ? ` · spin today for +${nextBonus} bonus coins${nextReward}` : ` · come back tomorrow for +${nextBonus} bonus coins${nextReward}`}${wallet.best_streak > streak ? ` · best ${wallet.best_streak}` : ""}`
+          : `🔥 No streak yet. Spin today to start one and earn +${nextBonus} bonus coins!`;
       }
       renderPlates();
     }
@@ -4121,7 +4243,8 @@
         await new Promise(resolve => window.setTimeout(resolve, 4800));
         spinning = false;
         spinNote.dataset.result = "1";
-        const won = `You won ${result.prize} coins${result.bonus ? ` + ${result.bonus} streak bonus` : ""}! 🎉`;
+        const extraReward = result.streak_reward ? ` · ${result.streak_reward}` : "";
+        const won = `You won ${result.prize} coins${result.bonus ? ` + ${result.bonus} streak bonus` : ""}${extraReward}! 🎉`;
         spinNote.textContent = won;
         showToast(won);
         wallet = { ...wallet, coins: result.coins, can_spin: false, streak: result.streak || wallet.streak, best_streak: Math.max(wallet.best_streak || 0, result.streak || 0) };
@@ -4150,6 +4273,7 @@
       refreshWallet();
       void loadSponsoredAd();
       if (account) {
+        void checkWhatsNew();
         void hbuPresencePing();
         authChallengeRequest++;
         authChallengeId = "";
@@ -6005,7 +6129,7 @@
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
-      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); loadOwnerAdRequests(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
+      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); loadOwnerAdRequests(); loadOwnerPresence(); startOwnerPresenceMonitor(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
     };
 
     function openApp(name, allowUninstalled = false) {
@@ -6025,6 +6149,10 @@
       if (!win || win.hidden) return;
       win.hidden = true;
       win.classList.remove("maximized");
+      if (name === "owner") {
+        window.clearInterval(ownerPresenceTimer);
+        ownerPresenceTimer = null;
+      }
       if (name === "voice" && voiceState.room) void voiceFinish();
       if (name.startsWith("ua-")) win.querySelector("iframe").srcdoc = "";
       if (name === "arcade") {
@@ -7125,6 +7253,86 @@
         status.textContent = error.message;
       }
     });
+
+    // Owner: monitor selected HBU accounts. The list is local to the owner's browser.
+    const ownerPresenceList = document.querySelector("#owner-presence-list");
+    const ownerPresenceStatus = document.querySelector("#owner-presence-status");
+    const ownerPresenceForm = document.querySelector("#owner-presence-form");
+    const ownerPresenceName = document.querySelector("#owner-presence-name");
+    const OWNER_PRESENCE_KEY = "hbu-owner-presence-tracked";
+    let trackedOwnerUsers = [...new Set((readLocal(OWNER_PRESENCE_KEY, []) || [])
+      .filter(name => typeof name === "string" && /^[a-z0-9_-]{1,20}$/i.test(name))
+      .map(name => name.toLowerCase()))].slice(0, 50);
+    let ownerPresenceTimer = null;
+
+    function saveTrackedOwnerUsers() {
+      writeLocal(OWNER_PRESENCE_KEY, trackedOwnerUsers);
+    }
+
+    async function loadOwnerPresence() {
+      if (!isOwner()) return;
+      ownerPresenceStatus.textContent = "Checking selected users…";
+      try {
+        const data = await adminCall("admin_owner_presence");
+        const online = new Map((data.users || []).map(row => [String(row.username).toLowerCase(), row.last_seen]));
+        ownerPresenceList.replaceChildren();
+        for (const username of trackedOwnerUsers) {
+          const item = document.createElement("li");
+          const label = document.createElement("strong");
+          label.textContent = username;
+          const state = document.createElement("small");
+          const lastSeen = online.get(username);
+          state.textContent = lastSeen
+            ? "ONLINE · pinged " + new Date(lastSeen).toLocaleTimeString()
+            : "OFFLINE";
+          state.style.color = lastSeen ? "#4ade80" : "var(--muted)";
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "button";
+          remove.textContent = "Stop tracking";
+          remove.addEventListener("click", () => {
+            trackedOwnerUsers = trackedOwnerUsers.filter(name => name !== username);
+            saveTrackedOwnerUsers();
+            void loadOwnerPresence();
+          });
+          item.append(label, state, remove);
+          ownerPresenceList.append(item);
+        }
+        ownerPresenceStatus.textContent = trackedOwnerUsers.length
+          ? "Updated " + new Date().toLocaleTimeString() + ". Status refreshes every 30 seconds."
+          : "No tracked users yet. Add a username above.";
+      } catch (error) {
+        ownerPresenceStatus.textContent = "Could not check presence: " + error.message;
+      }
+    }
+
+    function startOwnerPresenceMonitor() {
+      if (ownerPresenceTimer !== null) return;
+      ownerPresenceTimer = window.setInterval(() => {
+        if (appOpen("owner")) void loadOwnerPresence();
+      }, 30000);
+    }
+
+    ownerPresenceForm.addEventListener("submit", event => {
+      event.preventDefault();
+      if (!isOwner()) return;
+      const username = ownerPresenceName.value.trim().replace(/^@/, "").toLowerCase();
+      if (!/^[a-z0-9_-]{1,20}$/i.test(username)) {
+        ownerPresenceStatus.textContent = "Enter a valid username (letters, numbers, underscores or hyphens).";
+        return;
+      }
+      if (!trackedOwnerUsers.includes(username)) {
+        if (trackedOwnerUsers.length >= 50) {
+          ownerPresenceStatus.textContent = "You can track up to 50 users.";
+          return;
+        }
+        trackedOwnerUsers.push(username);
+        saveTrackedOwnerUsers();
+      }
+      ownerPresenceName.value = "";
+      void loadOwnerPresence();
+    });
+    document.querySelector("#owner-presence-refresh").addEventListener("click", loadOwnerPresence);
 
     // Owner: review advertiser submissions. The Edge Function checks owner permissions.
     const ownerAdsList = document.querySelector("#owner-ads-list");
