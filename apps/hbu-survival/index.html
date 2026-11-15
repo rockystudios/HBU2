@@ -457,6 +457,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
 html.touch-device .mobile-jump-button{display:grid!important}
 html.touch-device .mobile-joystick-knob{touch-action:none}
 
+/* Survival 2.0: night lighting, touch actions, and modular construction. */
+.mobile-survival-actions{position:absolute;right:14px;bottom:86px;display:none;gap:9px;z-index:6}.mobile-survival-actions button{width:62px;height:62px;border:1px solid rgba(255,255,255,.35);border-radius:18px;background:rgba(18,38,29,.9);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:21px;box-shadow:0 7px 22px #0005;backdrop-filter:blur(8px);touch-action:none}.mobile-survival-actions button span{font:800 8px Manrope;letter-spacing:.8px}.mobile-survival-actions button:active,.mobile-jump-button:active{transform:scale(.94);background:#3e7044}.canvas-wrap{isolation:isolate}#hbu-survival-canvas{image-rendering:auto;touch-action:none}.hotbar-slot[data-hotbar="4"],.hotbar-slot[data-hotbar="5"],.hotbar-slot[data-hotbar="6"]{border-color:#b48a56}@media(max-width:850px),(pointer:coarse){.mobile-survival-actions{display:flex}.mobile-jump-button{bottom:16px}.mobile-look-tip{bottom:18px;left:50%;transform:translateX(-50%);white-space:nowrap}.canvas-hint{display:none}.hotbar{grid-template-columns:repeat(7,minmax(0,1fr))}.hotbar-slot{min-height:58px}.world-panel{min-height:600px}}@media(max-width:420px){.mobile-survival-actions{right:9px;bottom:82px;gap:6px}.mobile-survival-actions button{width:54px;height:54px;border-radius:15px}.mobile-jump-button{width:66px;height:66px}.hotbar-slot small{font-size:6px}.hotbar-slot kbd{font-size:7px}}
 </style>
 </head>
 <body>
@@ -514,7 +516,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
 
       <section class="world-panel">
         <div class="world-toolbar"><div><span class="world-kicker">THE GREENWILD</span><strong>Survival World</strong></div><div class="world-meta"><span id="world-time"> Day 1 · 08:00</span><span id="player-count">1 survivor</span></div></div>
-        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="mobile-joystick" class="mobile-joystick" aria-label="Move forward and backward only"><span class="joystick-arrow joystick-arrow-up" aria-hidden="true">▲</span><div id="mobile-joystick-knob" class="mobile-joystick-knob"></div><span class="joystick-arrow joystick-arrow-down" aria-hidden="true">▼</span></div><button id="mobile-jump-button" class="mobile-jump-button" type="button" aria-label="Jump">JUMP</button><div id="coordinate-overlay" class="coordinate-overlay" aria-live="off">X 1200 · Y 900</div><div class="mobile-look-tip">Drag the world to look around</div><div id="toast" class="toast" aria-live="polite"></div></div>
+        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="mobile-joystick" class="mobile-joystick" aria-label="Move forward and backward only"><span class="joystick-arrow joystick-arrow-up" aria-hidden="true">▲</span><div id="mobile-joystick-knob" class="mobile-joystick-knob"></div><span class="joystick-arrow joystick-arrow-down" aria-hidden="true">▼</span></div><button id="mobile-jump-button" class="mobile-jump-button" type="button" aria-label="Jump">JUMP</button><div class="mobile-survival-actions" aria-label="Survival actions"><button id="mobile-eat-button" type="button" aria-label="Eat berries">🍓<span>EAT</span></button><button id="mobile-drink-button" type="button" aria-label="Drink water">💧<span>DRINK</span></button></div><div id="coordinate-overlay" class="coordinate-overlay" aria-live="off">X 1200 · Y 900</div><div class="mobile-look-tip">Drag the world to look around</div><div id="toast" class="toast" aria-live="polite"></div></div>
         <div class="hotbar-panel">
           <div class="hotbar-label">HOTBAR <span>Select a tool with 1–9</span></div>
           <div id="hotbar" class="hotbar" aria-label="Nine-slot hotbar"></div>
@@ -528,8 +530,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
         <div id="survivor-list" class="survivor-list"><p class="muted">Waiting for survivors…</p></div>
         <div class="panel-divider"></div>
         <div class="panel-heading">FIELD NOTES</div>
-        <div class="field-note"><b>Find supplies</b><p>Walk close to trees, rocks, berry bushes, and plants. Press E to gather.</p></div>
-        <div class="field-note"><b>Stay hydrated</b><p>Find a pond and press G when you're standing beside it.</p></div>
+        <div class="field-note"><b>Find supplies</b><p>Walk close to trees, rocks, berry bushes, and plants. Press E to gather. Tap EAT on mobile to eat berries.</p></div>
+        <div class="field-note"><b>Stay hydrated</b><p>Find a pond and press G when you're standing beside it. On mobile, tap DRINK.</p></div>
         <div class="field-note"><b>Night is coming</b><p>Your hunger and thirst slowly decrease as time passes.</p></div>
         <div class="panel-divider"></div>
         <div class="panel-heading">ACTIVITY</div>
@@ -633,10 +635,10 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   }
   const state = {
     started: false, name: "Survivor", x: 1200, y: 900, health: 100, hunger: 100, thirst: 100,
-    inventory: { wood: 0, stone: 0, berries: 0, fiber: 0 }, crafted: { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0 }, craftSlots: Array(9).fill(null), walls: [], keys: new Set(), resources: [], removed: new Set(),
+    inventory: { wood: 0, stone: 0, berries: 0, fiber: 0 }, crafted: { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, floors: 0, doors: 0, windows: 0 }, craftSlots: Array(9).fill(null), walls: [], keys: new Set(), resources: [], removed: new Set(),
     selectedHotbar: 0, gridVisible: false, wallRotation: 0, pointerCanvasX: 0, pointerCanvasY: 0, pointerOnCanvas: false,
     players: new Map(), camps: [], channel: null, lastMoveSent: 0, lastTick: 0, generatedChunks: new Set(), yaw: 0, pitch: -0.08, mouseLocked: false, mouseDragLook: false, relockAfterCrafting: false,
-    touchForward: 0, touchStrafe: 0, touchLookPointer: null, touchLookX: 0, touchLookY: 0,
+    touchForward: 0, touchStrafe: 0, touchLookPointer: null, touchLookX: 0, touchLookY: 0, buildType: "wall",
     jumpStartedAt: 0, jumpUntil: 0,
     worldMinutes: 480, day: 1, toastTimer: 0, cameraX: 0, cameraY: 0, activity: [], saveTimer: 0,
     multiplayerReady: false, multiplayerInitialized: false, multiplayerTimer: 0, multiplayerBusy: false, multiplayerLastError: ""
@@ -656,6 +658,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   let renderedWorldRevision3D = 0;
   let lastGhostPreviewKey3D = "";
   let sunLight3D = null;
+  let hemisphereLight3D = null;
+  let daySkyColor3D = null, duskSkyColor3D = null, nightSkyColor3D = null, currentSkyColor3D = null;
   let lastShadowCenter3D = { x: NaN, z: NaN };
   const geometryCache3D = new Map();
   const actorMeshes3D = new Map();
@@ -769,15 +773,32 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const group = new THREE.Group();
     group.position.set(wall.x, 0, wall.y);
     group.rotation.y = -(wall.rotation || 0);
+    const type = wall.type || "wall";
     const wood = ghost ? ghostMat3D("#b9e7a4") : mat3D("#94643d", 0.88);
-    const highlight = ghost ? ghostMat3D("#e3ffd4") : mat3D("#c28d55", 0.9);
-    box3D(group, 0, 17, 0, 48, 34, 13, wood, false, true);
-    box3D(group, 0, 30, -7.1, 48, 4, 1.4, highlight, false, false);
-    for (const px of [-19, 19]) {
-      box3D(group, px, 18, 0, 5, 38, 16, (ghost ? ghostMat3D("#d8f4c9") : mat3D("#68452d")), false, true);
-    }
-    for (const px of [-9, 8]) {
-      box3D(group, px, 17, 7.2, 1.4, 29, 1.2, (ghost ? ghostMat3D("#d8f4c9") : mat3D("#704a2e")), false, false);
+    const plank = ghost ? ghostMat3D("#d9f2bd") : mat3D("#b48755", 0.9);
+    const darkWood = ghost ? ghostMat3D("#d8f4c9") : mat3D("#68452d");
+    if (type === "floor") {
+      box3D(group, 0, 3, 0, 48, 5, 48, wood, false, true);
+      for (let z = -18; z <= 18; z += 12) box3D(group, 0, 6, z, 46, 1.5, 10.5, plank, false, false);
+      for (const x of [-22, 22]) box3D(group, x, 2, 0, 3, 4, 48, darkWood, false, false);
+    } else if (type === "door") {
+      box3D(group, -19, 35, 0, 7, 70, 14, darkWood, false, true);
+      box3D(group, 19, 35, 0, 7, 70, 14, darkWood, false, true);
+      box3D(group, 0, 68, 0, 45, 7, 14, plank, false, true);
+      box3D(group, 0, 3, 0, 45, 5, 15, wood, false, true);
+    } else if (type === "window") {
+      box3D(group, 0, 8, 0, 48, 16, 13, wood, false, true);
+      box3D(group, 0, 29, 0, 48, 4, 13, darkWood, false, true);
+      box3D(group, 0, 51, 0, 48, 16, 13, wood, false, true);
+      for (const px of [-21, 21]) box3D(group, px, 30, 0, 5, 60, 16, darkWood, false, true);
+      const glass = ghost ? ghostMat3D("#d8f5e8") : new THREE.MeshStandardMaterial({color:"#9dcbd0",roughness:0.18,metalness:0.12,transparent:true,opacity:0.58});
+      box3D(group, 0, 30, 0, 32, 35, 2, glass, false, false);
+      box3D(group, 0, 30, 8, 2.5, 35, 2, plank, false, false);
+    } else {
+      box3D(group, 0, 17, 0, 48, 34, 13, wood, false, true);
+      for (const py of [7,17,27]) box3D(group, 0, py, 7.1, 45, 2.3, 1.4, plank, false, false);
+      for (const px of [-19,19]) box3D(group, px, 18, 0, 5, 38, 16, darkWood, false, true);
+      for (const px of [-9,8]) box3D(group, px, 17, 7.2, 1.4, 29, 1.2, darkWood, false, false);
     }
     parent.add(group);
     return group;
@@ -798,6 +819,9 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const core = new THREE.Mesh(geometry3D("campfire-core", () => new THREE.ConeGeometry(4.5, 17, 7)), emissiveMat3D("#fff0a0", "#ffc34b", 1.8));
     core.position.y = 16;
     group.add(core);
+    const glow = new THREE.PointLight("#ff8a36", 1.7, 190, 2);
+    glow.position.y = 24;
+    group.add(glow);
     parent.add(group);
   }
 
@@ -859,7 +883,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     rayPoint3D = new THREE.Vector3();
     raycaster3D = new THREE.Raycaster();
     renderer3D = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer3D.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    renderer3D.setPixelRatio(Math.min(window.devicePixelRatio || 1, HAS_TOUCH_INPUT ? 1.5 : 2));
     renderer3D.setSize(canvas.clientWidth || 960, canvas.clientHeight || 600, false);
     renderer3D.shadowMap.enabled = true;
     renderer3D.shadowMap.type = THREE.PCFShadowMap;
@@ -868,14 +892,16 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     renderer3D.toneMappingExposure = 1.28;
 
     scene3D = new THREE.Scene();
-    scene3D.background = new THREE.Color("#bfe1f1");
+    daySkyColor3D = new THREE.Color("#bfe1f1"); duskSkyColor3D = new THREE.Color("#d58b68"); nightSkyColor3D = new THREE.Color("#091426"); currentSkyColor3D = new THREE.Color();
+    scene3D.background = daySkyColor3D.clone();
     scene3D.fog = new THREE.Fog("#bfe1f1", 850, 1750);
 
     camera3D = new THREE.PerspectiveCamera(78, 960 / 600, 0.1, 1500);
     camera3D.position.set(state.x, 34, state.y);
     camera3D.rotation.order = "YXZ";
 
-    scene3D.add(new THREE.HemisphereLight("#f4fff0", "#607b4c", 1.65));
+    hemisphereLight3D = new THREE.HemisphereLight("#f4fff0", "#607b4c", 1.65);
+    scene3D.add(hemisphereLight3D);
     const sun = new THREE.DirectionalLight("#fff2d2", 3.0);
     sunLight3D = sun;
     sun.position.set(state.x - 550, 1000, state.y - 650);
@@ -1125,9 +1151,31 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     while (group.children.length) group.remove(group.children[0]);
   }
 
+  function updateDayNightLighting3D() {
+    if (!(scene3D && sunLight3D && hemisphereLight3D)) return;
+    const hour = ((state.worldMinutes / 60) % 24 + 24) % 24;
+    const daylight = Math.max(0, Math.min(1, (Math.sin(((hour - 6) / 12) * Math.PI) + 0.12) / 1.12));
+    const dusk = Math.max(0, 1 - Math.abs(hour - 18) / 3);
+    currentSkyColor3D.copy(nightSkyColor3D).lerp(daySkyColor3D, daylight).lerp(duskSkyColor3D, Math.min(0.72,dusk*0.72));
+    scene3D.background.copy(currentSkyColor3D);
+    scene3D.fog.color.copy(currentSkyColor3D);
+    scene3D.fog.near = 650 + daylight * 250;
+    scene3D.fog.far = 1450 + daylight * 500;
+    hemisphereLight3D.intensity = 0.22 + daylight * 1.35;
+    hemisphereLight3D.color.set(daylight > 0.2 ? "#f4fff0" : "#647ba9");
+    hemisphereLight3D.groundColor.set(daylight > 0.2 ? "#607b4c" : "#101a31");
+    sunLight3D.intensity = 0.12 + daylight * 2.9;
+    sunLight3D.color.set(daylight > 0.2 ? "#fff2d2" : "#718acb");
+    sunLight3D.position.set(state.x - 550, 180 + daylight * 820, state.y - 650);
+    sunLight3D.target.position.set(state.x, 0, state.y);
+    sunLight3D.target.updateMatrixWorld();
+    renderer3D.toneMappingExposure = 0.72 + daylight * 0.62;
+  }
+
   function renderThreeWorld() {
     if (!renderer3D) initThreeWorld();
     updateStreamedChunks();
+    updateDayNightLighting3D();
 
     const jumpProgress = state.jumpStartedAt ? (performance.now() - state.jumpStartedAt) / 520 : 1;
     const jumpHeight = jumpProgress >= 0 && jumpProgress <= 1 ? Math.sin(jumpProgress * Math.PI) * 25 : 0;
@@ -1141,7 +1189,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     if (sunLight3D && (!Number.isFinite(lastShadowCenter3D.x) || Math.hypot(state.x - lastShadowCenter3D.x, state.y - lastShadowCenter3D.z) > 120)) {
       lastShadowCenter3D.x = state.x;
       lastShadowCenter3D.z = state.y;
-      sunLight3D.position.set(state.x - 550, 1000, state.y - 650);
+      sunLight3D.position.set(state.x - 550, sunLight3D.position.y, state.y - 650);
       sunLight3D.target.position.set(state.x, 0, state.y);
       sunLight3D.target.updateMatrixWorld();
       sunLight3D.shadow.needsUpdate = true;
@@ -1151,10 +1199,11 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     if (state.gridVisible) gridHelper3D.position.set(state.x, 0.25, state.y);
 
     let ghostKey = "hidden";
-    if (state.selectedHotbar === 0 && state.crafted.hammer > 0 && state.crafted.walls > 0) {
+    if ([2,4,5,6].includes(state.selectedHotbar) && state.crafted.hammer > 0) {
       const placement = getWallPlacement();
+      placement.type = ({2:"wall",4:"floor",5:"door",6:"window"})[state.selectedHotbar];
       const valid = Math.hypot(placement.x - state.x, placement.y - state.y) <= 240 && !placementIsBlocked(placement);
-      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${valid}`;
+      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${placement.type}:${valid}`;
       if (ghostKey !== lastGhostPreviewKey3D) {
         clearGroup3D(ghostWall3D);
         createWall3D(ghostWall3D, placement, true);
@@ -1431,7 +1480,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
         state.hunger = Number.isFinite(Number(savedPlayer.hunger)) ? Number(savedPlayer.hunger) : 100;
         state.thirst = Number.isFinite(Number(savedPlayer.thirst)) ? Number(savedPlayer.thirst) : 100;
         state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...(savedPlayer.inventory || {}) };
-        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...(savedPlayer.crafted || {}) };
+        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, floors: 0, doors: 0, windows: 0, ...(savedPlayer.crafted || {}) };
       }
     } catch (error) {
       console.warn("Could not load local player save.", error);
@@ -1879,7 +1928,10 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     { id:"axe", name:"Stone axe", needs:{wood:1,stone:4,fiber:1}, pattern:[".S.","SWS","FW."], description:"A basic gathering tool." },
     { id:"pickaxe", name:"Wooden pickaxe", needs:{wood:4,fiber:1}, pattern:["WWW",".W.",".F."], description:"Required to mine rocks." },
     { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
-    { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A wall section. Requires a wooden hammer." }
+    { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A reinforced wall section for your shelter." },
+    { id:"floor", name:"Wooden floor", needs:{wood:6,fiber:3}, pattern:["WWW","FFF","WWW"], requires:"hammer", description:"A solid 3D floor panel. Place panels side by side." },
+    { id:"doors", name:"Door frame", needs:{wood:7,fiber:1}, pattern:["WFW","W.W","WWW"], requires:"hammer", description:"A framed entrance for your base." },
+    { id:"windows", name:"Window wall", needs:{wood:8,fiber:1}, pattern:["WWW","WFW","WWW"], requires:"hammer", description:"A timber wall with a glass window." }
   ];
 
   function openCrafting() {
@@ -1931,7 +1983,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const recipe=findRecipe();
     $("craft-result").textContent=recipe?`Ready to craft: ${recipe.name}`:"Match the exact pattern shown in the recipe book.";
     $("craft-create").disabled=!recipe;
-    $("crafted-tools").innerHTML=`<b>Tools & building</b><span>Hammer: ${state.crafted.hammer||0}</span><span>Walls: ${state.crafted.walls||0}</span><span>Axes: ${state.crafted.axe||0}</span><span>Pickaxes: ${state.crafted.pickaxe||0}</span><span>Torches: ${state.crafted.torch||0}</span>`;
+    $("crafted-tools").innerHTML=`<b>Tools & building</b><span>Hammer: ${state.crafted.hammer||0}</span><span>Walls: ${state.crafted.walls||0}</span><span>Floors: ${state.crafted.floors||0}</span><span>Door frames: ${state.crafted.doors||0}</span><span>Window walls: ${state.crafted.windows||0}</span><span>Axes: ${state.crafted.axe||0}</span><span>Pickaxes: ${state.crafted.pickaxe||0}</span><span>Torches: ${state.crafted.torch||0}</span>`;
     renderRecipeBook();
   }
   function findRecipe() {
@@ -2038,6 +2090,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
     const halfLength = BUILD_GRID / 2;
     const halfThickness = 9;
+    if (wall.type === "door") return Math.hypot(localX + 19, localY) < radius + 6 || Math.hypot(localX - 19, localY) < radius + 6;
     const closestX = Math.max(-halfLength, Math.min(halfLength, localX));
     const closestY = Math.max(-halfThickness, Math.min(halfThickness, localY));
     return Math.hypot(localX - closestX, localY - closestY) < radius;
@@ -2050,7 +2103,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       if (resource.type === "rock" && Math.hypot(x-resource.x, y-resource.y) < radius + 17) return true;
     }
     for (const wall of state.walls) {
-      if (wallIntersectsCircle(wall, x, y, radius)) return true;
+      if (wall.type !== "floor" && wallIntersectsCircle(wall, x, y, radius)) return true;
     }
     return false;
   }
@@ -2063,22 +2116,23 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       if (wallIntersectsCircle(candidate, resource.x, resource.y, resource.type === "tree" ? 25 : 21)) return true;
     }
     return state.walls.some(wall => {
+      if (wall.type === "floor" || candidate.type === "floor") return false;
       const sameCell = Math.abs(wall.x-candidate.x) < 1 && Math.abs(wall.y-candidate.y) < 1;
       return sameCell || wallIntersectsCircle(candidate, wall.x, wall.y, 10);
     });
   }
 
   function placeWall() {
-    if (state.selectedHotbar!==0 || !(state.crafted.hammer>0)) {
-      showToast("Equip your hammer in hotbar slot 1 to build.");return;
-    }
-    if (!(state.crafted.walls>0)) { showToast("Craft a wooden wall first.");return; }
+    const buildKey=({2:"walls",4:"floors",5:"doors",6:"windows"})[state.selectedHotbar];
+    if (!buildKey || !(state.crafted.hammer>0)) { showToast("Craft a hammer, then select a building piece.");return; }
+    if (!(state.crafted[buildKey]>0)) { showToast("Craft that building piece first.");return; }
     const {x,y,rotation}=getWallPlacement();
     if(Math.hypot(x-state.x,y-state.y)>240){showToast("That spot is too far away.");return;}
-    if(placementIsBlocked({x,y,rotation})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
-    const wall=snapWallToGrid({id:`wall-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation});
-    state.walls.push(wall);markWorldVisualsDirty3D();state.crafted.walls--;saveWorld();savePlayer();drawWorld();updateHud();
-    broadcast("wall",wall);showToast("Wall placed on the grid!");
+    const type=({2:"wall",4:"floor",5:"door",6:"window"})[state.selectedHotbar];
+    if(placementIsBlocked({x,y,rotation,type})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
+    const wall=snapWallToGrid({id:`build-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation,type});
+    state.walls.push(wall);markWorldVisualsDirty3D();state.crafted[buildKey]--;saveWorld();savePlayer();drawWorld();updateHud();
+    broadcast("wall",wall);showToast(`${type[0].toUpperCase()+type.slice(1)} placed!`);
   }
 
   function rotateWall() {
@@ -2089,10 +2143,13 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   function updateHotbar() {
     const slots=$("hotbar");if(!slots)return;
     const entries=[
-      state.crafted.hammer>0?{name:"Hammer",count:state.crafted.hammer,icon:"hammer",hint:"Build walls"}:null,
+      state.crafted.hammer>0?{name:"Hammer",count:state.crafted.hammer,icon:"hammer",hint:"Build structures"}:null,
       state.crafted.axe>0?{name:"Axe",count:state.crafted.axe,icon:"axe",hint:"Gather resources"}:null,
-      state.crafted.walls>0?{name:"Wall",count:state.crafted.walls,icon:"wall",hint:"Wall pieces"}:null,
-      state.crafted.pickaxe>0?{name:"Pickaxe",count:state.crafted.pickaxe,icon:"pickaxe",hint:"Mine rocks"}:null
+      state.crafted.walls>0?{name:"Wall",count:state.crafted.walls,icon:"wall",hint:"Place wall"}:null,
+      state.crafted.pickaxe>0?{name:"Pickaxe",count:state.crafted.pickaxe,icon:"pickaxe",hint:"Mine rocks"}:null,
+      state.crafted.floors>0?{name:"Floor",count:state.crafted.floors,icon:"wall",hint:"Floor panel"}:null,
+      state.crafted.doors>0?{name:"Doorway",count:state.crafted.doors,icon:"wall",hint:"Door frame"}:null,
+      state.crafted.windows>0?{name:"Window",count:state.crafted.windows,icon:"wall",hint:"Window wall"}:null
     ];
     slots.innerHTML=Array.from({length:9},(_,index)=>{
       const item=entries[index];
@@ -2105,10 +2162,10 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   }
 
   function selectHotbar(index) {
-    const item=index===0?state.crafted.hammer:index===1?state.crafted.axe:index===2?state.crafted.walls:index===3?state.crafted.pickaxe:0;
+    const item=[state.crafted.hammer,state.crafted.axe,state.crafted.walls,state.crafted.pickaxe,state.crafted.floors,state.crafted.doors,state.crafted.windows][index]||0;
     if(!item){showToast("That hotbar slot is empty. Craft the item first.");return;}
     state.selectedHotbar=index;updateHotbar();drawWorld();
-    showToast(index===0?"Hammer equipped. Click the world to place a wall.":index===1?"Axe equipped. Click a resource to gather.":index===2?"Wall pieces selected.":"Pickaxe ready. Look at a rock and click to mine it.");
+    showToast(index===0?"Hammer ready. Select a building piece to place it.":index===1?"Axe equipped. Click a resource to gather.":index===2?"Wall selected. Tap or click the world to place it.":index===3?"Pickaxe ready. Look at a rock and click to mine it.":index===4?"Floor panel selected. Tap the world to place it.":index===5?"Doorway selected. Tap the world to place it.":"Window wall selected. Tap the world to place it.");
   }
 
   function toggleGrid() {
@@ -2171,7 +2228,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   function gatherInFrontOfPlayer() {
     // In first-person mode the cursor is locked, so gather the resource under the center crosshair.
     // The camera looks along (sin(yaw), cos(yaw)) in world X/Z coordinates.
-    if (state.selectedHotbar === 0 && state.crafted.hammer > 0) {
+    if ([2,4,5,6].includes(state.selectedHotbar) && state.crafted.hammer > 0) {
       const targetX = state.x + Math.sin(state.yaw) * 90;
       const targetY = state.y + Math.cos(state.yaw) * 90;
       state.pointerCanvasX = targetX;
@@ -2264,7 +2321,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       }
       // The first click is only for capturing the mouse; it never gathers accidentally.
       if (document.pointerLockElement !== canvas && canvas.requestPointerLock) return;
-      if (state.selectedHotbar === 0 && state.crafted.hammer > 0) placeWall();
+      if ([2,4,5,6].includes(state.selectedHotbar)) placeWall();
       else gatherAtPointer(event);
     });
     document.addEventListener("pointerlockchange", () => {
@@ -2292,7 +2349,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
       state.pointerCanvasX = point.x;
       state.pointerCanvasY = point.y;
       state.pointerOnCanvas = true;
-      if (state.selectedHotbar === 0) drawWorld();
+      if ([0,2,4,5,6].includes(state.selectedHotbar)) drawWorld();
     });
     canvas.addEventListener("mouseleave",()=>{state.pointerOnCanvas=false;});
     // Left-thumb movement joystick and touch-drag camera look.
@@ -2315,6 +2372,9 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     }
     const mobileJumpButton = $("mobile-jump-button");
     if (mobileJumpButton) mobileJumpButton.addEventListener("pointerdown", event => { event.preventDefault(); event.stopPropagation(); triggerJump(); });
+    const mobileEatButton=$("mobile-eat-button"), mobileDrinkButton=$("mobile-drink-button");
+    if (mobileEatButton) mobileEatButton.addEventListener("pointerdown",event=>{event.preventDefault();event.stopPropagation();eatBerries();});
+    if (mobileDrinkButton) mobileDrinkButton.addEventListener("pointerdown",event=>{event.preventDefault();event.stopPropagation();void drinkWater();});
     canvas.addEventListener("pointerdown", event => { if (event.pointerType !== "touch" || !state.started) return; state.touchLookPointer = event.pointerId; state.touchLookX = event.clientX; state.touchLookY = event.clientY; });
     canvas.addEventListener("pointermove", event => { if (event.pointerType !== "touch" || state.touchLookPointer !== event.pointerId) return; const dx = event.clientX - state.touchLookX; const dy = event.clientY - state.touchLookY; state.touchLookX = event.clientX; state.touchLookY = event.clientY; state.yaw -= dx * 0.008; state.pitch = Math.max(-1.15, Math.min(1.15, state.pitch - dy * 0.006)); });
     const stopTouchLook = event => { if (state.touchLookPointer === event.pointerId) state.touchLookPointer = null; };
