@@ -50,6 +50,18 @@ Paint includes separate brush and eraser size controls, a fill tool for connecte
 
 After `supabase/accounts-and-dms.sql`, `supabase/coins.sql`, and `supabase/social.sql` are installed, run `supabase/profiles-and-transfers.sql` in the Supabase SQL editor. No Edge Function update is needed. Open the Profiles app and enter a username to see their profile picture, follower count, and equipped nameplate background. HBU Social also shows profiles and up to 100 follower names. Profiles require login. Rewards is always available on the home screen; logged-in users can send positive whole-number coin amounts to another account. Transfers are atomic and cannot be undone. If a request cannot be confirmed, check your balance before trying again.
 
+## Casino and streak rewards
+
+Run `supabase/gambling-streak-boost.sql` after `supabase/coins.sql`, `supabase/streaks-ips.sql`, and `supabase/gambling.sql`. Coin Flip and Dice now have a 52% win chance, and Slots has a 48% chance of a matching payout. Daily spins award a larger streak bonus; every third streak day adds a milestone bonus, and every seventh streak day grants a random unowned name plate (or extra coins if all plates are already owned).
+
+## What's New announcement
+
+Run `supabase/whats-new.sql` once in the Supabase SQL editor. The HBU What's New popup appears for signed-in users who have not dismissed that announcement on their account. It waits three seconds before allowing dismissal, and the dismissal is saved in Supabase so it does not reappear on another device.
+
+## Owner presence tracker
+
+The Owner app can monitor selected usernames and refresh their online status every 30 seconds. Online means HBU received a presence ping within the last two minutes. The selected username list is saved in the owner's current browser. This uses the existing `hbu_presence` table from `supabase/device-security.sql` and requires the updated `send-message` Edge Function.
+
 ## Nameplates
 
 New setups receive all nameplates from `supabase/coins.sql`. For an existing setup, run `supabase/new-nameplates.sql` once in the Supabase SQL editor to add ten more plates; it preserves existing plates and ownership. No Edge Function update is needed.
