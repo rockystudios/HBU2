@@ -1,0 +1,4 @@
+# Require @rockystudios to review changes to every file in HBU2.
+# Enable 'Require a pull request before merging' and
+# 'Require review from Code Owners' for the main branch.
+* @rockystudios
