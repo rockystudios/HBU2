@@ -3590,12 +3590,26 @@
         return rows;
       } catch (error) {
         if (account !== current) return [];
+
+        // A rate limit or server error is not evidence that the inbox SQL is
+        // missing. Do not fan out into more RPC calls when the gateway says 429.
+        if (error.status === 429 || error.status >= 500) throw error;
+
+        // The fallback is only for installations that have not added
+        // notifications.sql (or whose PostgREST schema cache has not refreshed).
+        const inboxFunctionMissing = /hbu_inbox|schema cache|could not find.*function|does not exist/i.test(error.message);
+        if (!inboxFunctionMissing) throw error;
+
+        // Throttle before making fallback calls, not after them. This prevents
+        // a missing inbox function from generating a burst every five seconds.
+        if (Date.now() - inboxFallbackAt < 15000) return [];
+        inboxFallbackAt = Date.now();
+
         console.warn("Inbox summary unavailable; checking individual conversations.", error);
         const partners = await rpc("hbu_dm_partners", { p_username: current.username, p_password: current.password });
         if (!Array.isArray(partners)) throw new Error("The DM list returned an invalid response.");
         if (account !== current) return [];
         mergePartners(partners.map(row => row.partner));
-        if (Date.now() - inboxFallbackAt < 15000) return [];
         const rows = [];
         for (const partner of dmPartners) {
           if (account !== current) return [];
@@ -3604,7 +3618,6 @@
           const last = messages[messages.length - 1];
           if (last) rows.push({ partner, last_at: last.created_at, last_user: last.user, last_message: last.message });
         }
-        inboxFallbackAt = Date.now();
         return rows;
       }
     }
