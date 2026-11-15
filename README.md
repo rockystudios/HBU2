@@ -1,4 +1,19 @@
 # HBU2
+## HBU Survival
+
+HBU Survival is available in the Arcade. It uses the same HBU2 sign-in as the rest of the site; there is no separate game account. Signed-in players join the shared Greenwild world, see other active survivors, and save their character, inventory, crafted items, and shared world changes to Supabase. Guests can still play with a browser-local save, but guest sessions are not visible to other players.
+
+### Enable multiplayer on an existing HBU2 deployment
+
+1. Confirm `supabase/accounts-and-dms.sql` has already been run. The game authenticates through the existing `public.hbu_login(text,text)` function.
+2. Run `supabase/hbu-survival.sql` once in the Supabase SQL Editor.
+3. Merge this PR. The GitHub Actions workflow deploys the updated Cloudflare Worker rate-limit route when the change reaches `main`.
+4. Open HBU2, sign in, launch **HBU Survival**, and press **Play**. The connection pill should show **Multiplayer**. Local play remains available if the multiplayer service cannot be reached.
+
+The shared world stores collected-resource IDs, campfires, walls, and the current day/time. Player presence and positions are polled through the existing HBU2 Cloudflare gateway every 2.5 seconds; players are considered offline after 20 seconds without a sync. No WebSocket or new browser secret is required. The game uses the same public Supabase publishable key already present in HBU2's frontend. Account passwords are sent to the existing gateway-backed account-checking RPC over HTTPS and are not written to the game's local save.
+
+This is a multiplayer prototype, not a cheat-proof competitive game: a modified client can still alter its own inventory or character stats. Server-side code authenticates the HBU2 account, bounds stored values, merges shared-world changes, and prevents direct table access by browser roles, but it does not validate every gameplay action as an authoritative game server would.
+
 
 ## Advertising
 
