@@ -1361,7 +1361,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     } catch (error) {
       state.multiplayerLastError = error.message || "Connection problem";
       state.multiplayerReady = false;
-      if (!leave) setConnectionStatus("offline", "Multiplayer reconnecting");
+      if (!leave) setConnectionStatus("offline", `Sync error · ${(state.multiplayerLastError || "unknown error").slice(0, 42)}`);
       console.warn("HBU Survival multiplayer sync failed:", error);
       return null;
     } finally {
