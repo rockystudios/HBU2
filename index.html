@@ -4005,7 +4005,12 @@
         delete spinNote.dataset.result;
       } catch (error) {
         wallet = null;
-        spinNote.textContent = "Rewards are not set up yet (run supabase/coins.sql).";
+        const walletSetupMissing =
+          error.status === 404 ||
+          /hbu_wallet|schema cache|could not find.*function|does not exist/i.test(error.message);
+        spinNote.textContent = walletSetupMissing
+          ? "Rewards are not set up yet (run supabase/coins.sql)."
+          : `Could not load rewards: ${error.message}`;
       }
       renderWallet();
       loadPlates(true);
@@ -8134,7 +8139,15 @@
         setCasinoCoins(r.coins);
       } catch (error) {
         stageFor(gameAtStart);
-        casinoStage.querySelector("#casino-msg").textContent = /coins|Bet|Pick/i.test(error.message) ? error.message : "Casino isn't set up yet (run supabase/gambling.sql).";
+        const casinoSetupMissing =
+          error.status === 404 ||
+          /hbu_gamble|schema cache|could not find.*function|does not exist/i.test(error.message);
+        casinoStage.querySelector("#casino-msg").textContent =
+          /coins|Bet|Pick/i.test(error.message)
+            ? error.message
+            : casinoSetupMissing
+              ? "Casino isn't set up yet (run supabase/gambling.sql)."
+              : `Casino request failed: ${error.message}`;
       } finally {
         casinoBusy = false;
         document.querySelectorAll("#casino-actions button").forEach(b => { b.disabled = !account; });
