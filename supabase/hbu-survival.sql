@@ -87,7 +87,7 @@ CREATE OR REPLACE FUNCTION public.hbu_survival_sync(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = pg_catalog, public, extensions
+SET search_path = public, extensions, pg_catalog
 AS $$
 DECLARE
   v_username text;
@@ -123,7 +123,7 @@ BEGIN
     RAISE EXCEPTION 'Too many removed resources';
   END IF;
   IF EXISTS (
-    SELECT 1 FROM unnest(COALESCE(p_removed, '{}'::text[])) AS items(item)
+    SELECT 1 FROM unnest(COALESCE(p_removed, '{}'::text[])) AS item
     WHERE item !~ '^[A-Za-z0-9_-]{1,64}$'
   ) THEN
     RAISE EXCEPTION 'Invalid resource identifier';
