@@ -3222,7 +3222,15 @@
       } catch (error) {
         staffAccess = false;
         applyAdminBoard();
-        showRolePolicyGate("", `HBU could not verify your policy acceptance: ${error.message}. Please retry. If this continues, ask the owner to run supabase/role-policy-acceptance.sql and deploy the updated send-message function.`);
+        hideRolePolicyGate();
+        showToast(`HBU could not verify your staff policy status: ${error.message}. Staff tools stay disabled until verification succeeds.`);
+        window.clearInterval(rolePolicyTimer);
+        rolePolicyTimer = window.setInterval(async () => {
+          if (!document.hidden && account) {
+            const accepted = await checkRolePolicy();
+            if (accepted) await setupStaff();
+          }
+        }, 30000);
         return false;
       } finally {
         rolePolicyCheckBusy = false;
