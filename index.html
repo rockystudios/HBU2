@@ -2253,8 +2253,9 @@
     const favoriteStorageKey = "hbu-arcade-favorites";
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
-    const supabaseRestUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/rest/v1";
-    const supabaseFunctionsUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1";
+    const hbuGatewayUrl = "https://YOUR-WORKER-NAME.YOUR-CLOUDFLARE-SUBDOMAIN.workers.dev";
+    const supabaseRestUrl = `${hbuGatewayUrl}/rest/v1`;
+    const supabaseFunctionsUrl = `${hbuGatewayUrl}/functions/v1`;
     const supabaseMessagesUrl = `${supabaseRestUrl}/messages`;
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const sessionKey = "hbu-arcade-session";
@@ -2665,7 +2666,7 @@
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 30000);
       try {
-        return await fetch(url, { ...options, signal: controller.signal, cache: "no-store" });
+        return await fetch(url, { ...options, headers: { ...(options.headers || {}), "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }, signal: controller.signal, cache: "no-store" });
       } catch (error) {
         console.error("Authentication service request failed.", error);
         if (error.name === "AbortError") {
@@ -2680,7 +2681,7 @@
     async function rpc(fn, args, fetchRequest = fetch) {
       const response = await fetchRequest(`${supabaseRestUrl}/rpc/${fn}`, {
         method: "POST",
-        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
         body: JSON.stringify(args)
       });
       const body = await response.json().catch(() => null);
@@ -2704,7 +2705,7 @@
     async function sendMessage(message, receiver) {
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
-        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
         body: JSON.stringify({ username: account.username, password: account.password, device_id: hbuDeviceId(), text_color: chatTextColor?.value || null, receiver, message })
       });
       const body = await response.json().catch(() => null);
@@ -2728,7 +2729,7 @@
     async function adminCall(action, extra = {}) {
       const response = await fetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
-        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
         body: JSON.stringify({ username: account.username, password: account.password, device_id: hbuDeviceId(), action, ...extra })
       });
       const body = await response.json().catch(() => null);
@@ -3292,7 +3293,7 @@
       authChallengeStatus.textContent = "Loading verification image...";
       const loading = (async () => { try {
         const response = await authFetch(`${supabaseFunctionsUrl}/send-message?action=image_challenge`, {
-          headers: { apikey: supabaseAnonKey }
+          headers: { apikey: supabaseAnonKey, "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }
         });
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error(body?.error || `Verification failed (${response.status}).`);
@@ -3615,7 +3616,7 @@
       try {
         const next = {};
         try {
-          const latest = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=1`, { headers: { apikey: supabaseAnonKey } });
+          const latest = await fetch(`${supabaseMessagesUrl}?select=user,message,created_at&receiver=eq.everyone&order=created_at.desc&limit=1`, { headers: { apikey: supabaseAnonKey, "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") } });
           if (!latest.ok) throw new Error(`Main chat request failed (${latest.status}).`);
           const [row] = await latest.json();
           if (row) next.everyone = { at: new Date(row.created_at).getTime(), user: row.user, text: row.message };
@@ -3864,7 +3865,7 @@
       platesLoadedAt = Date.now();
       try {
         if (force || !plateCatalog.length) {
-          const response = await fetch(`${supabaseRestUrl}/plates?select=*&order=sort.asc`, { headers: { apikey: supabaseAnonKey } });
+          const response = await fetch(`${supabaseRestUrl}/plates?select=*&order=sort.asc`, { headers: { apikey: supabaseAnonKey, "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") } });
           if (!response.ok) throw new Error(`Name plate catalog request failed (${response.status}).`);
           const catalog = await response.json();
           if (!Array.isArray(catalog)) throw new Error("Invalid name plate catalog.");
@@ -4778,7 +4779,7 @@
         let messages;
         if (convo === "everyone") {
           const response = await fetch(`${supabaseMessagesUrl}?select=id,user,message,text_color,created_at&receiver=eq.everyone&order=created_at.desc&limit=100`, {
-            headers: { apikey: supabaseAnonKey }
+            headers: { apikey: supabaseAnonKey, "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }
           });
           if (!response.ok) throw new Error(`Could not load messages (${response.status}).`);
           messages = (await response.json()).reverse();
@@ -4826,7 +4827,7 @@
         try {
           response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
             method: "POST",
-            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
             body: JSON.stringify({
               action: signupMode ? "signup_image" : "login_image",
               username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined,
@@ -5613,7 +5614,7 @@
       if (!account) throw new Error("Log in before using Voice Rooms.");
       const response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
         method: "POST",
-        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json" },
+        headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
         body: JSON.stringify({ action: `voice_${action}`, ...walletAuth(), device_id: hbuDeviceId(), ...extra })
       });
       const data = await response.json().catch(() => ({}));
