@@ -35,7 +35,7 @@ test("database keeps requests private and only exposes the current approved ad",
 });
 
 test("Owner review actions are explicitly owner-only", () => {
-  assert.match(edge, /admin_owner_ads_list/);
+  assert.match(edge, /admin_owner_ad_list/);
   assert.match(edge, /admin_owner_ad_get/);
   assert.match(edge, /admin_owner_ad_review/);
   assert.match(edge, /staff\.toLowerCase\(\) !== "rocky"/);
