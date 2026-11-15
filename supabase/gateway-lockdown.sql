@@ -23,7 +23,7 @@ revoke all on schema private from public, anon, authenticated;
 revoke all on private.hbu_gateway_config from public, anon, authenticated, service_role;
 
 insert into private.hbu_gateway_config (singleton, token_sha256)
-values (true, '2a7ec4c3de629935641aa6aa7c5bb06d526e3753d1ac29a63a48c506f3dcbd5d')
+values (true, 'f929ff8ed63a5766d41b93eb7960955c37005097ce946447bec05f693d3f93c6')
 on conflict (singleton) do update
 set token_sha256 = excluded.token_sha256,
     updated_at = now();
