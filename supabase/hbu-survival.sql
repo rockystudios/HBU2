@@ -271,7 +271,8 @@ BEGIN
         'name', player.username,
         'x', player.x,
         'y', player.y,
-        'yaw', player.yaw
+        'yaw', player.yaw,
+        'last_seen', player.last_seen
       ) ORDER BY player.username
     ),
     '[]'::jsonb
@@ -279,7 +280,7 @@ BEGIN
   FROM (
     SELECT username, x, y, yaw
     FROM public.hbu_survival_players
-    WHERE last_seen > now() - interval '20 seconds'
+    WHERE last_seen > now() - interval '90 seconds'
     ORDER BY last_seen DESC
     LIMIT 60
   ) AS player;
