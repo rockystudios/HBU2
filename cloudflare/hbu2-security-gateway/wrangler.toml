@@ -12,6 +12,4 @@ tag = "v1"
 new_sqlite_classes = ["HbuRateLimiter"]
 
 # Worker Previews require an explicit previews block.
-# Durable Object classes and migrations remain at the top level; Cloudflare
-# automatically creates an isolated namespace and storage for each Preview.
-previews = {}
+[previews]
