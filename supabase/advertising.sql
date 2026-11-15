@@ -25,6 +25,7 @@ create index if not exists hbu_ad_requests_contact_requested_idx
 alter table public.hbu_ad_requests enable row level security;
 revoke all on public.hbu_ad_requests from anon, authenticated;
 grant all on public.hbu_ad_requests to service_role;
+grant usage, select on sequence public.hbu_ad_requests_id_seq to service_role;
 
 create or replace function public.hbu_submit_ad(
   p_advertiser_name text,
