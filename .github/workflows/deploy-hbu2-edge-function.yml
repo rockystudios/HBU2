@@ -21,7 +21,7 @@ jobs:
           version: latest
 
       - name: Deploy send-message
-        run: supabase functions deploy send-message --project-ref "$SUPABASE_PROJECT_REF"
+        run: supabase functions deploy send-message --project-ref "$SUPABASE_PROJECT_REF" --yes
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: xvkjvuxhawlljakfkllu
