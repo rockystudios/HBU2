@@ -22,6 +22,8 @@ const ROUTE_LIMITS = [
   // exhaust the stricter general RPC bucket.
   // Wallet reads run during chat startup and when Rewards opens.
   { match: /\/rest\/v1\/rpc\/hbu_(?:wallet|plates)$/, name: "wallet_read", ip: 120, device: 60, window: 60 },
+  // The game syncs positions and shared-world state every 2.5 seconds.
+  { match: /\/rest\/v1\/rpc\/hbu_survival_sync$/, name: "survival_sync", ip: 1200, device: 40, window: 60 },
   // Coin-changing actions get their own modest bucket, separate from routine reads.
   { match: /\/rest\/v1\/rpc\/hbu_(?:spin|gamble|buy_plate|equip_plate|transfer_coins)$/, name: "economy_action", ip: 60, device: 20, window: 60 },
   { match: /\/rest\/v1\/rpc\/hbu_(?:inbox|dm_partners|get_dms)$/, name: "dm_read", ip: 120, device: 60, window: 60 },
