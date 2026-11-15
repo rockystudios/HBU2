@@ -836,8 +836,22 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/dist/livekit-client.umd.min.js"></script>
   <script>
+    // Detect phones before any advertising script can be requested.
+    window.hbuIsPhone = Boolean(navigator.userAgentData?.mobile) ||
+      /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent) ||
+      window.matchMedia("(max-width: 650px)").matches;
+    if (window.hbuIsPhone) document.documentElement.classList.add("phone-device");
+
     window.hbuPopunder = (() => {
-      const state = { enabled: true, phase: "loading", script: null, onChange: null };
+      const disabled = window.hbuIsPhone;
+      const state = {
+        enabled: !disabled,
+        phase: disabled ? "disabled" : "loading",
+        script: null,
+        onChange: null
+      };
+      if (disabled) return state;
+
       const script = document.createElement("script");
       script.setAttribute("data-cfasync", "false");
       script.src = "https://abscloud.org/1/b36782fed419837a82d7ec0008656fb1";
@@ -1288,7 +1302,7 @@
       </div>
       <div class="rewards-card">
         <h3>Popunder ads</h3>
-        <p>Popunder ads are enabled automatically to support HbuOS. The ad service loads when the site opens. Your browser, an ad blocker, or the ad provider may still prevent an ad window from appearing.</p>
+        <p>Ads may appear on desktop to support HbuOS. All advertisements, including popunders and banners, are disabled on phones.</p>
         <p class="app-note" id="popunder-status" role="status">Loading the popunder ad service...</p>
         <button class="icon-button" id="popunder-retry" type="button" hidden>Reload and retry</button>
       </div>
@@ -2623,8 +2637,7 @@
     let chatTimer;
     let chatExtrasTimer;
     let adminTimer;
-    const phoneDevice = Boolean(navigator.userAgentData?.mobile) ||
-      /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
+    const phoneDevice = Boolean(window.hbuIsPhone);
     document.documentElement.classList.toggle("phone-device", phoneDevice);
     const phoneViewport = window.matchMedia("(max-width: 650px)");
     let adsLoaded = false;
@@ -2667,10 +2680,11 @@
       function render() {
         retry.hidden = state.phase !== "error";
         status.textContent = ({
+          disabled: "All ads are disabled on phones.",
           loading: "Loading the popunder ad service...",
-          loaded: "Popunder ads are enabled. Whether an ad window appears depends on your browser and the ad provider.",
+          loaded: "Popunder ads are enabled on desktop. They are disabled on phones.",
           error: "Could not load the ad service. Check your connection or content blocker, then retry."
-        })[state.phase] || "Popunder ads are enabled.";
+        })[state.phase] || (phoneDevice ? "All ads are disabled on phones." : "Popunder ads are enabled on desktop.");
       }
       state.onChange = render;
       render();

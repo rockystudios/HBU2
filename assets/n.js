@@ -1459,15 +1459,19 @@
       `;
 
       try {
+        // Fetch only the newest page, then display it oldest-to-newest.
+        // This keeps large conversations from downloading hundreds of rows at once.
         const { data, error } = await sb
           .from('messages')
           .select('*')
           .eq('conversation_id', convId)
-          .order('created_at', { ascending: true })
-          .limit(300);
+          .order('created_at', { ascending: false })
+          .limit(100);
 
         if (error) throw error;
-        messages = data || [];
+        // Ignore a slower response if the user has already switched conversations.
+        if (!activeConv || activeConv.id !== convId) return;
+        messages = (data || []).reverse();
         renderMessagesList();
       } catch (err) {
         console.error('Error fetching messages:', err);
@@ -2329,8 +2333,8 @@
               if (msg.sender_id !== myId) SoundFX.notify();
             }
           }
-          // Update sidebar previews
-          loadConversationsList();
+          // Keep the active conversation live without re-querying the entire
+          // conversation list for every single incoming message.
         })
         .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
           const oldMsg = payload.old;
