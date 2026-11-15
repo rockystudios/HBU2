@@ -1,0 +1,12 @@
+name = "hbu2-security-gateway"
+main = "src/index.js"
+compatibility_date = "2026-11-14"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "HBU_RATE_LIMITER"
+class_name = "HbuRateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HbuRateLimiter"]
