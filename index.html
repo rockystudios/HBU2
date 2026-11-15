@@ -5536,6 +5536,7 @@
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       setChatFull(false);
       hideRolePolicyGate();
+      hideWhatsNew();
       window.clearInterval(rolePolicyTimer);
       account = null;
       closeApp("owner");
