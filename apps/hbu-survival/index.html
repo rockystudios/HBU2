@@ -546,7 +546,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
         </div>
       </div>
     </section>
-    <footer class="page-footer">HBU Survival · HBU2 Arcade · Multiplayer requires an HBU2 account. Your survivor and shared world autosave.</footer>
+    <footer class="page-footer">HBU Survival · HbuOS app · Multiplayer requires an HBU2 account. Your survivor and shared world autosave.</footer>
   </main>
 <script>
 (() => {
@@ -1305,6 +1305,9 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
         throw new Error(message);
       }
       if (!payload || typeof payload !== "object") throw new Error("The multiplayer server returned an invalid response.");
+      // A request already in flight when the app closes may finish afterward.
+      // Keep its database save, but do not resurrect online UI state while stopped.
+      if (!state.started && !initialize && !leave) return payload;
       if (payload.self) applyServerPlayer(payload.self);
       if (payload.world) applyServerWorld(payload.world);
       if (Array.isArray(payload.players)) {
@@ -2244,17 +2247,39 @@ button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;out
     $("grid-toggle").addEventListener("click",toggleGrid);
     setupCrafting();
     $("craft-campfire").addEventListener("click", openCrafting);
-    $("leave-world").addEventListener("click", async () => {
+    async function leaveWorld(statusMessage = "You left your world. Press Play to return.") {
+      if (!state.started) return;
       state.started = false;
       if (document.pointerLockElement === canvas && document.exitPointerLock) document.exitPointerLock();
       if (state.saveTimer) { clearInterval(state.saveTimer); state.saveTimer = 0; }
       if (state.multiplayerTimer) { clearTimeout(state.multiplayerTimer); state.multiplayerTimer = 0; }
       saveEverything();
-      if (getAccountSession()) syncMultiplayer(false, true, true);
-      if (state.channel) { state.channel.postMessage({ type: "leave", name: state.name }); state.channel.close(); state.channel = null; }
-      $("game").hidden = true; $("lobby").hidden = false;
-      $("connection-status").className = "connection-pill offline"; $("connection-status").innerHTML = "<i></i> Not connected";
-      $("lobby-status").textContent = "You left your world. Press Play to return.";
+      if (getAccountSession()) void syncMultiplayer(false, true, true);
+      if (state.channel) {
+        state.channel.postMessage({ type: "leave", name: state.name });
+        state.channel.close();
+        state.channel = null;
+      }
+      state.multiplayerReady = false;
+      state.multiplayerInitialized = false;
+      state.players.clear();
+      $("game").hidden = true;
+      $("lobby").hidden = false;
+      $("connection-status").className = "connection-pill offline";
+      $("connection-status").innerHTML = "<i></i> Not connected";
+      $("lobby-status").textContent = statusMessage;
+      $("hbu-survival-join").disabled = false;
+    }
+
+    $("leave-world").addEventListener("click", () => void leaveWorld());
+
+    // The HbuOS app window sends this when the user closes HBU Survival.
+    // The iframe is kept loaded so reopening the app returns to its lobby.
+    window.addEventListener("message", event => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      if (event.data?.type === "hbu-survival-app-hidden") {
+        void leaveWorld("HBU Survival is paused. Press Play to return.");
+      }
     });
     window.addEventListener("pagehide", () => {
       saveEverything();
