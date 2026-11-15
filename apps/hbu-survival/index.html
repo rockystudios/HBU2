@@ -659,6 +659,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
   let lastGhostPreviewKey3D = "";
   let sunLight3D = null;
   let hemisphereLight3D = null;
+  let daySkyColor3D = null, duskSkyColor3D = null, nightSkyColor3D = null, currentSkyColor3D = null;
   let lastShadowCenter3D = { x: NaN, z: NaN };
   const geometryCache3D = new Map();
   const actorMeshes3D = new Map();
@@ -888,7 +889,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     renderer3D.toneMappingExposure = 1.28;
 
     scene3D = new THREE.Scene();
-    scene3D.background = new THREE.Color("#bfe1f1");
+    daySkyColor3D = new THREE.Color("#bfe1f1"); duskSkyColor3D = new THREE.Color("#d58b68"); nightSkyColor3D = new THREE.Color("#091426"); currentSkyColor3D = new THREE.Color();
+    scene3D.background = daySkyColor3D.clone();
     scene3D.fog = new THREE.Fog("#bfe1f1", 850, 1750);
 
     camera3D = new THREE.PerspectiveCamera(78, 960 / 600, 0.1, 1500);
@@ -1150,10 +1152,10 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     if (!(scene3D && sunLight3D && hemisphereLight3D)) return;
     const hour = ((state.worldMinutes / 60) % 24 + 24) % 24;
     const daylight = Math.max(0, Math.min(1, (Math.sin(((hour - 6) / 12) * Math.PI) + 0.12) / 1.12));
-    const dusk = Math.max(0, 1 - Math.abs(hour - 18) / 3) * Math.max(0, 1 - Math.abs(hour - 6) / 3);
-    const sky = new THREE.Color("#091426").lerp(new THREE.Color("#bfe1f1"), daylight).lerp(new THREE.Color("#d58b68"), Math.min(0.72,dusk*0.72));
-    scene3D.background.copy(sky);
-    scene3D.fog.color.copy(sky);
+    const dusk = Math.max(0, 1 - Math.abs(hour - 18) / 3);
+    currentSkyColor3D.copy(nightSkyColor3D).lerp(daySkyColor3D, daylight).lerp(duskSkyColor3D, Math.min(0.72,dusk*0.72));
+    scene3D.background.copy(currentSkyColor3D);
+    scene3D.fog.color.copy(currentSkyColor3D);
     scene3D.fog.near = 650 + daylight * 250;
     scene3D.fog.far = 1450 + daylight * 500;
     hemisphereLight3D.intensity = 0.22 + daylight * 1.35;
@@ -1475,7 +1477,7 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
         state.hunger = Number.isFinite(Number(savedPlayer.hunger)) ? Number(savedPlayer.hunger) : 100;
         state.thirst = Number.isFinite(Number(savedPlayer.thirst)) ? Number(savedPlayer.thirst) : 100;
         state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...(savedPlayer.inventory || {}) };
-        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...(savedPlayer.crafted || {}) };
+        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, floors: 0, doors: 0, windows: 0, ...(savedPlayer.crafted || {}) };
       }
     } catch (error) {
       console.warn("Could not load local player save.", error);
@@ -2122,8 +2124,8 @@ html.touch-device .mobile-joystick-knob{touch-action:none}
     if (!(state.crafted[buildKey]>0)) { showToast("Craft that building piece first.");return; }
     const {x,y,rotation}=getWallPlacement();
     if(Math.hypot(x-state.x,y-state.y)>240){showToast("That spot is too far away.");return;}
-    if(placementIsBlocked({x,y,rotation})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
     const type=({2:"wall",4:"floor",5:"door",6:"window"})[state.selectedHotbar];
+    if(placementIsBlocked({x,y,rotation,type})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
     const wall=snapWallToGrid({id:`build-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation,type});
     state.walls.push(wall);markWorldVisualsDirty3D();state.crafted[buildKey]--;saveWorld();savePlayer();drawWorld();updateHud();
     broadcast("wall",wall);showToast(`${type[0].toUpperCase()+type.slice(1)} placed!`);
