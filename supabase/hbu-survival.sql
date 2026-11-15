@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS public.hbu_survival_players (
 CREATE INDEX IF NOT EXISTS hbu_survival_players_last_seen_idx
   ON public.hbu_survival_players (last_seen DESC);
 
+-- Separate existing first-time accounts that were previously stacked at the
+-- shared default spawn. The coordinates are stable for each username.
+UPDATE public.hbu_survival_players
+SET
+  x = 1200 + (mod(abs(hashtext(lower(username))::bigint), 9) - 4) * 72,
+  y = 900 + (mod(abs(hashtext(lower(username))::bigint) / 9, 9) - 4) * 72,
+  updated_at = now()
+WHERE x = 1200 AND y = 900;
+
 CREATE TABLE IF NOT EXISTS public.hbu_survival_world (
   world_id text PRIMARY KEY DEFAULT 'greenwild' CHECK (world_id = 'greenwild'),
   removed text[] NOT NULL DEFAULT '{}',
@@ -96,12 +105,21 @@ DECLARE
   v_self public.hbu_survival_players%ROWTYPE;
   v_world public.hbu_survival_world%ROWTYPE;
   v_players jsonb;
+  v_spawn_hash bigint;
+  v_spawn_x double precision;
+  v_spawn_y double precision;
 BEGIN
   -- Authenticate every call against the existing HBU2 account table.
   SELECT public.hbu_login(p_username, p_password) INTO v_username;
   IF v_username IS NULL THEN
     RAISE EXCEPTION 'Wrong username or password';
   END IF;
+
+  -- Give each new account a stable nearby spawn instead of stacking every
+  -- first-time survivor at the exact center of the world.
+  v_spawn_hash := abs(hashtext(lower(v_username))::bigint);
+  v_spawn_x := 1200 + (mod(v_spawn_hash, 9) - 4) * 72;
+  v_spawn_y := 900 + (mod(v_spawn_hash / 9, 9) - 4) * 72;
 
   IF jsonb_typeof(COALESCE(p_inventory, '{}'::jsonb)) <> 'object'
      OR jsonb_typeof(COALESCE(p_crafted, '{}'::jsonb)) <> 'object' THEN
@@ -150,8 +168,8 @@ BEGIN
       username, x, y, yaw, health, hunger, thirst, inventory, crafted, last_seen, updated_at
     ) VALUES (
       v_username,
-      GREATEST(-100000, LEAST(100000, COALESCE(p_x, 1200))),
-      GREATEST(-100000, LEAST(100000, COALESCE(p_y, 900))),
+      v_spawn_x,
+      v_spawn_y,
       GREATEST(-100000, LEAST(100000, COALESCE(p_yaw, 0))),
       GREATEST(0, LEAST(100, COALESCE(p_health, 100))),
       GREATEST(0, LEAST(100, COALESCE(p_hunger, 100))),
