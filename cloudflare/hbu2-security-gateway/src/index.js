@@ -48,6 +48,12 @@ function getRouteLimit(pathAndQuery, body) {
       if (action === "signup_image") {
         return { name: "signup", ip: 5, device: 2, window: 3600 };
       }
+      // Staff policy status is checked when the chat initializes and then
+      // periodically. Give these lightweight authenticated checks their own
+      // bucket so ordinary chat/admin traffic cannot lock staff out.
+      if (action === "admin_role_policy_status" || action === "admin_role_policy_accept") {
+        return { name: "role_policy", ip: 60, device: 30, window: 60 };
+      }
     } catch {
       // Let the upstream function return its normal malformed-body response.
     }
