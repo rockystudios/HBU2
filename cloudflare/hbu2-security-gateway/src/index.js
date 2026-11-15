@@ -18,7 +18,7 @@ const ROUTE_LIMITS = [
   { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 30, device: 5, window: 900 },
   { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 5, device: 2, window: 3600 },
   { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 30, device: 15, window: 60 },
-  { match: /\/functions\/v1\/send-message$/, name: "function", ip: 60, device: 20, window: 60 },
+  { match: /\/functions\/v1\/send-message$/, name: "function", ip: 30, device: 15, window: 60 },
   { match: /\/rest\/v1\//, name: "rest", ip: 60, device: 30, window: 60 },
 ];
 
@@ -39,10 +39,10 @@ function getRouteLimit(pathAndQuery, body) {
     try {
       const action = JSON.parse(new TextDecoder().decode(body)).action;
       if (action === "login_image") {
-        return { name: "login", ip: 120, device: 10, window: 900 };
+        return { name: "login", ip: 30, device: 5, window: 900 };
       }
       if (action === "signup_image") {
-        return { name: "signup", ip: 60, device: 5, window: 3600 };
+        return { name: "signup", ip: 5, device: 2, window: 3600 };
       }
     } catch {
       // Let the upstream function return its normal malformed-body response.
