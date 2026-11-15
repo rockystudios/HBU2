@@ -1869,7 +1869,7 @@
             <div class="casino-net" id="casino-net">Session: 0</div>
           </div>
           <p class="rewards-login" id="casino-login" hidden>Log in from <a href="#messages">Messages</a> to gamble your coins.</p>
-          <p class="muted" id="casino-odds-note" style="margin:0">Improved odds: 52% win chance on Coin Flip and Dice, and a 48% chance of a Slots payout.</p>
+          <p class="muted" id="casino-odds-note" style="margin:0">Improved odds: 52% win chance on Coin Flip and Dice, and a 52% chance of a Slots payout.</p>
           <div class="casino-games">
             <button class="casino-card" type="button" data-casino="flip" aria-pressed="true"><span class="ci">🪙</span><b>Coin flip</b><small>Pays 2×</small></button>
             <button class="casino-card" type="button" data-casino="dice" aria-pressed="false"><span class="ci">🎲</span><b>Dice</b><small>Pays 2×</small></button>
@@ -3937,7 +3937,7 @@
       const details = document.createElement("div");
       details.innerHTML = `
         <ul style="margin:0;padding-left:22px;display:grid;gap:10px;line-height:1.55;color:#d8cbe8">
-          <li><strong>Casino:</strong> Coin Flip and Dice now have a 52% chance to win. Slots now have a 48% chance to pay out.</li>
+          <li><strong>Casino:</strong> Coin Flip and Dice now have a 52% chance to win. Slots now have a 52% chance to pay out.</li>
           <li><strong>Daily streaks:</strong> Every consecutive day gives extra bonus coins. Every 3rd streak day adds another 50 coins.</li>
           <li><strong>Streak prizes:</strong> Every 7th consecutive day unlocks a free name plate if you do not already own them all.</li>
         </ul>
@@ -7260,7 +7260,8 @@
     const ownerPresenceForm = document.querySelector("#owner-presence-form");
     const ownerPresenceName = document.querySelector("#owner-presence-name");
     const OWNER_PRESENCE_KEY = "hbu-owner-presence-tracked";
-    let trackedOwnerUsers = [...new Set((readLocal(OWNER_PRESENCE_KEY, []) || [])
+    const savedTrackedOwnerUsers = readLocal(OWNER_PRESENCE_KEY, []);
+    let trackedOwnerUsers = [...new Set((Array.isArray(savedTrackedOwnerUsers) ? savedTrackedOwnerUsers : [])
       .filter(name => typeof name === "string" && /^[a-z0-9_-]{1,20}$/i.test(name))
       .map(name => name.toLowerCase()))].slice(0, 50);
     let ownerPresenceTimer = null;
