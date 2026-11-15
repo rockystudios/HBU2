@@ -109,7 +109,7 @@ test("inbox does not fan out after a 429 rate limit response", async () => {
   const start = source.indexOf("    async function fetchInboxActivity(");
   const end = source.indexOf("    async function pollInbox()", start);
   assert.ok(start >= 0 && end > start);
-  vm.runInNewContext("let inboxFallbackAt = 0;\\n" + source.slice(start, end), c);
+  vm.runInNewContext("let inboxFallbackAt = 0;\n" + source.slice(start, end), c);
   await assert.rejects(c.fetchInboxActivity(c.account), error => error.status === 429);
   assert.deepEqual(calls, ["hbu_inbox"], "429 must not trigger extra DM RPC calls");
 });
