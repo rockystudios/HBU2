@@ -183,7 +183,7 @@ begin
     if r1 = r2 and r2 = r3 then
       payout := p_bet * (case when r1 = 5 then 20 else 8 end);
     elsif r1 = r2 or r2 = r3 or r1 = r3 then
-      payout := (p_bet * 5) / 4;
+      payout := greatest(p_bet + 1, (p_bet * 5) / 4);
     end if;
     res := jsonb_build_object('reels', jsonb_build_array(sym[r1], sym[r2], sym[r3]));
   else
