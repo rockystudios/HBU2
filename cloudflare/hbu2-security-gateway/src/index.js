@@ -17,6 +17,10 @@ const ROUTE_LIMITS = [
   { match: /\/functions\/v1\/send-message\?action=image_challenge(?:&|$)/, name: "image_challenge", ip: 10, device: 5, window: 60 },
   { match: /\/rest\/v1\/rpc\/hbu_login$/, name: "login", ip: 30, device: 5, window: 900 },
   { match: /\/rest\/v1\/rpc\/hbu_signup$/, name: "signup", ip: 5, device: 2, window: 3600 },
+  // Inbox and conversation reads are polled in the background by the website.
+  // Keep them separate from write/utility RPCs so normal chat refreshes do not
+  // exhaust the stricter general RPC bucket.
+  { match: /\/rest\/v1\/rpc\/hbu_(?:inbox|dm_partners|get_dms)$/, name: "dm_read", ip: 120, device: 60, window: 60 },
   { match: /\/rest\/v1\/rpc\//, name: "rpc", ip: 30, device: 15, window: 60 },
   { match: /\/functions\/v1\/send-message$/, name: "function", ip: 30, device: 15, window: 60 },
   { match: /\/rest\/v1\//, name: "rest", ip: 60, device: 30, window: 60 },

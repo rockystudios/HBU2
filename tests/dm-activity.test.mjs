@@ -70,7 +70,9 @@ test("inbox uses summary and falls back to existing DM functions when unavailabl
     calls.push(name);
     if (name === "hbu_inbox") {
       if (summary) return [{ partner: "Bob", last_at: "2025-01-01T10:00:00Z", last_user: "Bob", last_message: "hi" }];
-      throw new Error("Missing inbox function");
+      const error = new Error("Could not find the function public.hbu_inbox in the schema cache");
+      error.status = 404;
+      throw error;
     }
     if (name === "hbu_dm_partners") return [{ partner: "Bob" }];
     if (name === "hbu_get_dms") return args.p_other === "Bob" ? [{ created_at: "2025-01-01T10:00:00Z", user: "Bob", message: "hi" }] : [];
@@ -89,6 +91,27 @@ test("inbox uses summary and falls back to existing DM functions when unavailabl
   assert.equal(rows[0].last_user, "Bob");
   assert.ok(calls.includes("hbu_dm_partners"));
   assert.ok(calls.includes("hbu_get_dms"));
+
+  calls.length = 0;
+  rows = await c.fetchInboxActivity(c.account);
+  assert.deepEqual(calls, ["hbu_inbox"], "fallback must be throttled for 15 seconds");
+});
+
+test("inbox does not fan out after a 429 rate limit response", async () => {
+  const { context: c } = createContext();
+  const calls = [];
+  c.rpc = async name => {
+    calls.push(name);
+    const error = new Error("Request failed (429)");
+    error.status = 429;
+    throw error;
+  };
+  const start = source.indexOf("    async function fetchInboxActivity(");
+  const end = source.indexOf("    async function pollInbox()", start);
+  assert.ok(start >= 0 && end > start);
+  vm.runInNewContext("let inboxFallbackAt = 0;\n" + source.slice(start, end), c);
+  await assert.rejects(c.fetchInboxActivity(c.account), error => error.status === 429);
+  assert.deepEqual(calls, ["hbu_inbox"], "429 must not trigger extra DM RPC calls");
 });
 
 test("inbox polling tracks incoming and outgoing activity without marking a conversation read", async () => {
