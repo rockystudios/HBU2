@@ -1,0 +1,2301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8faf7">
+  <title>HBU Survival — HBU2</title>
+  
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{color-scheme:light;--bg:#ffffff;--panel:#ffffff;--panel2:#f4f6f2;--line:#dce4dc;--text:#26352b;--muted:#718075;--green:#4f8b50;--green2:#397343;--orange:#c58a42;--red:#c95f57}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#5d9568 0,#2d6847 48%,#173f30 100%);color:var(--text);font-family:Manrope,system-ui,sans-serif}.survival-shell{max-width:1600px;margin:0 auto;padding:0 26px 18px}.topbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff13}.brand{font-size:21px;font-weight:800;letter-spacing:-1px;color:#f3f5eb;text-decoration:none}.brand span{color:var(--green);margin-left:7px}.topbar-right{display:flex;align-items:center;gap:16px}.build-tag,.eyebrow,.world-kicker,.panel-heading{font-family:'DM Mono',monospace;letter-spacing:1.4px;font-size:10px;color:#9eb4a5}.connection-pill{border:1px solid var(--line);padding:8px 11px;border-radius:30px;font-size:11px;color:var(--muted)}.connection-pill i,.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d69b57;margin-right:6px}.connection-pill.online i,.live-dot{background:#a8d66d;box-shadow:0 0 10px #a8d66d88}.lobby{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;min-height:650px;padding:55px 3% 28px}.lobby-copy{max-width:600px}.eyebrow{color:var(--green);margin:0 0 18px}.lobby h1{font-size:clamp(42px,5vw,72px);line-height:1.04;letter-spacing:-4px;margin:0 0 22px}.lobby h1 span{color:var(--green)}.intro{max-width:480px;color:#a6b7ad;line-height:1.8;font-size:15px}.lobby-form{margin-top:38px;max-width:440px}.lobby-form label{display:block;font-size:12px;color:#c2d0c5;margin-bottom:8px}.lobby-form input{width:100%;border:1px solid #40564a;background:#15221e;color:white;border-radius:9px;padding:14px 15px;font:inherit;outline:none}.lobby-form input:focus{border-color:var(--green)}.lobby-actions{display:flex;gap:10px;margin-top:12px}.button{border:0;border-radius:9px;padding:13px 18px;font:700 13px Manrope;cursor:pointer}.primary{background:var(--green);color:#172318;flex:1}.primary span{float:right;font-size:18px;line-height:14px}.secondary{background:#263a31;color:#dce8dc;border:1px solid #425a4b}.muted,.tiny-note{color:var(--muted);font-size:11px;line-height:1.6}.lobby-art{height:440px;position:relative;overflow:hidden;border:1px solid #496052;border-radius:18px;background:linear-gradient(#92a77c 0%,#5b8065 45%,#304f3e 100%);box-shadow:0 30px 90px #0005}.sun{position:absolute;top:54px;right:90px;width:86px;height:86px;border-radius:50%;background:#f0d58d;box-shadow:0 0 60px #f3d99188}.mountain{position:absolute;bottom:0;width:120%;height:65%;clip-path:polygon(0 100%,18% 25%,32% 55%,53% 5%,72% 60%,86% 22%,100% 100%)}.mountain-back{background:#456b57;left:-8%;opacity:.85}.mountain-front{background:#294d3b;height:45%;left:-10%;clip-path:polygon(0 100%,0 50%,20% 10%,42% 65%,63% 20%,82% 55%,100% 5%,100% 100%)}.pine{position:absolute;color:#193d2d;font-size:100px;line-height:1;text-shadow:12px 12px 0 #1d4935}.pine-one{bottom:45px;left:9%}.pine-two{bottom:20px;left:62%;font-size:140px}.pine-three{bottom:55px;right:5%;font-size:85px}.campfire{position:absolute;bottom:55px;left:46%;font-size:42px;filter:drop-shadow(0 0 15px #ffb35b)}.art-caption{position:absolute;bottom:18px;left:22px;font:10px 'DM Mono';letter-spacing:2px;color:#d2dfc9}.feature-row{grid-column:1/-1;display:flex;gap:55px;padding:20px 0;border-top:1px solid #ffffff14}.feature-row div{display:flex;gap:12px;align-items:center;color:#a9b9ae;font-size:12px}.feature-row b{font:12px 'DM Mono';color:var(--green)}.game-layout{display:grid;grid-template-columns:235px minmax(420px,1fr) 245px;gap:14px;padding:20px 0 12px;min-height:calc(100vh - 120px)}.panel,.world-panel{background:linear-gradient(160deg,#1b2a25,#15211e);border:1px solid var(--line);border-radius:13px}.panel{padding:17px 15px}.panel-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.player-card{display:flex;align-items:center;gap:11px;margin-bottom:22px}.avatar{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#c1df85,#6e9b50);display:grid;place-items:center;color:#1c2c1e;font-weight:800}.player-card strong,.player-card small{display:block}.player-card strong{font-size:12px}.player-card small{font-size:10px;color:var(--muted);margin-top:3px}.stat-block{margin:14px 0}.stat-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px}.stat-label b{font:11px 'DM Mono';color:#c6d5c7}.meter{height:6px;border-radius:8px;background:#314139;overflow:hidden}.meter i{display:block;height:100%;width:100%;border-radius:8px;transition:width .2s}.health{background:#dc756b}.hunger{background:#d8a95f}.thirst{background:#6fb5d2}.panel-divider{height:1px;background:#ffffff12;margin:18px 0}.inventory-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.inventory-item{position:relative;display:grid;grid-template-columns:28px 1fr;align-items:center;padding:9px;background:#22332c;border:1px solid #33483b;border-radius:8px}.inventory-item span{grid-row:span 2;font-size:18px}.inventory-item small{font-size:9px;color:var(--muted)}.inventory-item b{font:12px 'DM Mono';margin-top:2px}.craft-button{width:100%;display:flex;align-items:center;gap:9px;padding:10px;background:#24372d;border:1px solid #3b5543;border-radius:8px;color:var(--text);text-align:left;cursor:pointer}.craft-button>span:first-child{font-size:22px}.craft-button b,.craft-button small{display:block}.craft-button b{font-size:11px}.craft-button small{font-size:9px;color:var(--muted);margin-top:3px}.craft-button em{margin-left:auto;font-style:normal;font-size:10px;color:var(--green)}.tiny-note{font-size:9px}.leave-button{width:100%;margin-top:14px;padding:10px;border:1px solid #704a45;border-radius:8px;background:#3a2926;color:#e9a49b;font:600 11px Manrope;cursor:pointer}.world-panel{display:flex;flex-direction:column;overflow:hidden}.world-toolbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;border-bottom:1px solid var(--line)}.world-toolbar strong,.world-kicker{display:block}.world-toolbar strong{font-size:14px;margin-top:3px}.world-kicker{font-size:9px;color:var(--green)}.world-meta{display:flex;gap:18px;color:#b4c4b8;font:10px 'DM Mono'}.canvas-wrap{position:relative;flex:1;min-height:380px;background:#263e31;overflow:hidden}#hbu-survival-canvas{display:block;width:100%;height:100%;min-height:380px;object-fit:contain;background:#304b38;image-rendering:pixelated}.canvas-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:8px 12px;border-radius:8px;background:#101a18d9;border:1px solid #ffffff20;color:#c2d0c3;font-size:10px}.canvas-hint kbd{font:10px 'DM Mono';color:var(--green);background:#314238;padding:3px 5px;border-radius:4px}.canvas-hint span{color:#71877a;margin:0 4px}.toast{position:absolute;top:14px;left:50%;transform:translate(-50%,-10px);opacity:0;padding:9px 13px;background:#14241deF;border:1px solid #5b815f;border-radius:8px;color:#e5f1dc;font-size:11px;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}.world-footer{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;color:#82988b;font:9px 'DM Mono';border-top:1px solid var(--line)}.right-panel{min-width:0}.count-badge{padding:3px 7px;border-radius:12px;background:#304b36;color:var(--green);font:10px 'DM Mono'}.survivor-list{display:grid;gap:8px}.survivor{display:flex;align-items:center;gap:8px;padding:8px;background:#22332c;border-radius:8px}.survivor-dot{width:8px;height:8px;background:var(--green);border-radius:50%}.survivor b{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.survivor small{margin-left:auto;color:var(--muted);font-size:8px}.field-note{margin:12px 0}.field-note b{font-size:10px}.field-note p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.6}.activity-feed{display:grid;gap:8px}.activity-feed p{margin:0;color:#a8b9ac;font-size:9px;line-height:1.5}.activity-feed b{color:var(--green)}.page-footer{text-align:center;padding:12px;color:#61766a;font-size:9px}button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:2px}[hidden]{display:none!important}@media(max-width:1100px){.game-layout{grid-template-columns:210px minmax(360px,1fr)}.right-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}.right-panel .panel-divider{display:none}.right-panel>.panel-heading:nth-of-type(2),.right-panel .field-note,.right-panel .activity-feed{grid-column:2}.right-panel .survivor-list{grid-column:1;grid-row:2/6}}@media(max-width:720px){.survival-shell{padding:0 12px 12px}.topbar{height:60px}.build-tag{display:none}.lobby{display:block;padding:42px 0 20px;min-height:0}.lobby h1{letter-spacing:-2px}.lobby-art{height:260px;margin-top:35px}.feature-row{gap:13px;justify-content:space-between;margin-top:25px}.feature-row div{gap:6px;font-size:9px}.game-layout{display:flex;flex-direction:column}.world-panel{order:0;min-height:520px}.left-panel{order:1}.right-panel{order:2;display:block}.canvas-wrap{min-height:400px}.world-meta{gap:8px;font-size:8px}.canvas-hint{font-size:8px;bottom:8px}.canvas-hint kbd{font-size:8px}.panel{padding:14px}.right-panel .panel-divider{display:block}}
+
+/* Keep hidden panels hidden even when their layout classes define display. */
+[hidden]{display:none!important}
+
+
+/* Enhanced world presentation */
+#hbu-survival-canvas{image-rendering:auto;cursor:crosshair}
+.canvas-wrap{background:linear-gradient(135deg,#547b59,#315740);box-shadow:inset 0 0 45px rgba(8,24,14,.22)}
+.world-panel{box-shadow:0 18px 55px rgba(0,0,0,.2)}
+.panel,.world-panel{backdrop-filter:blur(10px)}
+.inventory-item{transition:transform .16s,border-color .16s,background .16s}
+.inventory-item:hover{transform:translateY(-2px);border-color:#7caa6b;background:#2b4335}
+.craft-button:hover{border-color:var(--green);background:#2d4635}
+.canvas-hint{box-shadow:0 8px 24px rgba(0,0,0,.28);backdrop-filter:blur(8px)}
+.crafting-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:22px;background:rgba(5,13,10,.76);backdrop-filter:blur(9px)}
+.crafting-modal[hidden]{display:none!important}
+.crafting-window{width:min(980px,100%);max-height:min(760px,94vh);overflow:auto;border:1px solid #54735d;border-radius:18px;background:linear-gradient(145deg,#20352b,#14231e 70%);box-shadow:0 28px 100px rgba(0,0,0,.55)}
+.crafting-header{display:flex;align-items:flex-start;justify-content:space-between;padding:24px 27px 18px;border-bottom:1px solid #ffffff16}
+.crafting-header h2{font-size:27px;letter-spacing:-1px;margin:5px 0}
+.crafting-header p{font-size:12px;color:#9fb3a4;margin:0}
+.close-crafting{width:38px;height:38px;border:1px solid #4a6253;border-radius:10px;background:#263d30;color:#e9f3e8;font-size:25px;cursor:pointer}
+.crafting-content{display:grid;grid-template-columns:1fr 1.15fr .9fr;gap:25px;padding:24px 27px 28px}
+.crafting-content h3{font:11px 'DM Mono',monospace;letter-spacing:1.2px;color:#a9c18e;margin:0 0 13px}
+.crafting-content h3 span{float:right;color:#78917e}
+.crafting-help{font-size:10px;line-height:1.6;color:#8fa69a;margin:0 0 14px}
+.craft-material-list{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.material-chip{display:flex;align-items:center;gap:8px;min-width:0;padding:11px 9px;border:1px solid #3c5746;border-radius:10px;background:#263d31;color:#e9f1e8;cursor:grab;text-align:left}
+.material-chip:disabled{opacity:.35;cursor:not-allowed}
+.material-chip i,.slot-material{display:block;width:17px;height:17px;border-radius:5px;background:var(--material);box-shadow:inset 0 1px 3px #ffffff55,0 2px 5px #0005}
+.material-chip span{font-size:10px}
+.material-chip b{margin-left:auto;font:11px 'DM Mono';color:#d9e9c6}
+.craft-grid{display:grid;grid-template-columns:repeat(3,minmax(58px,82px));gap:8px;justify-content:center;padding:13px;border:1px solid #3b5745;border-radius:13px;background:rgba(8,17,13,.36)}
+.craft-slot{aspect-ratio:1;border:1px dashed #63806a;border-radius:9px;background:linear-gradient(145deg,#2a4335,#1d3027);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#78917d;cursor:pointer;transition:border-color .15s,background .15s}
+.craft-slot:hover,.craft-slot.filled{border-style:solid;border-color:#a6ca79;background:#344e3a}
+.craft-slot>span{font-size:23px;opacity:.55}
+.craft-slot small{font-size:8px;color:#d8e7d3}
+.craft-result{min-height:36px;padding:10px 4px;text-align:center;color:#b9cbb7;font-size:11px}
+.craft-create{width:100%;min-height:42px}
+.craft-create:disabled{opacity:.38;cursor:not-allowed}
+.crafting-recipes{border-left:1px solid #ffffff13;padding-left:20px}
+.recipe-card{padding:12px;margin-bottom:9px;border:1px solid #3a5142;border-radius:10px;background:#22372c}
+.recipe-card b,.recipe-card small{display:block}
+.recipe-card b{font-size:11px;color:#e4efdf}
+.recipe-card small{font-size:9px;color:#91a899;margin-top:5px}
+@media(max-width:760px){
+  .crafting-content{grid-template-columns:1fr;gap:20px;padding:18px}
+  .crafting-recipes{border-left:0;border-top:1px solid #ffffff13;padding:16px 0 0}
+  .crafting-header{padding:18px}
+  .craft-grid{grid-template-columns:repeat(3, minmax(58px,1fr));max-width:290px;margin:auto}
+}
+
+
+/* Pale limestone / meadow ground palette */
+.canvas-wrap{background:#e8e5d8}
+#hbu-survival-canvas{background:#e8e5d8}
+.crafting-window{width:min(1180px,100%)}
+.crafting-content{grid-template-columns:minmax(190px,.85fr) minmax(245px,1fr) minmax(250px,1.1fr)}
+.crafting-recipes{max-height:520px;overflow:auto}
+.recipe-book-list{display:grid;gap:9px}
+.book-recipe{padding:10px;border:1px solid #405b48;border-radius:10px;background:linear-gradient(145deg,#263f30,#1c3026)}
+.book-recipe.locked{opacity:.52}
+.book-recipe-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.book-recipe-top b{font-size:11px;color:#eef5e8}
+.book-recipe-top span{font:8px 'DM Mono';letter-spacing:.7px;color:#b4d58a}
+.recipe-pattern{display:grid;grid-template-columns:repeat(3,22px);gap:3px;margin:9px 0}
+.pattern-cell{height:22px;display:grid;place-items:center;border-radius:4px;font:700 9px 'DM Mono';color:#fff;font-style:normal;border:1px solid #ffffff22}
+.pattern-cell.w{background:#9a7049}.pattern-cell.s{background:#788984}.pattern-cell.f{background:#8da84f}.pattern-cell.b{background:#a66ba7}.pattern-cell.empty{background:#15231d;border:1px dashed #52685a}
+.book-recipe p{font-size:9px;color:#b6c8b5;margin:4px 0}
+.book-recipe small{font-size:8px;color:#8fa99a;line-height:1.5}
+.crafted-tools{display:grid;gap:5px;padding:11px;margin-top:12px;border:1px solid #4a624d;border-radius:10px;background:#192a21}
+.crafted-tools b{font-size:10px;color:#dcebd3;margin-bottom:3px}
+.crafted-tools span{font-size:9px;color:#a8bea9}
+@media(max-width:760px){.crafting-content{grid-template-columns:1fr}.crafting-recipes{max-height:none}}
+
+
+/* Hotbar and building controls */
+.canvas-wrap{background:#e8e5d8}
+.hotbar-panel{display:grid;grid-template-columns:1fr;gap:8px;padding:12px 16px 14px;background:linear-gradient(135deg,#1e3b2d,#254b36);border-top:1px solid rgba(255,255,255,.12)}
+.hotbar-label{display:flex;align-items:center;justify-content:space-between;color:#dcebd7;font:10px 'DM Mono',monospace;letter-spacing:1.2px}
+.hotbar-label span{font:9px Manrope,sans-serif;letter-spacing:0;color:#a9c2ad}
+.hotbar{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:7px;max-width:620px;width:100%;margin:0 auto}
+.hotbar-slot{position:relative;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid #64836a;border-radius:8px;background:linear-gradient(145deg,#315b3e,#234631);color:#eef6e8;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.hotbar-slot:hover{transform:translateY(-2px);border-color:#c0df8d}
+.hotbar-slot.selected{border:2px solid #d8ef9b;background:linear-gradient(145deg,#527a45,#345c39);box-shadow:0 0 0 2px rgba(213,239,155,.14),0 4px 15px #08180e55}
+.hotbar-slot[aria-disabled="true"]{opacity:.42;cursor:not-allowed}
+.hotbar-slot kbd{position:absolute;top:4px;left:6px;font:8px 'DM Mono';color:#c5d7bd;background:#142a1d;padding:2px 4px;border-radius:3px}
+.hotbar-slot>span{font-size:19px;line-height:22px}
+.hotbar-slot small{font-size:8px;color:#e2eddb}
+.hotbar-slot b{position:absolute;right:6px;bottom:4px;font:9px 'DM Mono';color:#d6ef9c}
+.hotbar-actions{display:flex;justify-content:center;gap:8px}
+.tool-action{border:1px solid #63836a;border-radius:7px;background:#1b3828;color:#dcebd7;padding:7px 12px;font:600 9px Manrope;cursor:pointer}
+.tool-action:hover,.tool-action.active{background:#527a45;border-color:#d1e99b;color:#fff}
+@media(max-width:700px){.hotbar-panel{padding:9px 7px}.hotbar{gap:3px}.hotbar-slot{min-height:55px}.hotbar-slot small{font-size:7px}.hotbar-slot>span{font-size:16px}.hotbar-actions{flex-wrap:wrap}}
+
+/* Light application UI with green playable terrain */
+body{background:#f7f9f6!important;color:#26352b!important}
+.survival-shell{background:transparent}
+.topbar,.panel,.card,.hud-panel,.inventory-panel,.crafting-window,.crafting-content,.crafting-recipes{background:#fff!important;color:#26352b!important;border-color:#dfe7df!important}
+.topbar{border-bottom:1px solid #e1e8e1}
+.topbar h1,.topbar h2,.panel h2,.panel h3,.crafting-window h2,.crafting-recipes h3{color:#26352b!important}
+.topbar p,.panel p,.muted,.canvas-hint{color:#68766b!important}
+.canvas-wrap{background:#fff!important;box-shadow:0 8px 28px rgba(36,60,40,.10)!important;border:1px solid #e1e8e1}
+.hotbar-panel{background:#fff!important;border-top:1px solid #e1e8e1!important}
+.hotbar-label{color:#34483a!important}
+.hotbar-label span{color:#718075!important}
+.hotbar-slot{background:#f4f7f3!important;border-color:#d5dfd5!important;color:#26352b!important}
+.hotbar-slot kbd{background:#e3ebe2!important;color:#526354!important}
+.hotbar-slot small{color:#526354!important}
+.hotbar-slot.selected{background:#e3f1df!important;border-color:#4e914e!important;box-shadow:0 0 0 2px #4e914e22}
+.tool-action{background:#f3f7f1!important;color:#38553b!important;border-color:#cbdacb!important}
+.tool-action:hover,.tool-action.active{background:#e0efdc!important;color:#244d2a!important;border-color:#79a879!important}
+.book-recipe,.crafted-tools{background:#f7faf6!important;border-color:#dce7dc!important}
+.book-recipe-top b,.crafted-tools b{color:#2d4432!important}
+.book-recipe p,.book-recipe small,.crafted-tools span{color:#66776a!important}
+.book-recipe.locked{opacity:.42}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{color-scheme:light;--bg:#ffffff;--panel:#ffffff;--panel2:#f4f6f2;--line:#dce4dc;--text:#26352b;--muted:#718075;--green:#4f8b50;--green2:#397343;--orange:#c58a42;--red:#c95f57}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#5d9568 0,#2d6847 48%,#173f30 100%);color:var(--text);font-family:Manrope,system-ui,sans-serif}.survival-shell{max-width:1600px;margin:0 auto;padding:0 26px 18px}.topbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff13}.brand{font-size:21px;font-weight:800;letter-spacing:-1px;color:#f3f5eb;text-decoration:none}.brand span{color:var(--green);margin-left:7px}.topbar-right{display:flex;align-items:center;gap:16px}.build-tag,.eyebrow,.world-kicker,.panel-heading{font-family:'DM Mono',monospace;letter-spacing:1.4px;font-size:10px;color:#9eb4a5}.connection-pill{border:1px solid var(--line);padding:8px 11px;border-radius:30px;font-size:11px;color:var(--muted)}.connection-pill i,.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d69b57;margin-right:6px}.connection-pill.online i,.live-dot{background:#a8d66d;box-shadow:0 0 10px #a8d66d88}.lobby{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;min-height:650px;padding:55px 3% 28px}.lobby-copy{max-width:600px}.eyebrow{color:var(--green);margin:0 0 18px}.lobby h1{font-size:clamp(42px,5vw,72px);line-height:1.04;letter-spacing:-4px;margin:0 0 22px}.lobby h1 span{color:var(--green)}.intro{max-width:480px;color:#a6b7ad;line-height:1.8;font-size:15px}.lobby-form{margin-top:38px;max-width:440px}.lobby-form label{display:block;font-size:12px;color:#c2d0c5;margin-bottom:8px}.lobby-form input{width:100%;border:1px solid #40564a;background:#15221e;color:white;border-radius:9px;padding:14px 15px;font:inherit;outline:none}.lobby-form input:focus{border-color:var(--green)}.lobby-actions{display:flex;gap:10px;margin-top:12px}.button{border:0;border-radius:9px;padding:13px 18px;font:700 13px Manrope;cursor:pointer}.primary{background:var(--green);color:#172318;flex:1}.primary span{float:right;font-size:18px;line-height:14px}.secondary{background:#263a31;color:#dce8dc;border:1px solid #425a4b}.muted,.tiny-note{color:var(--muted);font-size:11px;line-height:1.6}.lobby-art{height:440px;position:relative;overflow:hidden;border:1px solid #496052;border-radius:18px;background:linear-gradient(#92a77c 0%,#5b8065 45%,#304f3e 100%);box-shadow:0 30px 90px #0005}.sun{position:absolute;top:54px;right:90px;width:86px;height:86px;border-radius:50%;background:#f0d58d;box-shadow:0 0 60px #f3d99188}.mountain{position:absolute;bottom:0;width:120%;height:65%;clip-path:polygon(0 100%,18% 25%,32% 55%,53% 5%,72% 60%,86% 22%,100% 100%)}.mountain-back{background:#456b57;left:-8%;opacity:.85}.mountain-front{background:#294d3b;height:45%;left:-10%;clip-path:polygon(0 100%,0 50%,20% 10%,42% 65%,63% 20%,82% 55%,100% 5%,100% 100%)}.pine{position:absolute;color:#193d2d;font-size:100px;line-height:1;text-shadow:12px 12px 0 #1d4935}.pine-one{bottom:45px;left:9%}.pine-two{bottom:20px;left:62%;font-size:140px}.pine-three{bottom:55px;right:5%;font-size:85px}.campfire{position:absolute;bottom:55px;left:46%;font-size:42px;filter:drop-shadow(0 0 15px #ffb35b)}.art-caption{position:absolute;bottom:18px;left:22px;font:10px 'DM Mono';letter-spacing:2px;color:#d2dfc9}.feature-row{grid-column:1/-1;display:flex;gap:55px;padding:20px 0;border-top:1px solid #ffffff14}.feature-row div{display:flex;gap:12px;align-items:center;color:#a9b9ae;font-size:12px}.feature-row b{font:12px 'DM Mono';color:var(--green)}.game-layout{display:grid;grid-template-columns:235px minmax(420px,1fr) 245px;gap:14px;padding:20px 0 12px;min-height:calc(100vh - 120px)}.panel,.world-panel{background:linear-gradient(160deg,#1b2a25,#15211e);border:1px solid var(--line);border-radius:13px}.panel{padding:17px 15px}.panel-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.player-card{display:flex;align-items:center;gap:11px;margin-bottom:22px}.avatar{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#c1df85,#6e9b50);display:grid;place-items:center;color:#1c2c1e;font-weight:800}.player-card strong,.player-card small{display:block}.player-card strong{font-size:12px}.player-card small{font-size:10px;color:var(--muted);margin-top:3px}.stat-block{margin:14px 0}.stat-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px}.stat-label b{font:11px 'DM Mono';color:#c6d5c7}.meter{height:6px;border-radius:8px;background:#314139;overflow:hidden}.meter i{display:block;height:100%;width:100%;border-radius:8px;transition:width .2s}.health{background:#dc756b}.hunger{background:#d8a95f}.thirst{background:#6fb5d2}.panel-divider{height:1px;background:#ffffff12;margin:18px 0}.inventory-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.inventory-item{position:relative;display:grid;grid-template-columns:28px 1fr;align-items:center;padding:9px;background:#22332c;border:1px solid #33483b;border-radius:8px}.inventory-item span{grid-row:span 2;font-size:18px}.inventory-item small{font-size:9px;color:var(--muted)}.inventory-item b{font:12px 'DM Mono';margin-top:2px}.craft-button{width:100%;display:flex;align-items:center;gap:9px;padding:10px;background:#24372d;border:1px solid #3b5543;border-radius:8px;color:var(--text);text-align:left;cursor:pointer}.craft-button>span:first-child{font-size:22px}.craft-button b,.craft-button small{display:block}.craft-button b{font-size:11px}.craft-button small{font-size:9px;color:var(--muted);margin-top:3px}.craft-button em{margin-left:auto;font-style:normal;font-size:10px;color:var(--green)}.tiny-note{font-size:9px}.leave-button{width:100%;margin-top:14px;padding:10px;border:1px solid #704a45;border-radius:8px;background:#3a2926;color:#e9a49b;font:600 11px Manrope;cursor:pointer}.world-panel{display:flex;flex-direction:column;overflow:hidden}.world-toolbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;border-bottom:1px solid var(--line)}.world-toolbar strong,.world-kicker{display:block}.world-toolbar strong{font-size:14px;margin-top:3px}.world-kicker{font-size:9px;color:var(--green)}.world-meta{display:flex;gap:18px;color:#b4c4b8;font:10px 'DM Mono'}.canvas-wrap{position:relative;flex:1;min-height:380px;background:#263e31;overflow:hidden}#hbu-survival-canvas{display:block;width:100%;height:100%;min-height:380px;object-fit:contain;background:#304b38;image-rendering:pixelated}.canvas-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:8px 12px;border-radius:8px;background:#101a18d9;border:1px solid #ffffff20;color:#c2d0c3;font-size:10px}.canvas-hint kbd{font:10px 'DM Mono';color:var(--green);background:#314238;padding:3px 5px;border-radius:4px}.canvas-hint span{color:#71877a;margin:0 4px}.toast{position:absolute;top:14px;left:50%;transform:translate(-50%,-10px);opacity:0;padding:9px 13px;background:#14241deF;border:1px solid #5b815f;border-radius:8px;color:#e5f1dc;font-size:11px;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}.world-footer{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;color:#82988b;font:9px 'DM Mono';border-top:1px solid var(--line)}.right-panel{min-width:0}.count-badge{padding:3px 7px;border-radius:12px;background:#304b36;color:var(--green);font:10px 'DM Mono'}.survivor-list{display:grid;gap:8px}.survivor{display:flex;align-items:center;gap:8px;padding:8px;background:#22332c;border-radius:8px}.survivor-dot{width:8px;height:8px;background:var(--green);border-radius:50%}.survivor b{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.survivor small{margin-left:auto;color:var(--muted);font-size:8px}.field-note{margin:12px 0}.field-note b{font-size:10px}.field-note p{margin:4px 0 0;color:var(--muted);font-size:9px;line-height:1.6}.activity-feed{display:grid;gap:8px}.activity-feed p{margin:0;color:#a8b9ac;font-size:9px;line-height:1.5}.activity-feed b{color:var(--green)}.page-footer{text-align:center;padding:12px;color:#61766a;font-size:9px}button:focus-visible,input:focus-visible{outline:2px solid var(--green);outline-offset:2px}[hidden]{display:none!important}@media(max-width:1100px){.game-layout{grid-template-columns:210px minmax(360px,1fr)}.right-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}.right-panel .panel-divider{display:none}.right-panel>.panel-heading:nth-of-type(2),.right-panel .field-note,.right-panel .activity-feed{grid-column:2}.right-panel .survivor-list{grid-column:1;grid-row:2/6}}@media(max-width:720px){.survival-shell{padding:0 12px 12px}.topbar{height:60px}.build-tag{display:none}.lobby{display:block;padding:42px 0 20px;min-height:0}.lobby h1{letter-spacing:-2px}.lobby-art{height:260px;margin-top:35px}.feature-row{gap:13px;justify-content:space-between;margin-top:25px}.feature-row div{gap:6px;font-size:9px}.game-layout{display:flex;flex-direction:column}.world-panel{order:0;min-height:520px}.left-panel{order:1}.right-panel{order:2;display:block}.canvas-wrap{min-height:400px}.world-meta{gap:8px;font-size:8px}.canvas-hint{font-size:8px;bottom:8px}.canvas-hint kbd{font-size:8px}.panel{padding:14px}.right-panel .panel-divider{display:block}}
+
+/* Keep hidden panels hidden even when their layout classes define display. */
+[hidden]{display:none!important}
+
+
+/* Enhanced world presentation */
+#hbu-survival-canvas{image-rendering:auto;cursor:crosshair}
+.canvas-wrap{background:linear-gradient(135deg,#547b59,#315740);box-shadow:inset 0 0 45px rgba(8,24,14,.22)}
+.world-panel{box-shadow:0 18px 55px rgba(0,0,0,.2)}
+.panel,.world-panel{backdrop-filter:blur(10px)}
+.inventory-item{transition:transform .16s,border-color .16s,background .16s}
+.inventory-item:hover{transform:translateY(-2px);border-color:#7caa6b;background:#2b4335}
+.craft-button:hover{border-color:var(--green);background:#2d4635}
+.canvas-hint{box-shadow:0 8px 24px rgba(0,0,0,.28);backdrop-filter:blur(8px)}
+.crafting-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:22px;background:rgba(5,13,10,.76);backdrop-filter:blur(9px)}
+.crafting-modal[hidden]{display:none!important}
+.crafting-window{width:min(980px,100%);max-height:min(760px,94vh);overflow:auto;border:1px solid #54735d;border-radius:18px;background:linear-gradient(145deg,#20352b,#14231e 70%);box-shadow:0 28px 100px rgba(0,0,0,.55)}
+.crafting-header{display:flex;align-items:flex-start;justify-content:space-between;padding:24px 27px 18px;border-bottom:1px solid #ffffff16}
+.crafting-header h2{font-size:27px;letter-spacing:-1px;margin:5px 0}
+.crafting-header p{font-size:12px;color:#9fb3a4;margin:0}
+.close-crafting{width:38px;height:38px;border:1px solid #4a6253;border-radius:10px;background:#263d30;color:#e9f3e8;font-size:25px;cursor:pointer}
+.crafting-content{display:grid;grid-template-columns:1fr 1.15fr .9fr;gap:25px;padding:24px 27px 28px}
+.crafting-content h3{font:11px 'DM Mono',monospace;letter-spacing:1.2px;color:#a9c18e;margin:0 0 13px}
+.crafting-content h3 span{float:right;color:#78917e}
+.crafting-help{font-size:10px;line-height:1.6;color:#8fa69a;margin:0 0 14px}
+.craft-material-list{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.material-chip{display:flex;align-items:center;gap:8px;min-width:0;padding:11px 9px;border:1px solid #3c5746;border-radius:10px;background:#263d31;color:#e9f1e8;cursor:grab;text-align:left}
+.material-chip:disabled{opacity:.35;cursor:not-allowed}
+.material-chip i,.slot-material{display:block;width:17px;height:17px;border-radius:5px;background:var(--material);box-shadow:inset 0 1px 3px #ffffff55,0 2px 5px #0005}
+.material-chip span{font-size:10px}
+.material-chip b{margin-left:auto;font:11px 'DM Mono';color:#d9e9c6}
+.craft-grid{display:grid;grid-template-columns:repeat(3,minmax(58px,82px));gap:8px;justify-content:center;padding:13px;border:1px solid #3b5745;border-radius:13px;background:rgba(8,17,13,.36)}
+.craft-slot{aspect-ratio:1;border:1px dashed #63806a;border-radius:9px;background:linear-gradient(145deg,#2a4335,#1d3027);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#78917d;cursor:pointer;transition:border-color .15s,background .15s}
+.craft-slot:hover,.craft-slot.filled{border-style:solid;border-color:#a6ca79;background:#344e3a}
+.craft-slot>span{font-size:23px;opacity:.55}
+.craft-slot small{font-size:8px;color:#d8e7d3}
+.craft-result{min-height:36px;padding:10px 4px;text-align:center;color:#b9cbb7;font-size:11px}
+.craft-create{width:100%;min-height:42px}
+.craft-create:disabled{opacity:.38;cursor:not-allowed}
+.crafting-recipes{border-left:1px solid #ffffff13;padding-left:20px}
+.recipe-card{padding:12px;margin-bottom:9px;border:1px solid #3a5142;border-radius:10px;background:#22372c}
+.recipe-card b,.recipe-card small{display:block}
+.recipe-card b{font-size:11px;color:#e4efdf}
+.recipe-card small{font-size:9px;color:#91a899;margin-top:5px}
+@media(max-width:760px){
+  .crafting-content{grid-template-columns:1fr;gap:20px;padding:18px}
+  .crafting-recipes{border-left:0;border-top:1px solid #ffffff13;padding:16px 0 0}
+  .crafting-header{padding:18px}
+  .craft-grid{grid-template-columns:repeat(3, minmax(58px,1fr));max-width:290px;margin:auto}
+}
+
+
+/* Pale limestone / meadow ground palette */
+.canvas-wrap{background:#e8e5d8}
+#hbu-survival-canvas{background:#e8e5d8}
+.crafting-window{width:min(1180px,100%)}
+.crafting-content{grid-template-columns:minmax(190px,.85fr) minmax(245px,1fr) minmax(250px,1.1fr)}
+.crafting-recipes{max-height:520px;overflow:auto}
+.recipe-book-list{display:grid;gap:9px}
+.book-recipe{padding:10px;border:1px solid #405b48;border-radius:10px;background:linear-gradient(145deg,#263f30,#1c3026)}
+.book-recipe.locked{opacity:.52}
+.book-recipe-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.book-recipe-top b{font-size:11px;color:#eef5e8}
+.book-recipe-top span{font:8px 'DM Mono';letter-spacing:.7px;color:#b4d58a}
+.recipe-pattern{display:grid;grid-template-columns:repeat(3,22px);gap:3px;margin:9px 0}
+.pattern-cell{height:22px;display:grid;place-items:center;border-radius:4px;font:700 9px 'DM Mono';color:#fff;font-style:normal;border:1px solid #ffffff22}
+.pattern-cell.w{background:#9a7049}.pattern-cell.s{background:#788984}.pattern-cell.f{background:#8da84f}.pattern-cell.b{background:#a66ba7}.pattern-cell.empty{background:#15231d;border:1px dashed #52685a}
+.book-recipe p{font-size:9px;color:#b6c8b5;margin:4px 0}
+.book-recipe small{font-size:8px;color:#8fa99a;line-height:1.5}
+.crafted-tools{display:grid;gap:5px;padding:11px;margin-top:12px;border:1px solid #4a624d;border-radius:10px;background:#192a21}
+.crafted-tools b{font-size:10px;color:#dcebd3;margin-bottom:3px}
+.crafted-tools span{font-size:9px;color:#a8bea9}
+@media(max-width:760px){.crafting-content{grid-template-columns:1fr}.crafting-recipes{max-height:none}}
+
+
+/* Hotbar and building controls */
+.canvas-wrap{background:#e8e5d8}
+.hotbar-panel{display:grid;grid-template-columns:1fr;gap:8px;padding:12px 16px 14px;background:linear-gradient(135deg,#1e3b2d,#254b36);border-top:1px solid rgba(255,255,255,.12)}
+.hotbar-label{display:flex;align-items:center;justify-content:space-between;color:#dcebd7;font:10px 'DM Mono',monospace;letter-spacing:1.2px}
+.hotbar-label span{font:9px Manrope,sans-serif;letter-spacing:0;color:#a9c2ad}
+.hotbar{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:7px;max-width:620px;width:100%;margin:0 auto}
+.hotbar-slot{position:relative;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid #64836a;border-radius:8px;background:linear-gradient(145deg,#315b3e,#234631);color:#eef6e8;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.hotbar-slot:hover{transform:translateY(-2px);border-color:#c0df8d}
+.hotbar-slot.selected{border:2px solid #d8ef9b;background:linear-gradient(145deg,#527a45,#345c39);box-shadow:0 0 0 2px rgba(213,239,155,.14),0 4px 15px #08180e55}
+.hotbar-slot[aria-disabled="true"]{opacity:.42;cursor:not-allowed}
+.hotbar-slot kbd{position:absolute;top:4px;left:6px;font:8px 'DM Mono';color:#c5d7bd;background:#142a1d;padding:2px 4px;border-radius:3px}
+.hotbar-slot>span{font-size:19px;line-height:22px}
+.hotbar-slot small{font-size:8px;color:#e2eddb}
+.hotbar-slot b{position:absolute;right:6px;bottom:4px;font:9px 'DM Mono';color:#d6ef9c}
+.hotbar-actions{display:flex;justify-content:center;gap:8px}
+.tool-action{border:1px solid #63836a;border-radius:7px;background:#1b3828;color:#dcebd7;padding:7px 12px;font:600 9px Manrope;cursor:pointer}
+.tool-action:hover,.tool-action.active{background:#527a45;border-color:#d1e99b;color:#fff}
+@media(max-width:700px){.hotbar-panel{padding:9px 7px}.hotbar{gap:3px}.hotbar-slot{min-height:55px}.hotbar-slot small{font-size:7px}.hotbar-slot>span{font-size:16px}.hotbar-actions{flex-wrap:wrap}}
+
+/* Light application UI with green playable terrain */
+body{background:#f7f9f6!important;color:#26352b!important}
+.survival-shell{background:transparent}
+.topbar,.panel,.card,.hud-panel,.inventory-panel,.crafting-window,.crafting-content,.crafting-recipes{background:#fff!important;color:#26352b!important;border-color:#dfe7df!important}
+.topbar{border-bottom:1px solid #e1e8e1}
+.topbar h1,.topbar h2,.panel h2,.panel h3,.crafting-window h2,.crafting-recipes h3{color:#26352b!important}
+.topbar p,.panel p,.muted,.canvas-hint{color:#68766b!important}
+.canvas-wrap{background:#fff!important;box-shadow:0 8px 28px rgba(36,60,40,.10)!important;border:1px solid #e1e8e1}
+.hotbar-panel{background:#fff!important;border-top:1px solid #e1e8e1!important}
+.hotbar-label{color:#34483a!important}
+.hotbar-label span{color:#718075!important}
+.hotbar-slot{background:#f4f7f3!important;border-color:#d5dfd5!important;color:#26352b!important}
+.hotbar-slot kbd{background:#e3ebe2!important;color:#526354!important}
+.hotbar-slot small{color:#526354!important}
+.hotbar-slot.selected{background:#e3f1df!important;border-color:#4e914e!important;box-shadow:0 0 0 2px #4e914e22}
+.tool-action{background:#f3f7f1!important;color:#38553b!important;border-color:#cbdacb!important}
+.tool-action:hover,.tool-action.active{background:#e0efdc!important;color:#244d2a!important;border-color:#79a879!important}
+.book-recipe,.crafted-tools{background:#f7faf6!important;border-color:#dce7dc!important}
+.book-recipe-top b,.crafted-tools b{color:#2d4432!important}
+.book-recipe p,.book-recipe small,.crafted-tools span{color:#66776a!important}
+.book-recipe.locked{opacity:.42}
+/* Hand-drawn interface symbols; no emoji glyphs are used. */
+.inventory-item span{width:20px;height:20px;display:block;position:relative;grid-row:span 2}
+.inventory-item:nth-child(1) span:before{content:"";position:absolute;left:8px;top:2px;width:5px;height:17px;background:linear-gradient(90deg,#765034,#b78350);transform:rotate(12deg);border-radius:2px}
+.inventory-item:nth-child(1) span:after{content:"";position:absolute;left:1px;top:1px;width:17px;height:13px;background:#5f934d;clip-path:polygon(50% 0,100% 65%,70% 65%,90% 100%,10% 100%,30% 65%,0 65%)}
+.inventory-item:nth-child(2) span:before{content:"";position:absolute;left:2px;top:5px;width:16px;height:13px;background:#87958f;clip-path:polygon(8% 70%,20% 18%,60% 0,100% 35%,85% 100%,30% 90%)}
+.inventory-item:nth-child(3) span:before{content:"";position:absolute;left:2px;top:5px;width:17px;height:13px;background:#49784b;border-radius:50% 50% 40% 40%}
+.inventory-item:nth-child(3) span:after{content:"";position:absolute;left:5px;top:6px;width:4px;height:4px;background:#c17bbd;border-radius:50%;box-shadow:7px 3px #c17bbd,3px 8px #c17bbd}
+.inventory-item:nth-child(4) span:before{content:"";position:absolute;left:9px;top:2px;width:3px;height:18px;background:#a6c66a;transform:rotate(20deg);box-shadow:-5px 4px 0 -1px #a6c66a,5px 2px 0 -1px #a6c66a}
+.tool-drawing{display:block;width:24px;height:24px;position:relative}
+.tool-hammer:before{content:"";position:absolute;left:10px;top:8px;width:4px;height:15px;background:#91653f;transform:rotate(35deg);border-radius:2px}
+.tool-hammer:after{content:"";position:absolute;left:3px;top:3px;width:17px;height:7px;background:#9ca9a0;border:1px solid #65756b;border-radius:2px}
+.tool-axe:before{content:"";position:absolute;left:10px;top:7px;width:4px;height:17px;background:#91653f;transform:rotate(35deg);border-radius:2px}
+.tool-axe:after{content:"";position:absolute;left:3px;top:2px;width:12px;height:10px;background:#aebbb5;clip-path:polygon(0 0,100% 15%,78% 100%,30% 75%)}
+.tool-wall:before{content:"";position:absolute;inset:5px 2px;background:repeating-linear-gradient(0deg,#9b7047 0 4px,#c0915e 4px 7px);border:1px solid #765235}
+.pine{font-size:0!important;text-shadow:none!important}
+.pine:before{content:"";position:absolute;left:0;top:0;width:1em;height:1em;background:#214b34;clip-path:polygon(50% 0,100% 55%,75% 55%,100% 82%,60% 82%,60% 100%,40% 100%,40% 82%,0 82%,25% 55%,0 55%)}
+.campfire{font-size:0!important;filter:none!important}
+.campfire:before{content:"";position:absolute;left:10px;top:4px;width:28px;height:38px;background:linear-gradient(#fff1a3,#f2a23e 55%,#c94e2f);clip-path:polygon(50% 0,72% 35%,100% 62%,78% 100%,20% 100%,0 62%,32% 34%);filter:drop-shadow(0 0 9px #ffb35b)}
+
+
+/* Minimal text mode: keep the game title, player name, stat names, and item names. */
+.eyebrow,.intro,.feature-row,.art-caption,.build-tag,.connection-pill,
+.lobby-form label,#lobby-status,.canvas-hint,.world-kicker,.world-footer,
+.hotbar-label span,.hotbar-actions .tool-action,.tiny-note,.field-note,
+.right-panel .panel-divider,.activity-feed,.survivor small,
+.crafting-header p,.crafting-help,.craft-result,.crafting-recipes p,
+.crafting-recipes small,.crafting-header .world-kicker {display:none!important}
+.right-panel{display:none!important}
+#toast{display:none!important}
+.leave-button{font-size:0!important;min-height:36px}
+.leave-button::before{content:"×";font-size:20px;line-height:1}
+#hbu-survival-join{font-size:13px!important;min-height:48px}
+#hbu-survival-join::before{content:none!important}
+#craft-create{font-size:0!important;min-height:42px}
+#craft-create::before{content:"+";font-size:24px}
+.book-recipe-top span{display:none!important}
+.crafting-recipes h3,.crafting-materials h3,.crafting-center h3{font-size:0!important}
+.crafting-center h3 span{font-size:12px!important}
+
+
+/* Full light UI correction: no dark-green interface surfaces. */
+:root {
+  color-scheme: light !important;
+  --bg: #f8faf7 !important;
+  --panel: #ffffff !important;
+  --panel2: #f2f6f0 !important;
+  --line: #dce5da !important;
+  --text: #26352b !important;
+  --muted: #718075 !important;
+  --green: #4f8b50 !important;
+  --green2: #397343 !important;
+}
+html, body {
+  background: #f8faf7 !important;
+  color: #26352b !important;
+}
+.survival-shell { background: transparent !important; }
+.topbar, .panel, .world-panel, .world-toolbar, .world-footer,
+.hotbar-panel, .crafting-window, .crafting-content, .crafting-recipes,
+.crafting-header, .crafting-materials, .crafting-center,
+.recipe-card, .book-recipe, .crafted-tools, .inventory-item,
+.craft-button, .material-chip, .craft-slot, .hotbar-slot,
+.tool-action, .survivor, .connection-pill {
+  background: #ffffff !important;
+  color: #26352b !important;
+  border-color: #dce5da !important;
+  box-shadow: none;
+}
+.topbar { border-bottom-color: #e2e9e0 !important; }
+.brand, .brand span { color: #26352b !important; }
+.build-tag, .eyebrow, .world-kicker, .panel-heading,
+.world-meta, .world-toolbar strong, .player-card strong,
+.player-card small, .stat-label, .stat-label b,
+.inventory-item b, .inventory-item small, .craft-button b,
+.craft-button small, .craft-button em, .hotbar-label,
+.hotbar-label span, .hotbar-slot small, .hotbar-slot kbd,
+.book-recipe-top b, .book-recipe p, .book-recipe small,
+.crafted-tools b, .crafted-tools span, .field-note,
+.survivor b, .survivor small, .page-footer {
+  color: #34483a !important;
+}
+.panel-divider { background: #e3eae1 !important; }
+.meter { background: #e7eee5 !important; }
+.avatar { color: #203b25 !important; }
+.primary, #hbu-survival-join {
+  background: #4f8b50 !important;
+  color: #ffffff !important;
+}
+.secondary, .leave-button {
+  background: #f3f6f1 !important;
+  color: #34483a !important;
+  border-color: #d5dfd2 !important;
+}
+.inventory-item { background: #f8faf7 !important; }
+.craft-button:hover, .material-chip:hover, .tool-action:hover,
+.tool-action.active {
+  background: #edf5e9 !important;
+  color: #294b2d !important;
+}
+.craft-slot { background: #f4f7f2 !important; }
+.craft-slot:hover, .craft-slot.filled {
+  background: #e7f1e3 !important;
+  border-color: #8ab17e !important;
+}
+.hotbar-slot { background: #f4f7f2 !important; color: #26352b !important; }
+.hotbar-slot.selected {
+  background: #e5f1df !important;
+  border-color: #4f8b50 !important;
+  box-shadow: 0 0 0 2px rgba(79,139,80,.13) !important;
+}
+.hotbar-slot kbd { background: #e8eee5 !important; }
+#hbu-survival-canvas { image-rendering: auto !important; }
+.canvas-wrap {
+  background: #f8faf7 !important;
+  border-color: #e0e8dd !important;
+  box-shadow: 0 8px 28px rgba(36,60,40,.10) !important;
+}
+.crafting-modal {
+  background: rgba(33, 45, 34, .38) !important;
+}
+.crafting-window { background: #ffffff !important; }
+#player-name {
+  background: #ffffff !important;
+  color: #26352b !important;
+  border-color: #d5dfd2 !important;
+}
+#player-name::placeholder { color: #9aa79a !important; }
+.toast { background: #ffffff !important; color: #26352b !important; border-color: #dce5da !important; }
+
+
+/* Three.js 3D world viewport */
+#hbu-survival-canvas {
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:380px;
+  object-fit:initial;
+  image-rendering:auto;
+  background:linear-gradient(#cfe8f5,#8ebd75);
+  touch-action:none;
+  outline:none;
+}
+.canvas-wrap { background:#a8d28a !important; }
+.canvas-hint { z-index:4; }
+@media(max-width:900px) {
+  .game-layout { grid-template-columns:1fr; }
+  .world-panel { min-height:520px; }
+  .canvas-wrap { min-height:420px; }
+}
+
+
+/* HBU purple glow interface theme. The actual 3D world colors are deliberately untouched. */
+:root{color-scheme:dark!important;--bg:#100819;--panel:#1b1029;--panel2:#28163d;--line:#7542a5;--text:#f7efff;--muted:#c0a9d8;--green:#c78aff;--green2:#a65df0;--orange:#d9adff;--red:#ff80b4}
+html,body{background:radial-gradient(ellipse at 50% -20%,#6c35a0 0,#32164e 48%,#100819 100%)!important;color:#f7efff!important}
+.survival-shell{background:transparent!important;color:#f7efff!important}
+.topbar{border-bottom:1px solid #a66ce044!important}.brand,.brand span{color:#fff!important;text-shadow:0 0 16px #c78aff99!important}
+.eyebrow,.lobby h1 span,.feature-row b,.world-kicker,.panel-heading,.craft-button em,.activity-feed b{color:#d0a0ff!important}
+.lobby h1{color:#fff!important;text-shadow:0 0 28px #b46cff55!important}
+.intro,.muted,.tiny-note,.player-card small,.field-note p,.activity-feed p,.page-footer{color:#c7b1dc!important}
+.panel,.world-panel,.crafting-window{background:linear-gradient(155deg,#2b1941,#170d25)!important;border:1px solid #7547a8!important;color:#f7efff!important;box-shadow:0 12px 38px #09031399,0 0 22px #a65df033!important}
+.panel-divider{background:#7547a855!important}.world-toolbar,.world-footer{border-color:#7547a855!important}
+.lobby-form label{color:#eadcf8!important}.lobby-form input,#player-name{background:#160d25!important;border:1px solid #8051b0!important;color:#fff!important}.lobby-form input:focus,#player-name:focus{border-color:#d0a0ff!important;box-shadow:0 0 0 3px #b46cff25,0 0 18px #b46cff66!important}
+.button.primary,#hbu-survival-join{font-size:13px!important;color:#210d32!important;background:linear-gradient(135deg,#e0bdff,#a45cf0)!important;border:1px solid #e5caff!important;box-shadow:0 0 22px #ad69ff88,inset 0 1px #ffffffaa!important;text-shadow:none!important}
+#hbu-survival-join{display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;width:100%!important;min-height:50px!important}
+#hbu-survival-join::before{content:none!important;display:none!important}#hbu-survival-join span{float:none!important;font-size:18px!important}
+.button.primary:hover,#hbu-survival-join:hover{filter:brightness(1.12);box-shadow:0 0 32px #bd83ffcc!important}.button.primary:disabled{opacity:.65!important;cursor:wait!important}
+.button.secondary,.secondary{background:#321b49!important;color:#eadbfa!important;border:1px solid #8054aa!important}
+.connection-pill{border:1px solid #7547a8!important;background:#1c1230!important;color:#e2d0f2!important}.connection-pill i,.connection-pill.online i,.live-dot,.survivor-dot{background:#c78aff!important;box-shadow:0 0 11px #c78aff!important}
+.inventory-item,.survivor,.craft-button,.material-chip,.craft-slot,.book-recipe,.crafted-tools,.hotbar-slot,.tool-action{background:#291a40!important;border:1px solid #593579!important;color:#f7efff!important}
+.inventory-item:hover,.craft-button:hover,.material-chip:hover,.tool-action:hover,.tool-action.active,.craft-slot:hover,.craft-slot.filled,.hotbar-slot.selected{background:#41245f!important;border-color:#d0a0ff!important;box-shadow:0 0 16px #a95cff55!important;color:#fff!important}
+.avatar{background:linear-gradient(135deg,#e1c2ff,#9c5be5)!important;color:#241032!important;box-shadow:0 0 18px #b46cff77!important}
+.meter{background:#39264e!important}.health{background:#ff739e!important}.hunger{background:#e5b45e!important}.thirst{background:#79c9f5!important}
+.leave-button{background:#35172f!important;border-color:#a64b85!important;color:#ffb7d3!important}.leave-button:hover{box-shadow:0 0 16px #ff6bad66!important}
+.world-toolbar strong{color:#fff!important}.world-meta{color:#d2bfe5!important}.count-badge{background:#392252!important;color:#d5a8ff!important}
+.canvas-hint{background:#160d25ef!important;border:1px solid #9b68c8aa!important;color:#e8d9f7!important}.canvas-hint kbd{background:#392252!important;color:#d5a8ff!important}.toast{background:#211333ef!important;border-color:#bd82f5!important;color:#fff!important}
+.crafting-modal{background:#10091dcc!important}.crafting-window{border-color:#a66ce0!important;box-shadow:0 0 45px #9d55e877,0 28px 100px #0009!important}.crafting-header,.crafting-content,.crafting-recipes,.crafting-materials,.crafting-center{background:transparent!important;color:#f7efff!important}.close-crafting{background:#2b1b40!important;border-color:#704995!important;color:#fff!important}
+/* Purple lobby artwork; the in-game terrain, trees, water, and resource colors remain natural. */
+.lobby-art{background:linear-gradient(#392052 0%,#5c367d 48%,#241536 100%)!important;border-color:#9b68c8!important;box-shadow:0 25px 80px #05020b99,0 0 28px #a65df044!important}
+.sun{background:#e8c7ff!important;box-shadow:0 0 60px #d7a6ffbb!important}.mountain-back{background:#69418a!important}.mountain-front{background:#342044!important}.pine:before{background:#45275f!important}.campfire:before{background:linear-gradient(#f2d6ff,#c17cff 55%,#7737b2)!important;filter:drop-shadow(0 0 12px #c78aff)!important}
+button:focus-visible,input:focus-visible{outline:2px solid #d0a0ff!important;outline-offset:3px}
+/* First-person view controls */
+.canvas-wrap:after{content:"+";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:300 25px/1 monospace;color:#fff;text-shadow:0 1px 4px #000,0 0 8px #000;pointer-events:none;opacity:.85}
+#hbu-survival-canvas{cursor:crosshair!important;touch-action:none;outline:none}
+/* Do not recolor the WebGL canvas or any meshes: the playable world stays natural. */
+#hbu-survival-canvas{background:linear-gradient(#cfe8f5,#8ebd75)!important}
+
+</style>
+</head>
+<body>
+  <main class="survival-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="HBU Survival">HBU<span>Survival</span></a>
+      <div class="topbar-right">
+        <span class="build-tag">TEST BUILD 0.1</span>
+        <span id="connection-status" class="connection-pill offline"><i></i> Not connected</span>
+      </div>
+    </header>
+
+    <section id="lobby" class="lobby">
+      <div class="lobby-copy">
+        <p class="eyebrow">HBU SURVIVAL</p>
+        <h1>HBU <span>Survival</span></h1>
+        <div class="lobby-form">
+          <label for="player-name">Player name</label>
+          <input id="player-name" maxlength="18" autocomplete="nickname" placeholder="Your HBU username">
+          <div class="lobby-actions" id="lobby-actions">
+            <button id="hbu-survival-join" class="button primary" type="button" aria-label="Play">PLAY <span aria-hidden="true">→</span></button>
+          </div>
+          <p id="lobby-status" class="muted" role="status">Your survivor saves automatically. Sign in to HBU2 to join the shared world.</p>
+        </div>
+      </div>
+      <div class="lobby-art" aria-hidden="true">
+        <div class="sun"></div><div class="mountain mountain-back"></div><div class="mountain mountain-front"></div>
+        <div class="pine pine-one"></div><div class="pine pine-two"></div><div class="pine pine-three"></div>
+        <div class="campfire"></div>
+        
+      </div>
+    </section>
+
+    <section id="game" class="game-layout" hidden>
+      <aside class="left-panel panel">
+        <div class="panel-heading"><span>YOUR SURVIVOR</span><span class="live-dot"></span></div>
+        <div class="player-card"><div class="avatar" id="player-avatar">R</div><div><strong id="hud-name">Survivor</strong><small>Wilderness explorer</small></div></div>
+        <div class="stat-block"><div class="stat-label"><span>Health</span><b id="health-value">100</b></div><div class="meter"><i id="health-meter" class="health"></i></div></div>
+        <div class="stat-block"><div class="stat-label"><span>Hunger</span><b id="hunger-value">100</b></div><div class="meter"><i id="hunger-meter" class="hunger"></i></div></div>
+        <div class="stat-block"><div class="stat-label"><span>Thirst</span><b id="thirst-value">100</b></div><div class="meter"><i id="thirst-meter" class="thirst"></i></div></div>
+        <div class="panel-divider"></div>
+        <div class="panel-heading">INVENTORY</div>
+        <div class="inventory-grid">
+          <div class="inventory-item"><span class="material-wood" aria-hidden="true"></span><small>Wood</small><b id="wood-count">0</b></div>
+          <div class="inventory-item"><span class="material-stone" aria-hidden="true"></span><small>Stone</small><b id="stone-count">0</b></div>
+          <div class="inventory-item"><span class="material-berries" aria-hidden="true"></span><small>Berries</small><b id="berry-count">0</b></div>
+          <div class="inventory-item"><span class="material-fiber" aria-hidden="true"></span><small>Fiber</small><b id="fiber-count">0</b></div>
+        </div>
+        <div class="panel-divider"></div>
+        <div class="panel-heading">CRAFTING</div>
+        <button id="craft-campfire" class="craft-button" type="button"><span class="campfire-drawing" aria-hidden="true"></span><span><b>Campfire</b><small>5 wood · 3 stone</small></span><em>Craft</em></button>
+        <p id="craft-status" class="tiny-note">Campfires are decorative in this test build.</p>
+        <button id="leave-world" class="leave-button" type="button" aria-label="Leave world"></button>
+      </aside>
+
+      <section class="world-panel">
+        <div class="world-toolbar"><div><span class="world-kicker">THE GREENWILD</span><strong>Survival World</strong></div><div class="world-meta"><span id="world-time"> Day 1 · 08:00</span><span id="player-count">1 survivor</span></div></div>
+        <div class="canvas-wrap"><canvas id="hbu-survival-canvas" width="960" height="600" aria-label="Survival world"></canvas><div class="canvas-hint"><kbd>Click</kbd> Look <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>1</kbd> Hammer <span>·</span> <kbd>2</kbd> Axe <span>·</span> <kbd>F6</kbd> Grid <span>·</span> <kbd>R</kbd> Rotate <span>·</span> <kbd>E</kbd> Craft <span>·</span> <kbd>F</kbd> Eat <span>·</span> <kbd>G</kbd> Drink</div><div id="toast" class="toast" aria-live="polite"></div></div>
+        <div class="hotbar-panel">
+          <div class="hotbar-label">HOTBAR <span>Select a tool with 1–9</span></div>
+          <div id="hotbar" class="hotbar" aria-label="Nine-slot hotbar"></div>
+          <div class="hotbar-actions"><button id="grid-toggle" type="button" class="tool-action">Toggle grid · F6</button><button id="rotate-wall" type="button" class="tool-action">Rotate wall · 0°</button></div>
+        </div>
+        <div class="world-footer"><span><i class="live-dot"></i> Local world</span><span id="position-label">X: 0 · Y: 0</span><span>Autosave: enabled</span></div>
+      </section>
+
+      <aside class="right-panel panel">
+        <div class="panel-heading">SURVIVORS ONLINE <span id="online-count" class="count-badge">1</span></div>
+        <div id="survivor-list" class="survivor-list"><p class="muted">Waiting for survivors…</p></div>
+        <div class="panel-divider"></div>
+        <div class="panel-heading">FIELD NOTES</div>
+        <div class="field-note"><b>Find supplies</b><p>Walk close to trees, rocks, berry bushes, and plants. Press E to gather.</p></div>
+        <div class="field-note"><b>Stay hydrated</b><p>Find a pond and press G when you're standing beside it.</p></div>
+        <div class="field-note"><b>Night is coming</b><p>Your hunger and thirst slowly decrease as time passes.</p></div>
+        <div class="panel-divider"></div>
+        <div class="panel-heading">ACTIVITY</div>
+        <div id="activity-feed" class="activity-feed"><p class="muted">The wilderness is quiet.</p></div>
+      </aside>
+    </section>
+
+
+    <section id="crafting-modal" class="crafting-modal" hidden aria-label="Crafting station">
+      <div class="crafting-window">
+        <header class="crafting-header">
+          <div><span class="world-kicker">SURVIVAL WORKBENCH</span><h2>Crafting</h2><p>Recipes require the correct materials in the correct 3 × 3 positions.</p></div>
+          <button id="close-crafting" class="close-crafting" type="button" aria-label="Close crafting">×</button>
+        </header>
+        <div class="crafting-content">
+          <section class="crafting-materials">
+            <h3>YOUR MATERIALS</h3>
+            <p class="crafting-help">Drag a stack into a grid slot. Right-click a slot or click it to remove its material.</p>
+            <div id="craft-material-list" class="craft-material-list"></div>
+          </section>
+          <section class="crafting-center">
+            <h3>CRAFTING GRID <span>3 × 3</span></h3>
+            <div id="craft-grid" class="craft-grid">
+              <button class="craft-slot" data-slot="0" type="button" aria-label="Crafting slot 1"></button>
+              <button class="craft-slot" data-slot="1" type="button" aria-label="Crafting slot 2"></button>
+              <button class="craft-slot" data-slot="2" type="button" aria-label="Crafting slot 3"></button>
+              <button class="craft-slot" data-slot="3" type="button" aria-label="Crafting slot 4"></button>
+              <button class="craft-slot" data-slot="4" type="button" aria-label="Crafting slot 5"></button>
+              <button class="craft-slot" data-slot="5" type="button" aria-label="Crafting slot 6"></button>
+              <button class="craft-slot" data-slot="6" type="button" aria-label="Crafting slot 7"></button>
+              <button class="craft-slot" data-slot="7" type="button" aria-label="Crafting slot 8"></button>
+              <button class="craft-slot" data-slot="8" type="button" aria-label="Crafting slot 9"></button>
+            </div>
+            <div id="craft-result" class="craft-result">Place materials in the grid.</div>
+            <button id="craft-create" class="button primary craft-create" type="button" aria-label="Craft item" disabled></button>
+          </section>
+          <aside class="crafting-recipes">
+            <h3>RECIPE BOOK</h3>
+            <p class="crafting-help">Match the exact 3 × 3 pattern. W = Wood · S = Stone · F = Fiber · . = Empty.</p>
+            <div id="recipe-book-list" class="recipe-book-list"></div>
+            <div id="crafted-tools" class="crafted-tools"></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+    <footer class="page-footer">HBU Survival · HbuOS app · Multiplayer requires an HBU2 account. Your survivor and shared world autosave.</footer>
+  </main>
+<script>
+(() => {
+  "use strict";
+
+  const WORLD_STORAGE_KEY = "hbu-survival-local-world-v1";
+  const PLAYER_STORAGE_PREFIX = "hbu-survival-local-player-v1:";
+  const WORLD_CHANNEL = "hbu-survival-local-v1";
+  const HBU_GATEWAY_URL = "https://hbu2.schooogle.workers.dev";
+  const HBU_SUPABASE_ANON_KEY = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
+  const HBU_SESSION_KEY = "hbu-arcade-session";
+  const MULTIPLAYER_SYNC_MS = 2500;
+  const WORLD_WIDTH = 2400;
+  const WORLD_HEIGHT = 1800;
+  const CHUNK_SIZE = 480;
+  const CHUNK_RENDER_RADIUS = 1; // Keep only a 3x3 neighborhood of chunks in the renderer.
+  const TILE = 48;
+  const canvas = document.getElementById("hbu-survival-canvas");
+  if (!canvas) throw new Error("HBU Survival canvas element was not found.");
+  // Keep a predictable internal drawing surface even when CSS lays the canvas out responsively.
+  if (!canvas.width || !canvas.height) {
+    canvas.width = 960;
+    canvas.height = 600;
+  }
+  let THREE = window.THREE || null;
+  let threeLoadPromise = null;
+  const $ = id => document.getElementById(id);
+
+  function loadThreeFrom(url) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = url;
+      script.async = true;
+      script.onload = () => window.THREE ? resolve(window.THREE) : reject(new Error("Three.js loaded without initializing."));
+      script.onerror = () => reject(new Error("Could not load " + url));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureThreeLoaded() {
+    if (window.THREE) { THREE = window.THREE; return THREE; }
+    if (!threeLoadPromise) {
+      threeLoadPromise = (async () => {
+        try {
+          THREE = await loadThreeFrom("https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js");
+        } catch (firstError) {
+          THREE = await loadThreeFrom("https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js");
+        }
+        return THREE;
+      })().catch(error => { threeLoadPromise = null; throw new Error("Three.js could not load. Check your internet connection and press Play again."); });
+    }
+    return threeLoadPromise;
+  }
+  const state = {
+    started: false, name: "Survivor", x: 1200, y: 900, health: 100, hunger: 100, thirst: 100,
+    inventory: { wood: 0, stone: 0, berries: 0, fiber: 0 }, crafted: { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0 }, craftSlots: Array(9).fill(null), walls: [], keys: new Set(), resources: [], removed: new Set(),
+    selectedHotbar: 0, gridVisible: false, wallRotation: 0, pointerCanvasX: 0, pointerCanvasY: 0, pointerOnCanvas: false,
+    players: new Map(), camps: [], channel: null, lastMoveSent: 0, lastTick: 0, generatedChunks: new Set(), yaw: 0, pitch: -0.08, mouseLocked: false, mouseDragLook: false, relockAfterCrafting: false,
+    worldMinutes: 480, day: 1, toastTimer: 0, cameraX: 0, cameraY: 0, activity: [], saveTimer: 0,
+    multiplayerReady: false, multiplayerInitialized: false, multiplayerTimer: 0, multiplayerBusy: false, multiplayerLastError: ""
+  };
+
+
+  // ---------------- THREE.JS 3D WORLD ----------------
+  let renderer3D, scene3D, camera3D, worldGroup3D, actorGroup3D;
+  let groundPlane3D, gridHelper3D, ghostWall3D, terrainGroup3D;
+  const terrainChunks3D = new Map();
+  let lastChunkCenter3D = "";
+  let worldSignature3D = "";
+  const visibleWorldGroups3D = new Map();
+  const resourcesByChunk3D = new Map();
+  let resourceIndexDirty3D = true;
+  let worldVisualRevision3D = 1;
+  let renderedWorldRevision3D = 0;
+  let lastGhostPreviewKey3D = "";
+  let sunLight3D = null;
+  let lastShadowCenter3D = { x: NaN, z: NaN };
+  const geometryCache3D = new Map();
+  const actorMeshes3D = new Map();
+  let raycaster3D = null;
+  let pointerNDC3D = null;
+  let groundPlaneForRay3D = null;
+  let rayPoint3D = null;
+  const materialCache3D = {};
+
+  function mat3D(color, roughness = 0.92) {
+    const key = `${color}-${roughness}`;
+    if (!materialCache3D[key]) materialCache3D[key] = new THREE.MeshStandardMaterial({ color, roughness });
+    return materialCache3D[key];
+  }
+
+  function ghostMat3D(color) {
+    const key = `ghost-${color}`;
+    if (!materialCache3D[key]) materialCache3D[key] = new THREE.MeshStandardMaterial({ color, roughness: 0.9, transparent: true, opacity: 0.52 });
+    return materialCache3D[key];
+  }
+
+  function emissiveMat3D(color, emissive, intensity, roughness = 0.4) {
+    const key = `emissive-${color}-${emissive}-${intensity}-${roughness}`;
+    if (!materialCache3D[key]) materialCache3D[key] = new THREE.MeshStandardMaterial({ color, emissive, emissiveIntensity: intensity, roughness });
+    return materialCache3D[key];
+  }
+
+  function geometry3D(key, factory) {
+    if (!geometryCache3D.has(key)) geometryCache3D.set(key, factory());
+    return geometryCache3D.get(key);
+  }
+
+  function box3D(parent, x, y, z, sx, sy, sz, material, cast = true, receive = true) {
+    const key = `box:${sx}:${sy}:${sz}`;
+    const mesh = new THREE.Mesh(geometry3D(key, () => new THREE.BoxGeometry(sx, sy, sz)), material);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = cast;
+    mesh.receiveShadow = receive;
+    parent.add(mesh);
+    return mesh;
+  }
+
+  function createTree3D(parent, x, z) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    const trunk = new THREE.Mesh(geometry3D("tree-trunk", () => new THREE.CylinderGeometry(5, 7, 34, 7)), mat3D("#805536"));
+    trunk.position.y = 17;
+    trunk.castShadow = true;
+    group.add(trunk);
+    const lower = new THREE.Mesh(geometry3D("tree-lower", () => new THREE.ConeGeometry(27, 48, 8)), mat3D("#28633c"));
+    lower.position.y = 48;
+    lower.castShadow = false;
+    lower.receiveShadow = true;
+    group.add(lower);
+    const middle = new THREE.Mesh(geometry3D("tree-middle", () => new THREE.ConeGeometry(21, 42, 8)), mat3D("#397b43"));
+    middle.position.y = 69;
+    middle.castShadow = false;
+    group.add(middle);
+    const crown = new THREE.Mesh(geometry3D("tree-crown", () => new THREE.ConeGeometry(14, 34, 8)), mat3D("#5a9850"));
+    crown.position.y = 88;
+    crown.castShadow = false;
+    group.add(crown);
+    parent.add(group);
+    return group;
+  }
+
+  function createRock3D(parent, x, z) {
+    const geometry = geometry3D("rock-main", () => new THREE.DodecahedronGeometry(19, 0));
+    const rock = new THREE.Mesh(geometry, mat3D("#87958d"));
+    rock.position.set(x, 13, z);
+    rock.scale.set(1.1, 0.78, 0.92);
+    rock.rotation.set(0.13, (x + z) * 0.003, 0.2);
+    rock.castShadow = false;
+    rock.receiveShadow = true;
+    parent.add(rock);
+    const highlight = new THREE.Mesh(geometry3D("rock-highlight", () => new THREE.DodecahedronGeometry(8, 0)), mat3D("#b9c4b7"));
+    highlight.position.set(x - 6, 22, z - 5);
+    highlight.scale.set(1.1, 0.45, 0.8);
+    highlight.castShadow = false;
+    parent.add(highlight);
+  }
+
+  function createBush3D(parent, x, z, fiber = false) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    const leaves = new THREE.Mesh(geometry3D("bush-leaves", () => new THREE.IcosahedronGeometry(13, 1)), mat3D(fiber ? "#739d45" : "#367342"));
+    leaves.position.y = 10;
+    leaves.scale.set(1.2, 0.72, 1);
+    leaves.castShadow = false;
+    group.add(leaves);
+    if (!fiber) {
+      for (const [bx, bz] of [[-7,-5],[5,-8],[8,4],[-2,7]]) {
+        const berry = new THREE.Mesh(geometry3D("berry-sphere", () => new THREE.SphereGeometry(3.1, 8, 6)), mat3D("#a94e83"));
+        berry.position.set(bx, 12 + Math.abs(bx) * 0.25, bz);
+        berry.castShadow = false;
+        group.add(berry);
+      }
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const blade = new THREE.Mesh(geometry3D("fiber-blade", () => new THREE.ConeGeometry(3, 27, 5)), mat3D("#b4c96a"));
+        blade.position.set(Math.sin(i * 1.3) * 7, 13, Math.cos(i * 1.3) * 7);
+        blade.rotation.z = Math.sin(i * 1.3) * 0.32;
+        blade.castShadow = false;
+        group.add(blade);
+      }
+    }
+    parent.add(group);
+  }
+
+  function createWall3D(parent, wall, ghost = false) {
+    const group = new THREE.Group();
+    group.position.set(wall.x, 0, wall.y);
+    group.rotation.y = -(wall.rotation || 0);
+    const wood = ghost ? ghostMat3D("#b9e7a4") : mat3D("#94643d", 0.88);
+    const highlight = ghost ? ghostMat3D("#e3ffd4") : mat3D("#c28d55", 0.9);
+    box3D(group, 0, 17, 0, 48, 34, 13, wood, false, true);
+    box3D(group, 0, 30, -7.1, 48, 4, 1.4, highlight, false, false);
+    for (const px of [-19, 19]) {
+      box3D(group, px, 18, 0, 5, 38, 16, (ghost ? ghostMat3D("#d8f4c9") : mat3D("#68452d")), false, true);
+    }
+    for (const px of [-9, 8]) {
+      box3D(group, px, 17, 7.2, 1.4, 29, 1.2, (ghost ? ghostMat3D("#d8f4c9") : mat3D("#704a2e")), false, false);
+    }
+    parent.add(group);
+    return group;
+  }
+
+  function createCampfire3D(parent, camp) {
+    const group = new THREE.Group();
+    group.position.set(camp.x, 0, camp.y);
+    const logMat = mat3D("#65442d");
+    const log1 = box3D(group, 0, 3, 0, 32, 6, 7, logMat, false, true);
+    log1.rotation.y = 0.55;
+    const log2 = box3D(group, 0, 4, 0, 32, 6, 7, logMat, false, true);
+    log2.rotation.y = -0.55;
+    const flame = new THREE.Mesh(geometry3D("campfire-flame", () => new THREE.ConeGeometry(9, 28, 7)), emissiveMat3D("#ff9a36", "#ff6a13", 1.6));
+    flame.position.y = 19;
+    flame.castShadow = false;
+    group.add(flame);
+    const core = new THREE.Mesh(geometry3D("campfire-core", () => new THREE.ConeGeometry(4.5, 17, 7)), emissiveMat3D("#fff0a0", "#ffc34b", 1.8));
+    core.position.y = 16;
+    group.add(core);
+    parent.add(group);
+  }
+
+  function createPond3D(parent, x, z, radius) {
+    const water = new THREE.Mesh(
+      geometry3D(`pond-circle-${radius}`, () => new THREE.CircleGeometry(radius, 32)),
+      new THREE.MeshStandardMaterial({ color: "#4f9ca8", roughness: 0.24, metalness: 0.08 })
+    );
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(x, 0.7, z);
+    water.scale.y = 0.72;
+    water.receiveShadow = true;
+    parent.add(water);
+    const rim = new THREE.Mesh(geometry3D(`pond-rim-${radius}`, () => new THREE.TorusGeometry(radius, 5, 6, 32)), mat3D("#b5d5a0"));
+    rim.rotation.x = Math.PI / 2;
+    rim.position.set(x, 1.2, z);
+    rim.scale.y = 0.72;
+    parent.add(rim);
+  }
+
+  function createPlayer3D(parent, x, z, color, name, isSelf = false) {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    const body = new THREE.Mesh(geometry3D("player-body", () => new THREE.CapsuleGeometry(8, 13, 4, 8)), mat3D(color));
+    body.position.y = 15;
+    body.castShadow = false;
+    group.add(body);
+    const head = new THREE.Mesh(geometry3D("player-head", () => new THREE.SphereGeometry(6.7, 12, 10)), mat3D("#e5bd98"));
+    head.position.set(0, 28, 0);
+    head.castShadow = false;
+    group.add(head);
+    const hair = new THREE.Mesh(geometry3D("player-hair", () => new THREE.SphereGeometry(6.9, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.48)), mat3D("#594432"));
+    hair.position.set(0, 30, 0);
+    hair.castShadow = false;
+    group.add(hair);
+    const labelCanvas = document.createElement("canvas");
+    labelCanvas.width = 256; labelCanvas.height = 64;
+    const labelCtx = labelCanvas.getContext("2d");
+    labelCtx.font = "bold 26px Arial";
+    labelCtx.textAlign = "center";
+    labelCtx.fillStyle = "rgba(30,45,31,.78)";
+    labelCtx.fillRect(5, 8, 246, 48);
+    labelCtx.fillStyle = "#ffffff";
+    labelCtx.fillText(String(name).slice(0, 18), 128, 41);
+    const labelTexture = new THREE.CanvasTexture(labelCanvas);
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthTest: false }));
+    label.position.y = 47;
+    label.scale.set(70, 17.5, 1);
+    group.add(label);
+    parent.add(group);
+    return group;
+  }
+
+  function initThreeWorld() {
+    if (renderer3D) return;
+    if (!THREE || !window.THREE) throw new Error("Three.js has not finished loading. Please press Play again.");
+    pointerNDC3D = new THREE.Vector2();
+    groundPlaneForRay3D = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    rayPoint3D = new THREE.Vector3();
+    raycaster3D = new THREE.Raycaster();
+    renderer3D = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer3D.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    renderer3D.setSize(canvas.clientWidth || 960, canvas.clientHeight || 600, false);
+    renderer3D.shadowMap.enabled = true;
+    renderer3D.shadowMap.type = THREE.PCFShadowMap;
+    renderer3D.outputColorSpace = THREE.SRGBColorSpace;
+    renderer3D.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer3D.toneMappingExposure = 1.28;
+
+    scene3D = new THREE.Scene();
+    scene3D.background = new THREE.Color("#bfe1f1");
+    scene3D.fog = new THREE.Fog("#bfe1f1", 850, 1750);
+
+    camera3D = new THREE.PerspectiveCamera(78, 960 / 600, 0.1, 1500);
+    camera3D.position.set(state.x, 34, state.y);
+    camera3D.rotation.order = "YXZ";
+
+    scene3D.add(new THREE.HemisphereLight("#f4fff0", "#607b4c", 1.65));
+    const sun = new THREE.DirectionalLight("#fff2d2", 3.0);
+    sunLight3D = sun;
+    sun.position.set(state.x - 550, 1000, state.y - 650);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.autoUpdate = false;
+    sun.shadow.needsUpdate = true;
+    sun.shadow.camera.left = -1050;
+    sun.shadow.camera.right = 1050;
+    sun.shadow.camera.top = 1050;
+    sun.shadow.camera.bottom = -1050;
+    sun.shadow.camera.near = 10;
+    sun.shadow.camera.far = 2600;
+    sun.shadow.bias = -0.00012;
+    sun.shadow.normalBias = 0.025;
+    sun.target.position.set(state.x, 0, state.y);
+    scene3D.add(sun);
+    scene3D.add(sun.target);
+
+    // Terrain is streamed in square chunks around the survivor instead of using a finite plane.
+    terrainGroup3D = new THREE.Group();
+    scene3D.add(terrainGroup3D);
+
+    worldGroup3D = new THREE.Group();
+    scene3D.add(worldGroup3D);
+    actorGroup3D = new THREE.Group();
+    scene3D.add(actorGroup3D);
+
+    gridHelper3D = new THREE.GridHelper(CHUNK_SIZE * 3, CHUNK_SIZE * 3 / BUILD_GRID, "#4b7d48", "#6c9a5e");
+    gridHelper3D.position.set(state.x, 0.25, state.y);
+    gridHelper3D.material.transparent = true;
+    gridHelper3D.material.opacity = 0.26;
+    gridHelper3D.visible = false;
+    scene3D.add(gridHelper3D);
+
+    ghostWall3D = new THREE.Group();
+    scene3D.add(ghostWall3D);
+    const resize = () => {
+      const width = Math.max(1, canvas.clientWidth);
+      const height = Math.max(1, canvas.clientHeight);
+      renderer3D.setSize(width, height, false);
+      camera3D.aspect = width / height;
+      camera3D.updateProjectionMatrix();
+    };
+    window.addEventListener("resize", resize);
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
+  }
+
+  function chunkRandom(cx, cz) {
+    let seed = (Math.imul(cx | 0, 374761393) + Math.imul(cz | 0, 668265263) + 1442695041) | 0;
+    return () => {
+      seed = Math.imul(seed ^ (seed >>> 13), 1274126177);
+      seed = (seed ^ (seed >>> 16)) >>> 0;
+      return seed / 4294967296;
+    };
+  }
+
+  function chunkKeyFor3D(x, z) {
+    return `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
+  }
+
+  function markWorldVisualsDirty3D() {
+    worldVisualRevision3D++;
+  }
+
+  function rebuildResourceIndex3D() {
+    resourcesByChunk3D.clear();
+    for (const resource of state.resources) {
+      const key = chunkKeyFor3D(resource.x, resource.y);
+      let list = resourcesByChunk3D.get(key);
+      if (!list) resourcesByChunk3D.set(key, list = []);
+      list.push(resource);
+    }
+    resourceIndexDirty3D = false;
+  }
+
+  function resourcesNear3D(x, z) {
+    if (resourceIndexDirty3D) rebuildResourceIndex3D();
+    const cx = Math.floor(x / CHUNK_SIZE);
+    const cz = Math.floor(z / CHUNK_SIZE);
+    const nearby = [];
+    for (let dz = -1; dz <= 1; dz++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const list = resourcesByChunk3D.get(`${cx + dx},${cz + dz}`);
+        if (list) nearby.push(...list);
+      }
+    }
+    return nearby;
+  }
+
+  function ensureChunkGenerated(cx, cz) {
+    const key = `${cx},${cz}`;
+    if (state.generatedChunks.has(key)) return;
+    state.generatedChunks.add(key);
+    chunkGenerationChanged3D = true;
+    const random = chunkRandom(cx, cz);
+    const types = ["tree", "tree", "tree", "rock", "rock", "berries", "fiber"];
+    const count = 13 + Math.floor(random() * 8);
+    for (let i = 0; i < count; i++) {
+      const type = types[Math.floor(random() * types.length)];
+      const x = cx * CHUNK_SIZE + 34 + random() * (CHUNK_SIZE - 68);
+      const z = cz * CHUNK_SIZE + 34 + random() * (CHUNK_SIZE - 68);
+      const id = `chunk-${cx}-${cz}-${i}`;
+      // Keep a clear arrival area in the original starting chunk.
+      if (Math.hypot(x - 1200, z - 900) < 105) continue;
+      state.resources.push({ id, type, x, y: z, amount: type === "berries" ? 3 : 2, active: true });
+    }
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+  }
+
+  let chunkGenerationChanged3D = false;
+
+  function createChunkWorldGroup3D(cx, cz) {
+    if (resourceIndexDirty3D) rebuildResourceIndex3D();
+    const key = `${cx},${cz}`;
+    const group = new THREE.Group();
+    group.name = `world-chunk-${key}`;
+    const resources = resourcesByChunk3D.get(key) || [];
+    for (const resource of resources) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type === "tree") createTree3D(group, resource.x, resource.y);
+      else if (resource.type === "rock") createRock3D(group, resource.x, resource.y);
+      else if (resource.type === "berries") createBush3D(group, resource.x, resource.y, false);
+      else if (resource.type === "fiber") createBush3D(group, resource.x, resource.y, true);
+      else if (resource.type === "water") createPond3D(group, resource.x, resource.y, resource.radius || 100);
+    }
+    for (const camp of state.camps) {
+      if (Math.floor(camp.x / CHUNK_SIZE) === cx && Math.floor(camp.y / CHUNK_SIZE) === cz) createCampfire3D(group, camp);
+    }
+    for (const wall of state.walls) {
+      if (Math.floor(wall.x / CHUNK_SIZE) === cx && Math.floor(wall.y / CHUNK_SIZE) === cz) createWall3D(group, wall, false);
+    }
+    return group;
+  }
+
+  function syncVisibleChunkObjects3D(wanted) {
+    const refreshExisting = renderedWorldRevision3D !== worldVisualRevision3D;
+    for (const key of wanted) {
+      const [cx, cz] = key.split(",").map(Number);
+      const existing = visibleWorldGroups3D.get(key);
+      if (existing && !refreshExisting) continue;
+      if (existing) {
+        worldGroup3D.remove(existing);
+        visibleWorldGroups3D.delete(key);
+      }
+      const group = createChunkWorldGroup3D(cx, cz);
+      worldGroup3D.add(group);
+      visibleWorldGroups3D.set(key, group);
+    }
+    for (const [key, group] of visibleWorldGroups3D) {
+      if (!wanted.has(key)) {
+        worldGroup3D.remove(group);
+        visibleWorldGroups3D.delete(key);
+      }
+    }
+    if (refreshExisting) {
+      renderedWorldRevision3D = worldVisualRevision3D;
+      if (sunLight3D) sunLight3D.shadow.needsUpdate = true;
+    }
+  }
+
+  function updateStreamedChunks() {
+    if (!terrainGroup3D) return;
+    chunkGenerationChanged3D = false;
+    const centerX = Math.floor(state.x / CHUNK_SIZE);
+    const centerZ = Math.floor(state.y / CHUNK_SIZE);
+    const wanted = new Set();
+    for (let dz = -CHUNK_RENDER_RADIUS; dz <= CHUNK_RENDER_RADIUS; dz++) {
+      for (let dx = -CHUNK_RENDER_RADIUS; dx <= CHUNK_RENDER_RADIUS; dx++) {
+        const cx = centerX + dx, cz = centerZ + dz;
+        const key = `${cx},${cz}`;
+        wanted.add(key);
+        ensureChunkGenerated(cx, cz);
+        if (!terrainChunks3D.has(key)) {
+          const ground = new THREE.Mesh(
+            geometry3D("chunk-ground", () => new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE)),
+            mat3D("#86bb69", 1)
+          );
+          ground.rotation.x = -Math.PI / 2;
+          ground.position.set(cx * CHUNK_SIZE + CHUNK_SIZE / 2, -2, cz * CHUNK_SIZE + CHUNK_SIZE / 2);
+          ground.receiveShadow = true;
+          terrainGroup3D.add(ground);
+          terrainChunks3D.set(key, ground);
+        }
+      }
+    }
+    if (resourceIndexDirty3D) rebuildResourceIndex3D();
+    for (const [key, mesh] of terrainChunks3D) {
+      if (!wanted.has(key)) {
+        terrainGroup3D.remove(mesh);
+        terrainChunks3D.delete(key);
+      }
+    }
+    if (lastChunkCenter3D !== `${centerX},${centerZ}`) {
+      lastChunkCenter3D = `${centerX},${centerZ}`;
+      gridHelper3D.position.set(state.x, 0.25, state.y);
+    }
+    syncVisibleChunkObjects3D(wanted);
+    // Chunk discoveries are persisted by the normal save timer, not synchronously during movement.
+  }
+
+  function updateThreeActors() {
+    if (!actorGroup3D) return;
+    const desired = new Map();
+    for (const player of state.players.values()) {
+      desired.set(`remote:${player.name}`, {
+        x: player.x, z: player.y, color: player.color || "#9dc76e", name: player.name, self: false
+      });
+    }
+    desired.set(`self:${state.name}`, { x: state.x, z: state.y, color: "#8ab85d", name: state.name, self: true });
+
+    for (const [key, mesh] of actorMeshes3D) {
+      if (!desired.has(key)) {
+        actorGroup3D.remove(mesh);
+        actorMeshes3D.delete(key);
+      }
+    }
+    for (const [key, player] of desired) {
+      let mesh = actorMeshes3D.get(key);
+      if (!mesh) {
+        mesh = createPlayer3D(actorGroup3D, player.x, player.z, player.color, player.name, player.self);
+        actorMeshes3D.set(key, mesh);
+      }
+      mesh.position.x = player.x;
+      mesh.position.z = player.z;
+    }
+  }
+
+  function screenToWorld3D(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (state.mouseLocked || !Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+      pointerNDC3D.set(0, 0);
+    } else {
+      pointerNDC3D.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNDC3D.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    }
+    raycaster3D.setFromCamera(pointerNDC3D, camera3D);
+    const point = new THREE.Vector3();
+    if (raycaster3D.ray.intersectPlane(groundPlaneForRay3D, point)) {
+      return { x: point.x, y: point.z };
+    }
+    return { x: state.x, y: state.y };
+  }
+
+  function clearGroup3D(group) {
+    while (group.children.length) group.remove(group.children[0]);
+  }
+
+  function renderThreeWorld() {
+    if (!renderer3D) initThreeWorld();
+    updateStreamedChunks();
+
+    camera3D.position.set(state.x, 34, state.y);
+    camera3D.rotation.order = "YXZ";
+    camera3D.rotation.y = state.yaw + Math.PI;
+    camera3D.rotation.x = state.pitch;
+
+    // Move the shadow camera only occasionally. The expensive shadow map is refreshed
+    // when the player has moved a meaningful distance or the visible world changes.
+    if (sunLight3D && (!Number.isFinite(lastShadowCenter3D.x) || Math.hypot(state.x - lastShadowCenter3D.x, state.y - lastShadowCenter3D.z) > 120)) {
+      lastShadowCenter3D.x = state.x;
+      lastShadowCenter3D.z = state.y;
+      sunLight3D.position.set(state.x - 550, 1000, state.y - 650);
+      sunLight3D.target.position.set(state.x, 0, state.y);
+      sunLight3D.target.updateMatrixWorld();
+      sunLight3D.shadow.needsUpdate = true;
+    }
+
+    gridHelper3D.visible = state.gridVisible;
+    if (state.gridVisible) gridHelper3D.position.set(state.x, 0.25, state.y);
+
+    let ghostKey = "hidden";
+    if (state.selectedHotbar === 0 && state.crafted.hammer > 0 && state.crafted.walls > 0) {
+      const placement = getWallPlacement();
+      const valid = Math.hypot(placement.x - state.x, placement.y - state.y) <= 240 && !placementIsBlocked(placement);
+      ghostKey = `${placement.x}:${placement.y}:${placement.rotation}:${valid}`;
+      if (ghostKey !== lastGhostPreviewKey3D) {
+        clearGroup3D(ghostWall3D);
+        createWall3D(ghostWall3D, placement, true);
+        ghostWall3D.traverse(object => {
+          if (object.material && object.material.color) object.material.color.set(valid ? "#a5e28e" : "#d58a80");
+        });
+        lastGhostPreviewKey3D = ghostKey;
+      }
+    } else if (lastGhostPreviewKey3D !== ghostKey) {
+      clearGroup3D(ghostWall3D);
+      lastGhostPreviewKey3D = ghostKey;
+    }
+
+    updateThreeActors();
+    const selfMesh = actorMeshes3D.get(`self:${state.name}`);
+    if (selfMesh) selfMesh.visible = false;
+    renderer3D.render(scene3D, camera3D);
+  }
+
+  function seededRandom(seed) {
+    let value = seed >>> 0;
+    return () => { value = (value * 1664525 + 1013904223) >>> 0; return value / 4294967296; };
+  }
+
+  function generateWorld() {
+    const random = seededRandom(7142026);
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+    state.resources = [];
+    const add = (type, count, amount) => {
+      for (let i = 0; i < count; i++) {
+        const x = 90 + random() * (WORLD_WIDTH - 180);
+        const y = 90 + random() * (WORLD_HEIGHT - 180);
+        if (Math.hypot(x - 1200, y - 900) < 120) continue;
+        state.resources.push({ id: `${type}-${i}`, type, x, y, amount, active: true });
+      }
+    };
+    add("tree", 92, 2); add("rock", 72, 2); add("berries", 52, 3); add("fiber", 58, 2);
+    state.resources.push({ id: "pond-west", type: "water", x: 390, y: 520, amount: 0, active: true, radius: 100 });
+    state.resources.push({ id: "pond-east", type: "water", x: 1940, y: 1290, amount: 0, active: true, radius: 115 });
+  }
+
+  function showToast(message) {
+    const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
+    clearTimeout(state.toastTimer); state.toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
+  }
+
+  function addActivity(message) {
+    state.activity.unshift(message); state.activity = state.activity.slice(0, 5);
+    $("activity-feed").innerHTML = state.activity.map(item => `<p>${item}</p>`).join("");
+  }
+
+  function updateHud() {
+    for (const stat of ["health", "hunger", "thirst"]) {
+      const value = Math.max(0, Math.min(100, Math.round(state[stat])));
+      const valueElement = $(`${stat}-value`);
+      const meterElement = $(`${stat}-meter`);
+      if (!valueElement || !meterElement) {
+        throw new Error(`Missing HUD element for ${stat}. Check the matching IDs in index.html.`);
+      }
+      valueElement.textContent = value;
+      meterElement.style.width = `${value}%`;
+    }
+    for (const [item, count] of Object.entries(state.inventory)) {
+      // The HTML uses "berry-count" (singular), while the inventory key is "berries".
+      const elementId = item === "berries" ? "berry-count" : `${item}-count`;
+      const element = $(elementId);
+      if (element) element.textContent = count;
+    }
+    $("position-label").textContent = `X: ${Math.round(state.x)} · Y: ${Math.round(state.y)}`;
+    const hour = Math.floor(state.worldMinutes / 60) % 24;
+    const minute = Math.floor(state.worldMinutes % 60 / 10) * 10;
+    $("world-time").textContent = `${hour >= 6 && hour < 19 ? "Daylight" : "Night"} Day ${state.day} · ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      updateHotbar();
+  }
+  function getAccountSession() {
+    try {
+      const account = JSON.parse(sessionStorage.getItem(HBU_SESSION_KEY) || "null");
+      if (account && typeof account.username === "string" && typeof account.password === "string" && !account.offline) {
+        return { username: account.username, password: account.password };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function getAccountName() {
+    return getAccountSession()?.username || "";
+  }
+
+  function getHbuDeviceId() {
+    const key = "hbu-device-id-v1";
+    let value = "";
+    try { value = localStorage.getItem(key) || ""; } catch (_) {}
+    if (!/^[a-f0-9-]{36}$/i.test(value)) {
+      if (window.crypto?.randomUUID) {
+        value = window.crypto.randomUUID();
+      } else {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+        value = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+      try { localStorage.setItem(key, value); } catch (_) {}
+    }
+    return value;
+  }
+
+  function setConnectionStatus(kind, label) {
+    const element = $("connection-status");
+    element.className = `connection-pill ${kind}`;
+    element.innerHTML = `<i></i> ${escapeHtml(label)}`;
+  }
+
+  function buildMultiplayerPayload(account, initialize = false, leave = false) {
+    return {
+      p_username: account.username,
+      p_password: account.password,
+      p_initialize: initialize,
+      p_leave: leave,
+      p_x: state.x,
+      p_y: state.y,
+      p_yaw: state.yaw,
+      p_health: state.health,
+      p_hunger: state.hunger,
+      p_thirst: state.thirst,
+      p_inventory: state.inventory,
+      p_crafted: state.crafted,
+      p_removed: [...state.removed],
+      p_camps: state.camps,
+      p_walls: state.walls,
+      p_world_minutes: state.worldMinutes,
+      p_day: state.day
+    };
+  }
+
+  function applyServerPlayer(player) {
+    if (!player || typeof player !== "object") return;
+    state.x = Number.isFinite(Number(player.x)) ? Number(player.x) : state.x;
+    state.y = Number.isFinite(Number(player.y)) ? Number(player.y) : state.y;
+    state.yaw = Number.isFinite(Number(player.yaw)) ? Number(player.yaw) : state.yaw;
+    state.health = Number.isFinite(Number(player.health)) ? Math.max(0, Math.min(100, Number(player.health))) : state.health;
+    state.hunger = Number.isFinite(Number(player.hunger)) ? Math.max(0, Math.min(100, Number(player.hunger))) : state.hunger;
+    state.thirst = Number.isFinite(Number(player.thirst)) ? Math.max(0, Math.min(100, Number(player.thirst))) : state.thirst;
+    if (player.inventory && typeof player.inventory === "object") state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...player.inventory };
+    if (player.crafted && typeof player.crafted === "object") state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...player.crafted };
+  }
+
+  function applyServerWorld(world) {
+    if (!world || typeof world !== "object") return;
+    state.removed = new Set(Array.isArray(world.removed) ? world.removed : []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number.isFinite(Number(world.world_minutes)) ? Number(world.world_minutes) : state.worldMinutes;
+    state.day = Math.max(1, Number(world.day) || state.day);
+    for (const resource of state.resources) {
+      if (state.removed.has(resource.id)) resource.active = false;
+    }
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+  }
+
+  async function syncMultiplayer(initialize = false, leave = false, keepalive = false) {
+    const account = getAccountSession();
+    if (!account || state.multiplayerBusy) return null;
+    state.multiplayerBusy = true;
+    try {
+      const response = await fetch(`${HBU_GATEWAY_URL}/rest/v1/rpc/hbu_survival_sync`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: HBU_SUPABASE_ANON_KEY,
+          "X-HBU-Device-ID": getHbuDeviceId()
+        },
+        body: JSON.stringify(buildMultiplayerPayload(account, initialize, leave)),
+        cache: "no-store",
+        keepalive
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message = payload?.message || payload?.error || `Multiplayer request failed (${response.status}).`;
+        throw new Error(message);
+      }
+      if (!payload || typeof payload !== "object") throw new Error("The multiplayer server returned an invalid response.");
+      if (payload.self) applyServerPlayer(payload.self);
+      if (payload.world) applyServerWorld(payload.world);
+      if (Array.isArray(payload.players)) {
+        const active = new Map();
+        for (const player of payload.players) {
+          if (!player || typeof player.name !== "string" || player.name.toLowerCase() === state.name.toLowerCase()) continue;
+          active.set(player.name, {
+            name: player.name,
+            x: Number(player.x) || 0,
+            y: Number(player.y) || 0,
+            color: "#9dc76e"
+          });
+        }
+        state.players = active;
+      }
+      state.multiplayerReady = !leave;
+      if (initialize && !leave) state.multiplayerInitialized = true;
+      state.multiplayerLastError = "";
+      if (!leave) {
+        setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+        renderSurvivors();
+        updateHud();
+      }
+      return payload;
+    } catch (error) {
+      state.multiplayerLastError = error.message || "Connection problem";
+      state.multiplayerReady = false;
+      if (!leave) setConnectionStatus("offline", "Multiplayer reconnecting");
+      console.warn("HBU Survival multiplayer sync failed:", error);
+      return null;
+    } finally {
+      state.multiplayerBusy = false;
+    }
+  }
+
+
+  function serializeWorld() {
+    return {
+      resources: state.resources,
+      generatedChunks: [...state.generatedChunks],
+      removed: [...state.removed],
+      camps: state.camps,
+      walls: state.walls,
+      worldMinutes: state.worldMinutes,
+      day: state.day
+    };
+  }
+
+  function loadLocalWorld() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WORLD_STORAGE_KEY) || "null");
+      if (saved && Array.isArray(saved.resources) && saved.resources.length) {
+        state.resources = saved.resources;
+        resourceIndexDirty3D = true;
+        markWorldVisualsDirty3D();
+        state.generatedChunks = new Set(saved.generatedChunks || []);
+        state.removed = new Set(saved.removed || []);
+        state.camps = Array.isArray(saved.camps) ? saved.camps : [];
+        state.walls = Array.isArray(saved.walls) ? saved.walls.map(wall => snapWallToGrid(wall)) : [];
+        state.worldMinutes = Number(saved.worldMinutes) || 480;
+        state.day = Math.max(1, Number(saved.day) || 1);
+      } else {
+        generateWorld();
+        saveWorld();
+      }
+    } catch (error) {
+      console.warn("Could not load local world; creating a fresh one.", error);
+      generateWorld();
+      saveWorld();
+    }
+
+    try {
+      const savedPlayer = JSON.parse(localStorage.getItem(PLAYER_STORAGE_PREFIX + state.name) || "null");
+      if (savedPlayer) {
+        state.x = Number.isFinite(Number(savedPlayer.x)) ? Number(savedPlayer.x) : 1200;
+        state.y = Number.isFinite(Number(savedPlayer.y)) ? Number(savedPlayer.y) : 900;
+        state.yaw = Number.isFinite(Number(savedPlayer.yaw)) ? Number(savedPlayer.yaw) : 0;
+        state.health = Number.isFinite(Number(savedPlayer.health)) ? Number(savedPlayer.health) : 100;
+        state.hunger = Number.isFinite(Number(savedPlayer.hunger)) ? Number(savedPlayer.hunger) : 100;
+        state.thirst = Number.isFinite(Number(savedPlayer.thirst)) ? Number(savedPlayer.thirst) : 100;
+        state.inventory = { wood: 0, stone: 0, berries: 0, fiber: 0, ...(savedPlayer.inventory || {}) };
+        state.crafted = { axe: 0, pickaxe: 0, torch: 0, hammer: 0, walls: 0, ...(savedPlayer.crafted || {}) };
+      }
+    } catch (error) {
+      console.warn("Could not load local player save.", error);
+    }
+  }
+
+  function saveWorld() {
+    try {
+      localStorage.setItem(WORLD_STORAGE_KEY, JSON.stringify(serializeWorld()));
+      if (state.channel) state.channel.postMessage({ type: "world", world: serializeWorld() });
+    } catch (error) {
+      console.error("HBU Survival local world save failed:", error);
+      showToast("Could not save the world in this browser.");
+    }
+  }
+
+  function savePlayer() {
+    try {
+      localStorage.setItem(PLAYER_STORAGE_PREFIX + state.name, JSON.stringify({
+        x: state.x, y: state.y, yaw: state.yaw, health: state.health, hunger: state.hunger,
+        thirst: state.thirst, inventory: state.inventory, crafted: state.crafted
+      }));
+    } catch (error) {
+      console.error("HBU Survival local player save failed:", error);
+      showToast("Could not save your survivor in this browser.");
+    }
+  }
+
+  function saveEverything() {
+    saveWorld();
+    savePlayer();
+  }
+
+  function applyRemoteWorld(world) {
+    if (!world || !Array.isArray(world.resources)) return;
+    state.resources = world.resources;
+    resourceIndexDirty3D = true;
+    markWorldVisualsDirty3D();
+    state.removed = new Set(world.removed || []);
+    state.camps = Array.isArray(world.camps) ? world.camps : [];
+    state.walls = Array.isArray(world.walls) ? world.walls.map(wall => snapWallToGrid(wall)) : [];
+    state.worldMinutes = Number(world.worldMinutes) || 480;
+    state.day = Math.max(1, Number(world.day) || 1);
+  }
+
+  function scheduleMultiplayerSync(delay = MULTIPLAYER_SYNC_MS) {
+    if (state.multiplayerTimer) clearTimeout(state.multiplayerTimer);
+    state.multiplayerTimer = window.setTimeout(async () => {
+      if (!state.started || !getAccountSession()) return;
+      await syncMultiplayer(!state.multiplayerInitialized);
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+    }, delay);
+  }
+
+  async function connectWorld() {
+    loadLocalWorld();
+    if ("BroadcastChannel" in window) {
+      state.channel = new BroadcastChannel(WORLD_CHANNEL);
+      state.channel.onmessage = event => {
+        const message = event.data;
+        if (!message) return;
+        if (message.type === "world") applyRemoteWorld(message.world);
+        if (message.type === "collect" && message.payload?.id) {
+          state.removed.add(message.payload.id);
+          const resource = state.resources.find(item => item.id === message.payload.id);
+          if (resource) resource.active = false;
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "campfire" && message.payload && !state.camps.some(camp => camp.id === message.payload.id)) {
+          state.camps.push(message.payload);
+          markWorldVisualsDirty3D();
+        }
+        if (message.type === "wall" && message.payload && !state.walls.some(wall => wall.id === message.payload.id)) {
+          state.walls.push(message.payload);
+          markWorldVisualsDirty3D();
+          saveWorld();
+        }
+        if (message.type === "move" && message.player?.name !== state.name) {
+          state.players.set(message.player.name, message.player);
+          renderSurvivors();
+        }
+        if (message.type === "leave") {
+          state.players.delete(message.name);
+          renderSurvivors();
+        }
+      };
+      state.channel.postMessage({ type: "move", player: { name: state.name, x: state.x, y: state.y, color: "#b6d77d" } });
+    }
+
+    const account = getAccountSession();
+    if (account) {
+      const joined = await syncMultiplayer(true);
+      if (!joined) setConnectionStatus("offline", "Multiplayer reconnecting · Local save active");
+      scheduleMultiplayerSync(state.multiplayerInitialized ? MULTIPLAYER_SYNC_MS : 8000);
+      if (joined) setConnectionStatus("online", `Multiplayer · ${state.players.size + 1} online`);
+    } else {
+      setConnectionStatus("offline", "Local save · Sign in for multiplayer");
+    }
+  }
+
+  function renderSurvivors() {
+    const all = [{ name: state.name, self: true }, ...[...state.players.values()].map(player => ({ name: player.name, self: false }))];
+    $("online-count").textContent = all.length;
+    $("player-count").textContent = `${all.length} survivor${all.length === 1 ? "" : "s"}`;
+    $("survivor-list").innerHTML = all.map(player => `<div class="survivor"><i class="survivor-dot"></i><b>${escapeHtml(player.name)}</b><small>${player.self ? "YOU" : "ONLINE"}</small></div>`).join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+  }
+
+  function startGame() {
+    $("lobby").hidden = true; $("game").hidden = false;
+    $("hud-name").textContent = state.name; $("player-avatar").textContent = state.name.slice(0, 1).toUpperCase();
+    state.started = true;
+    state.lastTick = performance.now();
+    renderSurvivors();
+    updateHud();
+    // Paint immediately so the world is visible even before the first animation frame.
+    drawWorld();
+    requestAnimationFrame(loop);
+  }
+
+  async function enterWorld() {
+    const authenticatedName = getAccountName();
+    const typedName = $("player-name").value.trim();
+    state.name = (authenticatedName || typedName || "Survivor").slice(0, 18);
+    if (!state.name) { $("lobby-status").textContent = "Enter your HBU username first."; return; }
+    $("lobby-status").textContent = "Loading your world…";
+    $("hbu-survival-join").disabled = true;
+    try {
+      if (!window.WebGLRenderingContext) throw new Error("This browser does not support WebGL.");
+      await ensureThreeLoaded();
+      await connectWorld();
+      initThreeWorld();
+      startGame();
+      addActivity(`<b>${escapeHtml(state.name)}</b> entered the Greenwild.`);
+      showToast("Welcome back. Your survivor has been loaded.");
+      saveEverything();
+      state.saveTimer = window.setInterval(() => saveEverything(), 5000);
+    } catch (error) {
+      console.error("HBU Survival could not enter:", error);
+      $("lobby-status").textContent = `${error.message} The local world could not start. Try refreshing the page.`;
+      $("connection-status").className = "connection-pill offline";
+      $("connection-status").innerHTML = "<i></i> Not connected";
+      $("hbu-survival-join").disabled = false;
+    }
+  }
+
+  function nearestResource(maxDistance = 68, type = null) {
+    let nearest = null; let distance = maxDistance;
+    for (const resource of state.resources) {
+      if (!resource.active || state.removed.has(resource.id) || (type && resource.type !== type)) continue;
+      const current = Math.hypot(resource.x - state.x, resource.y - state.y);
+      if (current < distance) { nearest = resource; distance = current; }
+    }
+    return nearest;
+  }
+
+  function broadcast(event, payload) {
+    if (!state.channel) return;
+    state.channel.postMessage({ type: event, payload });
+  }
+
+  async function collectResource() {
+    const resource = nearestResource(72);
+    if (!resource) { showToast("Nothing nearby to gather."); return; }
+    if (resource.type === "water") { showToast("Press G to drink from the water."); return; }
+    resource.active = false; state.removed.add(resource.id); markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    state.inventory[item] += resource.amount;
+    updateHud();
+    const label = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[resource.type];
+    showToast(`Collected ${resource.amount} ${label}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${resource.amount} ${label}.`);
+    broadcast("collect", { id: resource.id, name: state.name });
+    saveEverything();
+  }
+
+  async function drinkWater() {
+    const pond = nearestResource(150, "water");
+    if (!pond) { showToast("Find a pond to drink water."); return; }
+    state.thirst = Math.min(100, state.thirst + 38); updateHud(); showToast("You drank fresh water."); savePlayer();
+  }
+
+  function eatBerries() {
+    if (state.inventory.berries < 1) { showToast("You don't have any berries."); return; }
+    state.inventory.berries--; state.hunger = Math.min(100, state.hunger + 24); updateHud(); showToast("You ate some berries."); savePlayer();
+  }
+
+  async function craftCampfire() {
+    if (state.inventory.wood < 5 || state.inventory.stone < 3) { showToast("You need 5 wood and 3 stone."); return; }
+    state.inventory.wood -= 5; state.inventory.stone -= 3;
+    const camp = { id: `camp-${state.name}-${Date.now()}`, x: state.x, y: state.y };
+    state.camps.push(camp); markWorldVisualsDirty3D(); updateHud(); showToast("Campfire crafted!");
+    $("craft-status").textContent = "Campfire placed in the shared world.";
+    addActivity(`<b>${escapeHtml(state.name)}</b> built a campfire.`);
+    broadcast("campfire", camp);
+    saveEverything();
+  }
+
+  function drawWorld() {
+    renderThreeWorld();
+  }
+
+  function drawPond(x, y, radius) {
+    const screenX = x - state.cameraX; const screenY = y - state.cameraY;
+    ctx.save();
+    ctx.shadowColor = "rgba(10,25,30,.35)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    ctx.beginPath(); ctx.ellipse(screenX, screenY, radius, radius * .68, -.2, 0, Math.PI * 2);
+    const water = ctx.createLinearGradient(screenX-radius, screenY-radius, screenX+radius, screenY+radius);
+    water.addColorStop(0, "#80c8c1"); water.addColorStop(.48, "#397f91"); water.addColorStop(1, "#24566a");
+    ctx.fillStyle = water; ctx.fill(); ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "#a4d8c7"; ctx.lineWidth = 5; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(screenX-18, screenY-12, radius*.48, radius*.18, -.2, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(205,241,220,.2)"; ctx.fill();
+    ctx.restore();
+  }
+
+
+  function drawResourceShadow(type, x, y) {
+    // A consistent upper-left sun casts long, shaped shadows toward the lower-right.
+    // These are silhouette polygons rather than blurred circles.
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = "rgba(37, 48, 35, 0.25)";
+    ctx.strokeStyle = "rgba(38, 48, 35, 0.10)";
+    ctx.lineWidth = 2;
+
+    if (type === "tree") {
+      ctx.beginPath();
+      ctx.moveTo(-13, 3);
+      ctx.lineTo(-2, 7);
+      ctx.lineTo(13, 14);
+      ctx.lineTo(29, 27);
+      ctx.lineTo(43, 43);
+      ctx.lineTo(29, 39);
+      ctx.lineTo(15, 31);
+      ctx.lineTo(2, 22);
+      ctx.lineTo(-12, 13);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-19, -11);
+      ctx.lineTo(-7, -27);
+      ctx.lineTo(5, -30);
+      ctx.lineTo(18, -22);
+      ctx.lineTo(22, -8);
+      ctx.lineTo(11, 4);
+      ctx.lineTo(-6, 8);
+      ctx.closePath();
+      ctx.fill();
+    } else if (type === "rock") {
+      ctx.beginPath();
+      ctx.moveTo(-13, 7);
+      ctx.lineTo(-5, 13);
+      ctx.lineTo(12, 18);
+      ctx.lineTo(27, 26);
+      ctx.lineTo(35, 34);
+      ctx.lineTo(13, 31);
+      ctx.lineTo(-8, 23);
+      ctx.lineTo(-22, 14);
+      ctx.closePath();
+      ctx.fill();
+    } else if (type === "berries" || type === "fiber") {
+      ctx.beginPath();
+      ctx.moveTo(-11, 8);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(13, 17);
+      ctx.lineTo(22, 24);
+      ctx.lineTo(7, 22);
+      ctx.lineTo(-8, 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawGroundLighting() {
+    // Bright outdoor bounce light and a soft directional sun wash.
+    const wash = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    wash.addColorStop(0, "rgba(255, 250, 218, 0.13)");
+    wash.addColorStop(0.42, "rgba(255, 255, 244, 0.025)");
+    wash.addColorStop(1, "rgba(74, 105, 57, 0.045)");
+    ctx.fillStyle = wash;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // A restrained top-left sun glow, broad and atmospheric rather than a circle effect.
+    const glow = ctx.createRadialGradient(
+      canvas.width * 0.12, canvas.height * 0.08, 10,
+      canvas.width * 0.12, canvas.height * 0.08, Math.max(canvas.width, canvas.height) * 0.85
+    );
+    glow.addColorStop(0, "rgba(255, 248, 205, 0.13)");
+    glow.addColorStop(0.55, "rgba(255, 248, 205, 0.035)");
+    glow.addColorStop(1, "rgba(255, 248, 205, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function drawResource(type, x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    if (type === "tree") {
+      ctx.fillStyle = "#674b32"; ctx.fillRect(-5, 4, 10, 25);
+      ctx.fillStyle = "#315b3d"; ctx.beginPath(); ctx.arc(0,-5,20,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#477b4b"; ctx.beginPath(); ctx.arc(-8,-13,13,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#6b9854"; ctx.beginPath(); ctx.arc(7,-17,8,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = "rgba(202,231,163,.24)"; ctx.beginPath(); ctx.arc(-7,-18,4,0,Math.PI*2); ctx.fill();
+    } else if (type === "rock") {
+      ctx.fillStyle = "#6e7d78"; ctx.beginPath(); ctx.moveTo(-17,8); ctx.lineTo(-13,-8); ctx.lineTo(-2,-16); ctx.lineTo(14,-11); ctx.lineTo(19,5); ctx.lineTo(8,15); ctx.lineTo(-10,14); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = "#aebbb1"; ctx.beginPath(); ctx.moveTo(-10,-7); ctx.lineTo(-2,-13); ctx.lineTo(5,-10); ctx.lineTo(-4,-2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(30,48,43,.45)"; ctx.lineWidth = 2; ctx.stroke();
+    } else if (type === "berries") {
+      ctx.fillStyle = "#315b3b"; ctx.beginPath(); ctx.arc(0,3,16,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#4d8050"; ctx.beginPath(); ctx.arc(-8,-5,10,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#b879b9";
+      for (const [bx,by] of [[-8,-4],[5,-8],[9,4],[-2,7]]) { ctx.beginPath(); ctx.arc(bx,by,3.5,0,Math.PI*2); ctx.fill(); }
+      ctx.fillStyle = "#e5b4e5"; ctx.beginPath(); ctx.arc(-9,-5,1.2,0,Math.PI*2); ctx.fill();
+    } else if (type === "fiber") {
+      ctx.shadowColor = "transparent"; ctx.strokeStyle = "#9dbb59"; ctx.lineWidth = 4; ctx.lineCap = "round";
+      for (const angle of [-1.15,-.55,0,.55,1.15]) {
+        ctx.beginPath(); ctx.moveTo(0,12); ctx.quadraticCurveTo(Math.sin(angle)*8,-2,Math.sin(angle)*15,-18); ctx.stroke();
+      }
+      ctx.fillStyle = "#d1dc83"; ctx.beginPath(); ctx.arc(0,10,3,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawCampfire(x,y) {
+    ctx.save(); ctx.translate(x,y);
+    ctx.fillStyle="#594633"; ctx.fillRect(-13,5,26,5); ctx.save(); ctx.rotate(-.35); ctx.fillRect(-14,0,28,5); ctx.restore();
+    const flame=ctx.createRadialGradient(0,-5,2,0,-4,19);
+    flame.addColorStop(0,"#fff2a2");flame.addColorStop(.45,"#f5a343");flame.addColorStop(1,"rgba(218,72,35,0)");
+    ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(0,-27);ctx.quadraticCurveTo(18,-9,8,1);ctx.quadraticCurveTo(0,9,-8,1);ctx.quadraticCurveTo(-17,-10,0,-27);ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlayer(x, y, name, color, self = false) {
+    const screenX = x - state.cameraX; const screenY = y - state.cameraY;
+    ctx.save();
+    ctx.fillStyle = "rgba(35, 43, 32, .27)";
+    ctx.beginPath();
+    ctx.moveTo(screenX - 8, screenY + 9);
+    ctx.lineTo(screenX + 7, screenY + 9);
+    ctx.lineTo(screenX + 20, screenY + 19);
+    ctx.lineTo(screenX + 5, screenY + 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = self ? "#c7e58a" : color; ctx.beginPath(); ctx.arc(screenX,screenY,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#e7c4a0"; ctx.beginPath(); ctx.arc(screenX,screenY-3,5.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#354d39"; ctx.fillRect(screenX-7,screenY+3,14,8);
+    ctx.strokeStyle = "#f5f7dc"; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = "#f5f4e8"; ctx.font = "600 11px Manrope"; ctx.textAlign = "center";
+    ctx.shadowColor = "#102017"; ctx.shadowBlur = 4; ctx.fillText(name.slice(0,18),screenX,screenY-19);
+    ctx.restore();
+  }
+
+  function drawGroundDetails() {
+    // Deterministic grass flecks make the terrain feel textured without random flicker.
+    const startX = Math.floor(state.cameraX / 31) * 31;
+    const startY = Math.floor(state.cameraY / 29) * 29;
+    for (let wx=startX; wx<state.cameraX+canvas.width+31; wx+=31) {
+      for (let wy=startY; wy<state.cameraY+canvas.height+29; wy+=29) {
+        const seed = ((wx*73856093) ^ (wy*19349663)) >>> 0;
+        if (seed % 5 === 0) {
+          const sx=wx-state.cameraX+(seed%17), sy=wy-state.cameraY+((seed>>>5)%15);
+          ctx.strokeStyle = seed%2 ? "rgba(221,244,190,.34)" : "rgba(34,91,42,.24)";
+          ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(sx,sy+3); ctx.lineTo(sx+2,sy-2); ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function updatePlayer(delta = 1 / 60) {
+    let forward = 0;
+    let strafe = 0;
+    if (state.keys.has("w") || state.keys.has("arrowup")) forward += 1;
+    if (state.keys.has("s") || state.keys.has("arrowdown")) forward -= 1;
+    if (state.keys.has("a") || state.keys.has("arrowleft")) strafe += 1;
+    if (state.keys.has("d") || state.keys.has("arrowright")) strafe -= 1;
+    if (!forward && !strafe) return;
+    const length = Math.hypot(forward, strafe);
+    forward /= length;
+    strafe /= length;
+    const speed = 190 * Math.min(delta, 0.05);
+    const sin = Math.sin(state.yaw), cos = Math.cos(state.yaw);
+    // Camera forward is (sin(yaw), cos(yaw)); screen-right is (cos(yaw), -sin(yaw)).
+    // A and D are mapped to the corrected lateral directions.
+    const moveX = (sin * forward + cos * strafe) * speed;
+    const moveY = (cos * forward - sin * strafe) * speed;
+    const nextX = state.x + moveX;
+    const nextY = state.y + moveY;
+    // Infinite world: no outer boundary. Existing resource and wall collision still applies.
+    if (!isBlocked(nextX, state.y, 11)) state.x = nextX;
+    if (!isBlocked(state.x, nextY, 11)) state.y = nextY;
+  }
+
+  function loop(now) {
+    if (!state.started) return;
+    try {
+      const delta = Math.min(0.1, (now - state.lastTick) / 1000 || 0);
+      state.lastTick = now;
+      updatePlayer(delta);
+      state.hunger = Math.max(0, state.hunger - delta * .12);
+      state.thirst = Math.max(0, state.thirst - delta * .2);
+      if (state.hunger <= 0 || state.thirst <= 0) state.health = Math.max(0, state.health - delta * 1.5);
+      state.worldMinutes += delta * 2.5;
+      if (state.worldMinutes >= 1440) { state.worldMinutes = 0; state.day++; }
+      if (now - state.lastMoveSent > 130) {
+        state.lastMoveSent = now;
+        if (state.channel) {
+          broadcast("move", { name: state.name, x: state.x, y: state.y, color: "#b6d77d" });
+        }
+      }
+      drawWorld();
+      if (now - state.lastHudUpdate >= 250) {
+        state.lastHudUpdate = now;
+        updateHud();
+      }
+    } catch (error) {
+      console.error("HBU Survival rendering error:", error);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  const MATERIALS = {
+    wood: { label: "Wood", color: "#a8794f" },
+    stone: { label: "Stone", color: "#899b96" },
+    berries: { label: "Berries", color: "#b77bb7" },
+    fiber: { label: "Fiber", color: "#a8c96a" }
+  };
+  const RECIPES = [
+    { id:"campfire", name:"Campfire", needs:{wood:4,stone:5}, pattern:["WWW","SWS","SSS"], description:"A warm place to rest." },
+    { id:"hammer", name:"Wooden hammer", needs:{wood:2,stone:1,fiber:1}, pattern:[".S.","FW.","W.."], description:"Required to build wooden structures." },
+    { id:"axe", name:"Stone axe", needs:{wood:1,stone:4,fiber:1}, pattern:[".S.","SWS","FW."], description:"A basic gathering tool." },
+    { id:"pickaxe", name:"Wooden pickaxe", needs:{wood:4,fiber:1}, pattern:["WWW",".W.",".F."], description:"Required to mine rocks." },
+    { id:"torch", name:"Wooden torch", needs:{wood:2,fiber:1}, pattern:[".W.",".F.",".W."], description:"A portable light." },
+    { id:"wall", name:"Wooden wall", needs:{wood:2}, pattern:[".W.",".W.","..."], requires:"hammer", description:"A wall section. Requires a wooden hammer." }
+  ];
+
+  function openCrafting() {
+    if (!state.started || !$("crafting-modal").hidden) return;
+    state.relockAfterCrafting = document.pointerLockElement === canvas;
+    if (state.relockAfterCrafting && document.exitPointerLock) document.exitPointerLock();
+    state.keys.clear();
+    $("crafting-modal").hidden = false;
+    renderCrafting();
+  }
+  function closeCrafting() {
+    state.craftSlots.forEach(key=>{if(key)state.inventory[key]++;});
+    state.craftSlots.fill(null);
+    updateHud();
+    $("crafting-modal").hidden = true;
+    if (state.relockAfterCrafting && state.started && canvas.requestPointerLock) {
+      // This runs directly from the close button / Escape key gesture so the browser can relock.
+      try {
+        const lockRequest = canvas.requestPointerLock();
+        if (lockRequest && typeof lockRequest.catch === "function") lockRequest.catch(error => console.warn("Could not restore pointer lock:", error));
+      } catch (error) { console.warn("Could not restore pointer lock:", error); }
+    }
+    state.relockAfterCrafting = false;
+  }
+  function renderCrafting() {
+    const tray=$("craft-material-list");
+    tray.innerHTML=Object.entries(MATERIALS).map(([key,meta]) => {
+      const count=state.inventory[key]||0;
+      return `<button class="material-chip" type="button" draggable="${count>0}" data-material="${key}" ${count<1?"disabled":""}><i style="--material:${meta.color}"></i><span>${meta.label}</span><b>${count}</b></button>`;
+    }).join("");
+    tray.querySelectorAll("[data-material]").forEach(chip=>{
+      chip.addEventListener("dragstart",event=>{
+        if ((state.inventory[chip.dataset.material]||0)<1) { event.preventDefault(); return; }
+        event.dataTransfer.setData("text/plain",chip.dataset.material);
+      });
+      chip.addEventListener("click",()=>{
+        const key=chip.dataset.material;
+        const index=state.craftSlots.findIndex(value=>value===null);
+        if (index<0) { showToast("The crafting grid is full."); return; }
+        if ((state.inventory[key]||0)<1) { showToast(`You need more ${MATERIALS[key].label.toLowerCase()}.`); return; }
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+    });
+    document.querySelectorAll(".craft-slot").forEach(slot=>{
+      const key=state.craftSlots[Number(slot.dataset.slot)];
+      slot.innerHTML=key?`<i class="slot-material" style="--material:${MATERIALS[key].color}"></i><small>${MATERIALS[key].label}</small>`:"<span>+</span>";
+      slot.classList.toggle("filled",!!key);
+    });
+    const recipe=findRecipe();
+    $("craft-result").textContent=recipe?`Ready to craft: ${recipe.name}`:"Match the exact pattern shown in the recipe book.";
+    $("craft-create").disabled=!recipe;
+    $("crafted-tools").innerHTML=`<b>Tools & building</b><span>Hammer: ${state.crafted.hammer||0}</span><span>Walls: ${state.crafted.walls||0}</span><span>Axes: ${state.crafted.axe||0}</span><span>Pickaxes: ${state.crafted.pickaxe||0}</span><span>Torches: ${state.crafted.torch||0}</span>`;
+    renderRecipeBook();
+  }
+  function findRecipe() {
+    const pattern=state.craftSlots.map(key=>key?({wood:"W",stone:"S",fiber:"F",berries:"B"}[key]):".");
+    return RECIPES.find(recipe => {
+      if (recipe.requires && !(state.crafted[recipe.requires] > 0)) return false;
+      return pattern.join("")===recipe.pattern.join("");
+    }) || null;
+  }
+
+  function recipePatternMarkup(recipe) {
+    return `<div class="recipe-pattern" aria-label="Recipe pattern">${recipe.pattern.join("").split("").map(code=>`<i class="pattern-cell ${code==="."?"empty":code.toLowerCase()}">${code==="."?"":code}</i>`).join("")}</div>`;
+  }
+
+  function renderRecipeBook() {
+    $("recipe-book-list").innerHTML=RECIPES.map(recipe=>{
+      const locked=recipe.requires && !(state.crafted[recipe.requires]>0);
+      const ingredients=Object.entries(recipe.needs).map(([key,count])=>`${count} ${MATERIALS[key].label}`).join(" + ");
+      return `<article class="book-recipe ${locked?"locked":""}"><div class="book-recipe-top"><b>${recipe.name}</b><span>${locked?"LOCKED":recipe.id==="wall"?"BUILDING":"RECIPE"}</span></div>${recipePatternMarkup(recipe)}<p>${recipe.description}</p><small>${ingredients}${recipe.requires?` · Requires ${RECIPES.find(r=>r.id===recipe.requires).name}`:""}</small></article>`;
+    }).join("");
+  }
+
+  function craftFromGrid() {
+    const recipe=findRecipe(); if(!recipe)return;
+    if(recipe.id==="campfire") {
+      const camp={id:`camp-${state.name}-${Date.now()}`,x:state.x,y:state.y};
+      state.camps.push(camp); markWorldVisualsDirty3D(); broadcast("campfire",camp);
+      $("craft-status").textContent="Campfire placed in the world.";
+      addActivity(`<b>${escapeHtml(state.name)}</b> crafted a campfire.`);
+    } else if(recipe.id==="wall") {
+      state.crafted.walls=(state.crafted.walls||0)+1;
+      showToast("Wall added to building inventory. Press B to place it.");
+    } else {
+      state.crafted[recipe.id]=(state.crafted[recipe.id]||0)+1;
+      showToast(`Crafted ${recipe.name}!`);
+    }
+    state.craftSlots.fill(null); updateHud(); saveEverything(); renderCrafting();
+  }
+
+  const BUILD_GRID = 48;
+
+  function drawWall(x,y,rotation=0,ghost=false) {
+    if (!ghost) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.fillStyle = "rgba(35, 43, 32, 0.30)";
+      ctx.beginPath();
+      ctx.moveTo(-24, 8);
+      ctx.lineTo(24, 8);
+      ctx.lineTo(43, 22);
+      ctx.lineTo(-5, 22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.save();ctx.translate(x,y);ctx.rotate(rotation);
+    ctx.globalAlpha=ghost?0.48:1;
+    ctx.shadowColor=ghost?"transparent":"rgba(30,22,12,.25)";
+    ctx.shadowBlur=ghost?0:7;ctx.shadowOffsetY=ghost?0:4;
+    ctx.fillStyle=ghost?"#8ecb75":"#805b39";ctx.fillRect(-24,-8,48,16);
+    ctx.shadowColor="transparent";
+    ctx.fillStyle=ghost?"#c4edaa":"#b48755";ctx.fillRect(-22,-6,44,4);
+    ctx.strokeStyle=ghost?"#397b43":"#5e4028";ctx.lineWidth=2;ctx.strokeRect(-24,-8,48,16);
+    ctx.beginPath();ctx.moveTo(-12,-7);ctx.lineTo(-12,7);ctx.moveTo(5,-7);ctx.lineTo(5,7);ctx.stroke();
+    ctx.restore();
+  }
+
+  function snapWallToGrid(wall) {
+    const rotation = Number(wall.rotation) || 0;
+    const vertical = Math.abs(Math.sin(rotation)) > 0.5;
+    const x = Number(wall.x) || 0;
+    const y = Number(wall.y) || 0;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      ...wall,
+      x: vertical ? nearestLine(x) : nearestCellCenter(x),
+      y: vertical ? nearestCellCenter(y) : nearestLine(y),
+      rotation
+    };
+  }
+
+  function getWallPlacement() {
+    const fallbackX=state.x+72;
+    const fallbackY=state.y;
+    const worldX=state.pointerOnCanvas?state.pointerCanvasX:fallbackX;
+    const worldY=state.pointerOnCanvas?state.pointerCanvasY:fallbackY;
+    const vertical = Math.abs(Math.sin(state.wallRotation)) > 0.5;
+    const nearestLine = value => Math.round(value / BUILD_GRID) * BUILD_GRID;
+    const nearestCellCenter = value => Math.round((value - BUILD_GRID / 2) / BUILD_GRID) * BUILD_GRID + BUILD_GRID / 2;
+    return {
+      x: vertical ? nearestLine(worldX) : nearestCellCenter(worldX),
+      y: vertical ? nearestCellCenter(worldY) : nearestLine(worldY),
+      rotation: state.wallRotation
+    };
+  }
+
+  function wallIntersectsCircle(wall, x, y, radius) {
+    const angle = -(wall.rotation || 0);
+    const dx = x - wall.x;
+    const dy = y - wall.y;
+    const localX = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const localY = dx * Math.sin(angle) + dy * Math.cos(angle);
+    const halfLength = BUILD_GRID / 2;
+    const halfThickness = 9;
+    const closestX = Math.max(-halfLength, Math.min(halfLength, localX));
+    const closestY = Math.max(-halfThickness, Math.min(halfThickness, localY));
+    return Math.hypot(localX - closestX, localY - closestY) < radius;
+  }
+
+  function isBlocked(x, y, radius = 11) {
+    for (const resource of resourcesNear3D(x, y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type === "tree" && Math.hypot(x-resource.x, y-resource.y) < radius + 21) return true;
+      if (resource.type === "rock" && Math.hypot(x-resource.x, y-resource.y) < radius + 17) return true;
+    }
+    for (const wall of state.walls) {
+      if (wallIntersectsCircle(wall, x, y, radius)) return true;
+    }
+    return false;
+  }
+
+  function placementIsBlocked(candidate) {
+    // Keep walls in a clear grid cell and prevent them from overlapping solid objects.
+    for (const resource of resourcesNear3D(candidate.x, candidate.y)) {
+      if (!resource.active || state.removed.has(resource.id)) continue;
+      if (resource.type !== "tree" && resource.type !== "rock") continue;
+      if (wallIntersectsCircle(candidate, resource.x, resource.y, resource.type === "tree" ? 25 : 21)) return true;
+    }
+    return state.walls.some(wall => {
+      const sameCell = Math.abs(wall.x-candidate.x) < 1 && Math.abs(wall.y-candidate.y) < 1;
+      return sameCell || wallIntersectsCircle(candidate, wall.x, wall.y, 10);
+    });
+  }
+
+  function placeWall() {
+    if (state.selectedHotbar!==0 || !(state.crafted.hammer>0)) {
+      showToast("Equip your hammer in hotbar slot 1 to build.");return;
+    }
+    if (!(state.crafted.walls>0)) { showToast("Craft a wooden wall first.");return; }
+    const {x,y,rotation}=getWallPlacement();
+    if(Math.hypot(x-state.x,y-state.y)>240){showToast("That spot is too far away.");return;}
+    if(placementIsBlocked({x,y,rotation})){showToast("That grid cell is blocked. Choose a clear cell.");return;}
+    const wall=snapWallToGrid({id:`wall-${Date.now()}-${Math.floor(Math.random()*9999)}`,x,y,rotation});
+    state.walls.push(wall);markWorldVisualsDirty3D();state.crafted.walls--;saveWorld();savePlayer();drawWorld();updateHud();
+    broadcast("wall",wall);showToast("Wall placed on the grid!");
+  }
+
+  function rotateWall() {
+    state.wallRotation=(state.wallRotation+Math.PI/2)%(Math.PI*2);
+    updateHotbar();drawWorld();
+  }
+
+  function updateHotbar() {
+    const slots=$("hotbar");if(!slots)return;
+    const entries=[
+      state.crafted.hammer>0?{name:"Hammer",count:state.crafted.hammer,icon:"hammer",hint:"Build walls"}:null,
+      state.crafted.axe>0?{name:"Axe",count:state.crafted.axe,icon:"axe",hint:"Gather resources"}:null,
+      state.crafted.walls>0?{name:"Wall",count:state.crafted.walls,icon:"wall",hint:"Wall pieces"}:null,
+      state.crafted.pickaxe>0?{name:"Pickaxe",count:state.crafted.pickaxe,icon:"pickaxe",hint:"Mine rocks"}:null
+    ];
+    slots.innerHTML=Array.from({length:9},(_,index)=>{
+      const item=entries[index];
+      const disabledAttribute = item ? "" : 'aria-disabled="true"';
+      return `<button type="button" class="hotbar-slot ${state.selectedHotbar===index && item?"selected":""}" data-hotbar="${index}" ${disabledAttribute} title="${item?`${item.name} · ${item.hint}`:"Empty slot"}"><kbd>${index+1}</kbd>${item?`<span class="tool-drawing tool-${item.icon}" aria-hidden="true"></span><small>${item.name}</small><b>${item.count}</b>`:""}</button>`;
+    }).join("");
+    slots.querySelectorAll("[data-hotbar]").forEach(button=>button.addEventListener("click",()=>selectHotbar(Number(button.dataset.hotbar))));
+    $("rotate-wall").textContent=`Rotate wall · ${state.wallRotation===0?"0°":"90°"}`;
+    $("grid-toggle").classList.toggle("active",state.gridVisible);
+  }
+
+  function selectHotbar(index) {
+    const item=index===0?state.crafted.hammer:index===1?state.crafted.axe:index===2?state.crafted.walls:index===3?state.crafted.pickaxe:0;
+    if(!item){showToast("That hotbar slot is empty. Craft the item first.");return;}
+    state.selectedHotbar=index;updateHotbar();drawWorld();
+    showToast(index===0?"Hammer equipped. Click the world to place a wall.":index===1?"Axe equipped. Click a resource to gather.":index===2?"Wall pieces selected.":"Pickaxe ready. Look at a rock and click to mine it.");
+  }
+
+  function toggleGrid() {
+    state.gridVisible=!state.gridVisible;updateHotbar();drawWorld();
+    showToast(state.gridVisible?"Building grid enabled.":"Building grid hidden.");
+  }
+
+  function setupCrafting() {
+    $("craft-grid").querySelectorAll(".craft-slot").forEach(slot=>{
+      slot.addEventListener("dragover",event=>event.preventDefault());
+      slot.addEventListener("drop",event=>{
+        event.preventDefault();
+        const key=event.dataTransfer.getData("text/plain");
+        if(!MATERIALS[key] || state.inventory[key]<1)return;
+        const index=Number(slot.dataset.slot);
+        if(state.craftSlots[index])return;
+        state.inventory[key]--; state.craftSlots[index]=key; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("click",()=>{
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(!key)return;
+        state.inventory[key]++; state.craftSlots[index]=null; updateHud(); renderCrafting();
+      });
+      slot.addEventListener("contextmenu",event=>{
+        event.preventDefault();
+        const index=Number(slot.dataset.slot),key=state.craftSlots[index];
+        if(key){state.inventory[key]++;state.craftSlots[index]=null;updateHud();renderCrafting();}
+      });
+    });
+    $("craft-create").addEventListener("click",craftFromGrid);
+    $("close-crafting").addEventListener("click",closeCrafting);
+    $("crafting-modal").addEventListener("click",event=>{if(event.target===$("crafting-modal"))closeCrafting();});
+  }
+
+  function gatherAtPointer(event) {
+    if(state.selectedHotbar===0 && state.crafted.hammer>0) {
+      showToast("Your hammer is equipped. Select another slot to gather.");
+      return;
+    }
+    const worldPoint = screenToWorld3D(event.clientX, event.clientY);
+    const worldX = worldPoint.x;
+    const worldY = worldPoint.y;
+    let nearest=null,best=48;
+    for(const resource of resourcesNear3D(worldX, worldY)){
+      if(!resource.active||state.removed.has(resource.id)||resource.type==="water")continue;
+      const d=Math.hypot(resource.x-worldX,resource.y-worldY);
+      if(d<best){best=d;nearest=resource;}
+    }
+    if(!nearest){showToast("Click a nearby tree, rock, bush, or plant to gather.");return;}
+    if(nearest.type==="rock" && !(state.crafted.pickaxe>0)){showToast("You need to craft a pickaxe before mining rocks.");return;}
+    if(Math.hypot(nearest.x-state.x,nearest.y-state.y)>110){showToast("Move closer before gathering.");return;}
+    nearest.active=false;state.removed.add(nearest.id);markWorldVisualsDirty3D();
+    const item={tree:"wood",rock:"stone",berries:"berries",fiber:"fiber"}[nearest.type];
+    state.inventory[item]+=nearest.amount;updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect",{id:nearest.id,name:state.name});saveEverything();
+  }
+
+  function gatherInFrontOfPlayer() {
+    // In first-person mode the cursor is locked, so gather the resource under the center crosshair.
+    // The camera looks along (sin(yaw), cos(yaw)) in world X/Z coordinates.
+    if (state.selectedHotbar === 0 && state.crafted.hammer > 0) {
+      const targetX = state.x + Math.sin(state.yaw) * 90;
+      const targetY = state.y + Math.cos(state.yaw) * 90;
+      state.pointerCanvasX = targetX;
+      state.pointerCanvasY = targetY;
+      placeWall();
+      return;
+    }
+    const dirX = Math.sin(state.yaw);
+    const dirY = Math.cos(state.yaw);
+    let nearest = null;
+    let nearestDistance = 115;
+    for (const resource of resourcesNear3D(state.x, state.y)) {
+      if (!resource.active || state.removed.has(resource.id) || resource.type === "water") continue;
+      const dx = resource.x - state.x;
+      const dy = resource.y - state.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 8 || distance > 115) continue;
+      const dot = (dx * dirX + dy * dirY) / distance;
+      // Only gather what the player is actually looking toward, not objects behind them.
+      if (dot < 0.88) continue;
+      if (distance < nearestDistance) {
+        nearest = resource;
+        nearestDistance = distance;
+      }
+    }
+    if (!nearest) {
+      showToast("Look at a nearby tree, rock, bush, or plant and click to gather.");
+      return;
+    }
+    if (nearest.type === "rock" && !(state.crafted.pickaxe > 0)) {
+      showToast("You need to craft a pickaxe before mining rocks.");
+      return;
+    }
+    nearest.active = false;
+    state.removed.add(nearest.id);
+    markWorldVisualsDirty3D();
+    const item = { tree: "wood", rock: "stone", berries: "berries", fiber: "fiber" }[nearest.type];
+    state.inventory[item] += nearest.amount;
+    updateHud();
+    showToast(`Collected ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    addActivity(`<b>${escapeHtml(state.name)}</b> gathered ${nearest.amount} ${MATERIALS[item].label.toLowerCase()}.`);
+    broadcast("collect", { id: nearest.id, name: state.name });
+    saveEverything();
+  }
+
+  function bindControls() {
+    window.addEventListener("keydown", event => {
+      const key = event.key.toLowerCase();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
+      if (!$("crafting-modal").hidden && key !== "escape") return;
+      state.keys.add(key);
+      if (key === "b" && !event.repeat && state.started) placeWall();
+      if (key === "f6" && !event.repeat && state.started) { event.preventDefault(); toggleGrid(); }
+      if (key === "r" && !event.repeat && state.started) rotateWall();
+      if (/^[1-9]$/.test(key) && !event.repeat && state.started) selectHotbar(Number(key)-1);
+      if (key === "e" && !event.repeat && state.started) openCrafting();
+      if (key === "escape" && !event.repeat && !$("crafting-modal").hidden) closeCrafting();
+      if (key === "f" && !event.repeat && state.started) eatBerries();
+      if (key === "g" && !event.repeat && state.started) drinkWater();
+    });
+    window.addEventListener("keyup", event => state.keys.delete(event.key.toLowerCase()));
+    window.addEventListener("blur", () => state.keys.clear());
+    $("hbu-survival-join").addEventListener("click", enterWorld);
+    // True first-person mouse look: clicking captures the pointer, and movementX/Y
+    // rotate the camera without dragging the cursor around the page.
+    canvas.tabIndex = 0;
+    state.pointerWasLockedOnDown = false;
+    canvas.addEventListener("pointerdown", event => {
+      if (!state.started || event.button !== 0) return;
+      state.pointerWasLockedOnDown = state.mouseLocked;
+      if (!state.mouseLocked && canvas.requestPointerLock) {
+        try {
+          const request = canvas.requestPointerLock();
+          if (request && typeof request.catch === "function") request.catch(error => {
+            console.warn("Pointer lock request failed:", error);
+            showToast("Mouse capture was blocked by the browser. Try opening the HTML directly in Chrome.");
+          });
+        } catch (error) {
+          console.warn("Pointer lock request failed:", error);
+          showToast("Mouse capture was blocked by the browser.");
+        }
+      }
+    });
+    canvas.addEventListener("click", event => {
+      if (!state.started) return;
+      if (state.mouseLocked) {
+        gatherInFrontOfPlayer();
+        return;
+      }
+      // The first click is only for capturing the mouse; it never gathers accidentally.
+      if (document.pointerLockElement !== canvas && canvas.requestPointerLock) return;
+      if (state.selectedHotbar === 0 && state.crafted.hammer > 0) placeWall();
+      else gatherAtPointer(event);
+    });
+    document.addEventListener("pointerlockchange", () => {
+      state.mouseLocked = document.pointerLockElement === canvas;
+      if (!state.mouseLocked) state.keys.clear();
+      const hint = document.querySelector(".canvas-hint");
+      if (hint) hint.innerHTML = state.mouseLocked
+        ? '<kbd>WASD</kbd> Move <span>·</span> Mouse Look <span>·</span> <kbd>Esc</kbd> Unlock <span>·</span> <kbd>Click</kbd> Gather'
+        : '<kbd>Click game</kbd> Capture mouse <span>·</span> <kbd>WASD</kbd> Move <span>·</span> <kbd>E</kbd> Craft';
+    });
+    document.addEventListener("pointerlockerror", () => {
+      state.mouseLocked = false;
+      showToast("Could not capture mouse. Check browser permissions and try clicking the game again.");
+    });
+    document.addEventListener("mousemove", event => {
+      if (!state.started || !state.mouseLocked) return;
+      // Moving the mouse left turns the view left; moving it right turns right.
+      state.yaw -= event.movementX * 0.0024;
+      state.pitch -= event.movementY * 0.0020;
+      state.pitch = Math.max(-1.35, Math.min(1.35, state.pitch));
+    });
+    canvas.addEventListener("pointermove", event => {
+      if (state.mouseLocked) return;
+      const point = screenToWorld3D(event.clientX, event.clientY);
+      state.pointerCanvasX = point.x;
+      state.pointerCanvasY = point.y;
+      state.pointerOnCanvas = true;
+      if (state.selectedHotbar === 0) drawWorld();
+    });
+    canvas.addEventListener("mouseleave",()=>{state.pointerOnCanvas=false;});
+    $("rotate-wall").addEventListener("click",rotateWall);
+    $("grid-toggle").addEventListener("click",toggleGrid);
+    setupCrafting();
+    $("craft-campfire").addEventListener("click", openCrafting);
+    async function leaveWorld(statusMessage = "You left your world. Press Play to return.") {
+      if (!state.started) return;
+      state.started = false;
+      if (document.pointerLockElement === canvas && document.exitPointerLock) document.exitPointerLock();
+      if (state.saveTimer) { clearInterval(state.saveTimer); state.saveTimer = 0; }
+      if (state.multiplayerTimer) { clearTimeout(state.multiplayerTimer); state.multiplayerTimer = 0; }
+      saveEverything();
+      if (getAccountSession()) void syncMultiplayer(false, true, true);
+      if (state.channel) {
+        state.channel.postMessage({ type: "leave", name: state.name });
+        state.channel.close();
+        state.channel = null;
+      }
+      state.multiplayerReady = false;
+      $("game").hidden = true;
+      $("lobby").hidden = false;
+      $("connection-status").className = "connection-pill offline";
+      $("connection-status").innerHTML = "<i></i> Not connected";
+      $("lobby-status").textContent = statusMessage;
+      $("hbu-survival-join").disabled = false;
+    }
+
+    $("leave-world").addEventListener("click", () => void leaveWorld());
+
+    // The HbuOS app window sends this when the user closes HBU Survival.
+    // The iframe is kept loaded so reopening the app returns to its lobby.
+    window.addEventListener("message", event => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      if (event.data?.type === "hbu-survival-app-hidden") {
+        void leaveWorld("HBU Survival is paused. Press Play to return.");
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      saveEverything();
+      if (getAccountSession() && state.started) syncMultiplayer(false, true, true);
+      if (state.multiplayerTimer) clearTimeout(state.multiplayerTimer);
+      if (state.channel) state.channel.close();
+    });
+  }
+
+  function boot() {
+    const accountName = getAccountName();
+    if (accountName) { $("player-name").value = accountName; $("player-name").readOnly = true; }
+    bindControls(); generateWorld();
+    $("lobby-status").textContent = accountName
+      ? "HBU2 account detected. Press Play to join the shared world."
+      : "Local survival is available. Sign in to HBU2 to join multiplayer.";
+  }
+
+  boot();
+})();
+
+</script>
+</body>
+</html>
