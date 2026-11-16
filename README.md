@@ -1,4 +1,4 @@
-# Note: This website will ALWAYS continue even though some dumb ah hackers who know don't what they are doing tried to hack us XD! Please use https://skiingbeast2025.github.io/lunamix/ 
+# Note: This website will ALWAYS continue even though some dumb ah hackers who know don't what they are doing tried to hack us XD!
 
 # HBU2
 
