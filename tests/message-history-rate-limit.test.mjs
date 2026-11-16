@@ -8,13 +8,17 @@ const gateway = await readFile(
 );
 
 test("chat history reads bypass gateway usage buckets", () => {
-  assert.match(gateway, /request\.method === "GET" && url\.pathname === "\/rest\/v1\/messages"/);
-  assert.match(gateway, /request\.method === "POST"[\s\S]*?hbu_\(?:inbox\|dm_partners\|get_dms\)/);
-  assert.match(gateway, /if \(!isMessageHistoryRead\) \{[\s\S]*?checkLimit\(/);
+  assert.ok(gateway.includes('request.method === "GET" && url.pathname === "/rest/v1/messages"'));
+  assert.ok(gateway.includes('request.method === "POST" &&'));
+  assert.ok(gateway.includes('/^\\/rest\\/v1\\/rpc\\/hbu_(?:inbox|dm_partners|get_dms)$/'));
+  assert.ok(gateway.includes("const isMessageHistoryRead ="));
 });
 
 test("message creation and other writes remain rate-limited", () => {
-  assert.match(gateway, /if \(!isMessageHistoryRead\) \{[\s\S]*?checkLimit\(/);
-  assert.match(gateway, /\/rest\/v1\/rpc\/hbu_\(?:inbox\|dm_partners\|get_dms\)/);
-  assert.match(gateway, /\/rest\/v1\//);
+  const bypass = gateway.indexOf("if (!isMessageHistoryRead) {");
+  const limiter = gateway.indexOf("const ipResult = await checkLimit(", bypass);
+  const upstream = gateway.indexOf("upstream = await fetch(upstreamUrl", bypass);
+  assert.ok(bypass >= 0, "read-only bypass guard exists");
+  assert.ok(limiter > bypass, "non-read requests still enter the rate limiter");
+  assert.ok(upstream > limiter, "rate-limited requests continue to Supabase only after checks");
 });
