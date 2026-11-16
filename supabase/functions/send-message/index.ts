@@ -314,7 +314,7 @@ async function wordFilter(force = false): Promise<RegExp | null> {
     .filter(Boolean)
     .sort((x: string, y: string) => y.length - x.length)
     .map((w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"));
-  const regex = words.length ? new RegExp(`(?:${words.join("|")})`, "giu") : null;
+  const regex = words.length ? new RegExp(`(?<![\\p{L}\\p{N}_])[\\p{L}\\p{N}_]*(?:${words.join("|")})[\\p{L}\\p{N}_]*(?![\\p{L}\\p{N}_])`, "giu") : null;
   wordCache = { at: Date.now(), regex };
   return regex;
 }
