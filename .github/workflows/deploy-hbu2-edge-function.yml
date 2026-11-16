@@ -2,6 +2,12 @@ name: Deploy HBU2 Supabase Edge Function
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/functions/send-message/**"
+      - ".github/workflows/deploy-hbu2-edge-function.yml"
 
 permissions:
   contents: read
