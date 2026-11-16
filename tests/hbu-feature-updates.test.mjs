@@ -38,8 +38,9 @@ test("device account limit and owner device ban are database enforced", () => {
   assert.match(devices, /hbu_owner_device_ban/);
 });
 
-test("send-message Edge Function only allows the two official origins", () => {
-  assert.match(edge, /https:\/\/rockystudios\.github\.io/);
-  assert.match(edge, /http:\/\/hbu2\.s3-website\.us-east-2\.amazonaws\.com/);
-  assert.match(edge, /if \(!origin \|\| !ALLOWED_ORIGINS\.has\(origin\)\) return originDenied\(\)/);
+test("send-message Edge Function allows any browser origin but retains gateway authorization", () => {
+  assert.match(edge, /"Access-Control-Allow-Origin": "\*"/);
+  assert.doesNotMatch(edge, /ALLOWED_ORIGINS/);
+  assert.match(edge, /suppliedGatewayToken\.length < 40/);
 });
+
