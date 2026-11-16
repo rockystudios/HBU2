@@ -2708,11 +2708,17 @@
       try {
         return await fetch(url, { ...options, headers: { ...(options.headers || {}), "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }, signal: controller.signal, cache: "no-store" });
       } catch (error) {
-        console.error("Authentication service request failed.", error);
-        if (error.name === "AbortError") {
-          throw new Error("The account service did not respond within 30 seconds. Check the connection, then use Test account connection to identify whether Supabase or the browser is blocking the request.");
+        console.error("Authentication service request failed.", {
+          url: String(url),
+          origin: location.origin,
+          name: error?.name || "Error",
+          message: error?.message || String(error)
+        });
+        if (error?.name === "AbortError") {
+          throw new Error("The account service timed out after 30 seconds. Check your connection, then use Test account connection.");
         }
-        throw new Error("Cannot reach the account service. Check your internet connection, browser blocking settings, or use Test account connection.");
+        const reason = error?.message ? String(error.message).slice(0, 180) : "The browser did not provide a network error detail.";
+        throw new Error(`Cannot reach the account service from ${location.origin}. Browser error: ${error?.name || "NetworkError"} — ${reason}. If this continues, use Test account connection.`);
       } finally {
         clearTimeout(timer);
       }
@@ -3344,13 +3350,28 @@
         });
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error(body?.error || `Verification failed (${response.status}).`);
-        if (typeof body?.id !== "string" || typeof body?.image !== "string") throw new Error("The verification service returned an invalid image.");
+        if (typeof body?.id !== "string" || !body.id || typeof body?.image !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
+          throw new Error("The verification service returned an invalid image. Select New image to retry.");
+        }
         if (request !== authChallengeRequest) return;
         authChallengeId = body.id;
         authChallengeLoadedAt = Date.now();
+        authChallengeImage.onload = () => {
+          if (request !== authChallengeRequest || authChallengeId !== body.id) return;
+          authChallengeImage.hidden = false;
+          authChallengeStatus.textContent = "";
+        };
+        authChallengeImage.onerror = () => {
+          if (request !== authChallengeRequest || authChallengeId !== body.id) return;
+          authChallengeId = "";
+          authChallengeLoadedAt = 0;
+          authChallengeImage.hidden = true;
+          authChallengeAnswer.value = "";
+          authChallengeStatus.textContent = "The verification image could not be displayed. Select New image to load another one.";
+        };
         authChallengeImage.src = `data:image/svg+xml;base64,${body.image}`;
         authChallengeImage.hidden = false;
-        authChallengeStatus.textContent = "";
+        authChallengeStatus.textContent = "Preparing verification image...";
       } catch (error) {
         console.error("Could not load verification image.", error);
         if (request === authChallengeRequest) {
@@ -5002,7 +5023,10 @@
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
-        if (!authChallengeId || Date.now() - authChallengeLoadedAt >= 240000) throw new Error("The verification image is missing or expired. A new image will load; enter its characters and try again.");
+        if (!authChallengeId || authChallengeImage.hidden || !authChallengeImage.src.startsWith("data:image/svg+xml;base64,") || Date.now() - authChallengeLoadedAt >= 240000) {
+          await loadImageChallenge(true);
+          throw new Error("Your verification image was missing or expired, so a new one has been loaded. Enter the characters from the new image and try again.");
+        }
         let response;
         try {
           response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
