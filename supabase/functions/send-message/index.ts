@@ -1555,11 +1555,18 @@ async function verifyImageChallenge(body: Record<string, unknown>) {
   }
   const stamp = `${match[1]}.${match[2]}`;
   const alreadyUsed = usedImageChallenges.has(id);
-  if (usedImageChallenges.size >= 10000 && !alreadyUsed) {
+  if (alreadyUsed) {
+    throw new UserError("The image check was already used. Get a new image and try again.", 400);
+  }
+  if (usedImageChallenges.size >= 10000) {
     throw new UserError("Image verification is busy. Please try again later.", 503);
   }
+  // Reserve the challenge while checking its answer so simultaneous submissions
+  // cannot both pass. A typo does not permanently consume the challenge.
   usedImageChallenges.set(id, expires);
-  if (alreadyUsed || match[3] !== await imageSignature(stamp, answer)) {
+  const expectedSignature = await imageSignature(stamp, answer);
+  if (match[3] !== expectedSignature) {
+    usedImageChallenges.delete(id);
     throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
   }
 }
