@@ -1485,75 +1485,6 @@ async function appAi(name: string, body: Record<string, unknown>) {
 
 const ALTCHA_HMAC_SECRET = Deno.env.get("ALTCHA_HMAC_SECRET") ?? "";
 const signupHits = new Map<string, number[]>();
-const usedImageChallenges = new Map<string, number>();
-
-const IMAGE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-async function imageSignature(id: string, answer: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(ALTCHA_HMAC_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const bytes = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${id}:${answer}`));
-  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function imageChallenge() {
-  if (!ALTCHA_HMAC_SECRET) throw new UserError("Image verification is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
-  const random = crypto.getRandomValues(new Uint8Array(64));
-  const answer = Array.from(random.slice(0, 6), (value) => IMAGE_ALPHABET[value % IMAGE_ALPHABET.length]).join("");
-  // Stateless: the id carries its expiry and a signature of the answer, so no database table is needed.
-  const nonce = Array.from(crypto.getRandomValues(new Uint8Array(8)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  const stamp = `${Date.now() + 5 * 60 * 1000}.${nonce}`;
-  const id = `${stamp}.${await imageSignature(stamp, answer)}`;
-
-  const lines = Array.from({ length: 7 }, (_, i) =>
-    `<path d="M0 ${random[6 + i] % 100} Q150 ${random[14 + i] % 100} 320 ${random[22 + i] % 100}" fill="none" stroke="#9473aa" stroke-width="1.5" opacity=".48"/>`
-  ).join("");
-  const letters = Array.from(answer, (char, i) => {
-    const x = 30 + i * 52;
-    const y = 50 + random[30 + i] % 15 - 7;
-    const angle = random[36 + i] % 31 - 15;
-    const skew = random[42 + i] % 25 - 12;
-    const width = (0.75 + (random[48 + i] % 31) / 100).toFixed(2);
-    const height = (0.85 + (random[54 + i] % 31) / 100).toFixed(2);
-    return `<text transform="translate(${x} ${y}) rotate(${angle}) skewX(${skew}) scale(${width} ${height})">${char}</text>`;
-  }).join("");
-  const image = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="100" viewBox="0 0 320 100"><rect width="320" height="100" fill="#f3edfa"/>${lines}<g fill="#321448" font-family="sans-serif" font-size="43" font-weight="bold" text-anchor="middle" dominant-baseline="central">${letters}</g>${lines}</svg>`;
-  return new Response(JSON.stringify({ id, image: btoa(image) }), {
-    headers: { ...cors, "Cache-Control": "no-store", "Content-Type": "application/json" },
-  });
-}
-
-async function verifyImageChallenge(body: Record<string, unknown>) {
-  if (!ALTCHA_HMAC_SECRET) throw new UserError("Image verification is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
-  const id = typeof body.challenge_id === "string" ? body.challenge_id : "";
-  const answer = typeof body.challenge_answer === "string" ? body.challenge_answer.trim().toUpperCase() : "";
-  const match = /^(\d{13})\.([0-9a-f]{16})\.([0-9a-f]{64})$/.exec(id);
-  if (!match || !/^[A-Z2-9]{6}$/.test(answer)) {
-    throw new UserError("Enter the six characters shown in the image.", 400);
-  }
-  const now = Date.now();
-  for (const [used, expires] of usedImageChallenges) if (expires <= now) usedImageChallenges.delete(used);
-  const expires = Number(match[1]);
-  if (expires <= now || expires > now + 5 * 60 * 1000) {
-    throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
-  }
-  const stamp = `${match[1]}.${match[2]}`;
-  const alreadyUsed = usedImageChallenges.has(id);
-  if (alreadyUsed) {
-    throw new UserError("The image check was already used. Get a new image and try again.", 400);
-  }
-  if (usedImageChallenges.size >= 10000) {
-    throw new UserError("Image verification is busy. Please try again later.", 503);
-  }
-  // Reserve the challenge while checking its answer so simultaneous submissions
-  // cannot both pass. A typo does not permanently consume the challenge.
-  usedImageChallenges.set(id, expires);
-  const expectedSignature = await imageSignature(stamp, answer);
-  if (match[3] !== expectedSignature) {
-    usedImageChallenges.delete(id);
-    throw new UserError("The image check was incorrect or expired. Get a new image and try again.", 400);
-  }
-}
-
 async function signupChallenge() {
   if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   try {
@@ -1685,7 +1616,7 @@ async function signup(req: Request, body: Record<string, unknown>) {
   return json({ ok: true, username: body.username });
 }
 
-async function loginImage(req: Request, body: Record<string, unknown>) {
+async function loginAccount(req: Request, body: Record<string, unknown>) {
   if (typeof body.username !== "string" || typeof body.password !== "string") {
     throw new UserError("Missing username or password.");
   }
@@ -1734,8 +1665,8 @@ async function handleRequest(req: Request): Promise<Response> {
     const { receiver, message, action } = body;
     const username = body.username ?? body.p_username;
     const password = body.password ?? body.p_password;
-    if (action === "signup" || action === "signup_image") return await signup(req, body);
-    if (action === "login_image") return await loginImage(req, body);
+    if (action === "signup") return await signup(req, body);
+    if (action === "login") return await loginAccount(req, body);
     const isVoiceAction = typeof action === "string" && ["voice_list", "voice_create", "voice_token", "voice_kick"].includes(action);
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
     if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && !isVoiceAction && typeof message !== "string")) {
