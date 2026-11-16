@@ -39,6 +39,7 @@ const isAdmin = (name: string) => ADMINS.includes(name.toLowerCase());
 const ALLOWED_ORIGINS = new Set([
   "https://rockystudios.github.io",
   "http://hbu2.s3-website.us-east-2.amazonaws.com",
+  "https://hbu2.s3-website.us-east-2.amazonaws.com",
 ]);
 
 const cors = {
