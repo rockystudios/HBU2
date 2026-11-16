@@ -168,35 +168,47 @@ export default {
     const deviceId = validDeviceId(deviceHeader) ? deviceHeader.toLowerCase() : null;
     const route = getRouteLimit(url.pathname + url.search, body);
 
-    // Fail closed: if centralized limiter storage is unavailable, do not
-    // forward the request to Supabase.
-    try {
-      const ipResult = await checkLimit(
-        env.HBU_RATE_LIMITER,
-        `ip:${ip}`,
-        route.name,
-        route.ip,
-        route.window,
-      );
-      if (!ipResult.allowed) {
-        return rateLimitedResponse(ipResult.retryAfter, origin, "Network request limit reached. Please wait.");
-      }
+    // Reading chat history is not a write action. Do not apply the gateway's
+    // per-minute usage buckets to message-history reads, so users can scroll
+    // back and refresh conversations without being rate-limited. Message
+    // creation and all other writes remain rate-limited below.
+    const isMessageHistoryRead =
+      (request.method === "GET" && url.pathname === "/rest/v1/messages") ||
+      (request.method === "POST" &&
+        /^\/rest\/v1\/rpc\/hbu_(?:inbox|dm_partners|get_dms)$/.test(url.pathname));
 
-      if (deviceId) {
-        const deviceResult = await checkLimit(
+    // Fail closed: if centralized limiter storage is unavailable, do not
+    // forward rate-limited requests to Supabase. Read-only history requests
+    // still pass through the gateway token, API-key, origin, and Supabase checks.
+    if (!isMessageHistoryRead) {
+      try {
+        const ipResult = await checkLimit(
           env.HBU_RATE_LIMITER,
-          `device:${deviceId}`,
+          `ip:${ip}`,
           route.name,
-          route.device,
+          route.ip,
           route.window,
         );
-        if (!deviceResult.allowed) {
-          return rateLimitedResponse(deviceResult.retryAfter, origin, "Device request limit reached. Please wait.");
+        if (!ipResult.allowed) {
+          return rateLimitedResponse(ipResult.retryAfter, origin, "Network request limit reached. Please wait.");
         }
+
+        if (deviceId) {
+          const deviceResult = await checkLimit(
+            env.HBU_RATE_LIMITER,
+            `device:${deviceId}`,
+            route.name,
+            route.device,
+            route.window,
+          );
+          if (!deviceResult.allowed) {
+            return rateLimitedResponse(deviceResult.retryAfter, origin, "Device request limit reached. Please wait.");
+          }
+        }
+      } catch (error) {
+        console.error("HBU2 rate limiter failed closed:", error);
+        return json({ error: "HBU2 security checks are temporarily unavailable. Please retry shortly." }, 503, origin);
       }
-    } catch (error) {
-      console.error("HBU2 rate limiter failed closed:", error);
-      return json({ error: "HBU2 security checks are temporarily unavailable. Please retry shortly." }, 503, origin);
     }
 
     const upstreamUrl = new URL(url.pathname + url.search, SUPABASE_ORIGIN);
