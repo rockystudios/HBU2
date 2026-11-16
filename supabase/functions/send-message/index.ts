@@ -1662,10 +1662,7 @@ async function signup(req: Request, body: Record<string, unknown>) {
   if (typeof body.username === "string") {
     await requireRateLimit(`signup-name:${body.username.trim().toLowerCase()}`, "signup_username", 2, 3600);
   }
-  if (!ALTCHA_HMAC_SECRET) throw new UserError("Signup protection is not configured. Set ALTCHA_HMAC_SECRET in the Edge Function secrets.", 503);
   const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
-  if (body.action === "signup_image") await verifyImageChallenge(body);
-  else await verifyAltchaChallenge(body);
   if (ip) {
     const now = Date.now();
     const hits = (signupHits.get(ip) ?? []).filter((t) => now - t < 3600000);
@@ -1694,7 +1691,6 @@ async function loginImage(req: Request, body: Record<string, unknown>) {
   }
   const ipSubject = await requestIpSubject(req);
   await requireRateLimit(ipSubject, "login_image_ip", 30, 900);
-  await verifyImageChallenge(body);
   const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" };
   const reset = await fetch(`${SUPABASE_URL}/rest/v1/rpc/hbu_reset_pending`, {
     method: "POST", headers, body: JSON.stringify({ p_username: body.username }),
@@ -1721,16 +1717,6 @@ async function loginImage(req: Request, body: Record<string, unknown>) {
 
 async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "image_challenge") {
-    try {
-      await requireRateLimit(await requestIpSubject(req), "image_challenge", 30, 60);
-      return await imageChallenge();
-    } catch (error) {
-      console.error("Could not create image signup challenge.", error);
-      if (error instanceof UserError) return json({ error: error.message }, error.status);
-      return json({ error: "Could not create an image challenge. Check the service." }, 503);
-    }
-  }
   if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "altcha_challenge") {
     try {
       await requireRateLimit(await requestIpSubject(req), "altcha_challenge", 30, 60);
