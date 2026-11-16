@@ -6,6 +6,7 @@ This folder contains a Cloudflare Worker and a SQLite-backed Durable Object rate
 
 - `https://rockystudios.github.io`
 - `http://hbu2.s3-website.us-east-2.amazonaws.com`
+- `https://hbu2.s3-website.us-east-2.amazonaws.com`
 
 ## Deploy the gateway
 
