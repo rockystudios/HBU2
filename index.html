@@ -4940,7 +4940,7 @@
           method: "POST",
           headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
           body: JSON.stringify({
-            action: signupMode ? "signup_image" : "login_image",
+            action: signupMode ? "signup" : "login",
             username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined
           })
         });
