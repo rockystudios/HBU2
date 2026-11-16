@@ -106,6 +106,17 @@ test("unapproved and missing origins are rejected before database access", async
   assert.equal(calls.length, 0);
 });
 
+test("HTTPS S3 website origin is accepted by the image-verification function", async () => {
+  const { handle, calls } = createServer();
+  const response = await handle(new Request("https://example.test/", {
+    method: "OPTIONS",
+    headers: { Origin: "https://hbu2.s3-website.us-east-2.amazonaws.com" }
+  }));
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://hbu2.s3-website.us-east-2.amazonaws.com");
+  assert.equal(calls.length, 0);
+});
+
 test("allowed origins receive exact-origin CORS headers on preflight", async () => {
   const { handle, calls } = createServer();
   const response = await handle(new Request("https://example.test/", {
