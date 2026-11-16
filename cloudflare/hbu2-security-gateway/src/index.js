@@ -47,10 +47,10 @@ function getRouteLimit(pathAndQuery, body) {
   if (pathAndQuery.startsWith("/functions/v1/send-message") && body) {
     try {
       const action = JSON.parse(new TextDecoder().decode(body)).action;
-      if (action === "login_image") {
+      if (action === "login") {
         return { name: "login", ip: 30, device: 5, window: 900 };
       }
-      if (action === "signup_image") {
+      if (action === "signup") {
         return { name: "signup", ip: 5, device: 2, window: 3600 };
       }
       // Staff policy status is checked when the chat initializes and then

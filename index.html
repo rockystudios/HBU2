@@ -206,10 +206,6 @@
     .chat-join { padding: 28px 20px; }
     .chat-join-form { max-width: 420px; display: grid; gap: 12px; }
     .chat-join-form label { display: grid; gap: 8px; color: #c9c1d8; font-size: 13px; font-weight: 700; }
-    .auth-image-check { display: grid; gap: 8px; }
-    .auth-image-check[hidden] { display: none; }
-    .auth-image-check img { width: min(320px, 100%); height: auto; border-radius: 8px; background: #f3edfa; }
-    .auth-image-check p { margin: 0; color: var(--muted); font-size: 12px; }
     .auth-tabs { margin-bottom: 14px; display: flex; gap: 8px; }
     .auth-tabs .icon-button[aria-pressed="true"] { border-color: rgba(192,132,252,.55); color: #e9c9ff; background: rgba(168,85,247,.16); }
     .chat-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); }
@@ -1147,17 +1143,7 @@
               <label for="auth-student-id" id="student-id-label" hidden>Student ID (COMPLETELY OPTIONAL)
                 <input id="auth-student-id" type="text" maxlength="30" autocomplete="off">
               </label>
-              <div class="auth-image-check" id="auth-image-check">
-                <p>Type the six characters shown. Letters are not case-sensitive.</p>
-                <img id="auth-challenge-image" width="320" height="100" alt="Verification image with six characters" hidden>
-                <label for="auth-challenge-answer">Characters in the image
-                  <input id="auth-challenge-answer" type="text" minlength="6" maxlength="6" autocomplete="off" spellcheck="false" required>
-                </label>
-                <button class="icon-button" id="auth-challenge-refresh" type="button">New image</button>
-                <p id="auth-challenge-status" role="status" aria-live="polite"></p>
-                <a href="connection-test.html" target="_blank" rel="noopener noreferrer">Test account connection</a>
-                <p id="auth-mouse-status">Mouse movements: 0. Movement stays on this device and is not required.</p>
-              </div>
+              <a href="connection-test.html" target="_blank" rel="noopener noreferrer">Test account connection</a>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
@@ -3317,83 +3303,11 @@
       }
     }
 
-    const authImageCheck = document.querySelector("#auth-image-check");
-    const authChallengeImage = document.querySelector("#auth-challenge-image");
-    const authChallengeAnswer = document.querySelector("#auth-challenge-answer");
-    const authChallengeRefresh = document.querySelector("#auth-challenge-refresh");
-    const authChallengeStatus = document.querySelector("#auth-challenge-status");
-    const authMouseStatus = document.querySelector("#auth-mouse-status");
-    let authChallengeId = "";
-    let authChallengeRequest = 0;
-    let authChallengeLoadedAt = 0;
-    let authChallengeLoading = null;
-    let authMouseMoves = 0;
-
-    authImageCheck.addEventListener("pointermove", event => {
-      if (event.pointerType === "mouse") {
-        authMouseMoves++;
-        authMouseStatus.textContent = `Mouse movements: ${authMouseMoves}. Movement stays on this device and is not required.`;
-      }
-    }, { passive: true });
-
-    function loadImageChallenge(force = false) {
-      if (!force && authChallengeId && Date.now() - authChallengeLoadedAt < 240000) return Promise.resolve();
-      if (!force && authChallengeLoading) return authChallengeLoading;
-      const request = ++authChallengeRequest;
-      authChallengeId = "";
-      authChallengeAnswer.value = "";
-      authChallengeImage.hidden = true;
-      authChallengeStatus.textContent = "Loading verification image...";
-      const loading = (async () => { try {
-        const response = await authFetch(`${supabaseFunctionsUrl}/send-message?action=image_challenge`, {
-          headers: { apikey: supabaseAnonKey, "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }
-        });
-        const body = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(body?.error || `Verification failed (${response.status}).`);
-        if (typeof body?.id !== "string" || !body.id || typeof body?.image !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.image)) {
-          throw new Error("The verification service returned an invalid image. Select New image to retry.");
-        }
-        if (request !== authChallengeRequest) return;
-        authChallengeId = body.id;
-        authChallengeLoadedAt = Date.now();
-        authChallengeImage.onload = () => {
-          if (request !== authChallengeRequest || authChallengeId !== body.id) return;
-          authChallengeImage.hidden = false;
-          authChallengeStatus.textContent = "";
-        };
-        authChallengeImage.onerror = () => {
-          if (request !== authChallengeRequest || authChallengeId !== body.id) return;
-          authChallengeId = "";
-          authChallengeLoadedAt = 0;
-          authChallengeImage.hidden = true;
-          authChallengeAnswer.value = "";
-          authChallengeStatus.textContent = "The verification image could not be displayed. Select New image to load another one.";
-        };
-        authChallengeImage.src = `data:image/svg+xml;base64,${body.image}`;
-        authChallengeImage.hidden = false;
-        authChallengeStatus.textContent = "Preparing verification image...";
-      } catch (error) {
-        console.error("Could not load verification image.", error);
-        if (request === authChallengeRequest) {
-          authChallengeStatus.textContent = `${error.message} Select New image to try again.`;
-        }
-      } finally {
-        if (request === authChallengeRequest) authChallengeLoading = null;
-      } })();
-      authChallengeLoading = loading;
-      return loading;
-    }
-
-    authChallengeRefresh.addEventListener("click", () => void loadImageChallenge(true));
-
     function setAuthMode(signup) {
       signupMode = signup;
       tabLogin.setAttribute("aria-pressed", String(!signup));
       tabSignup.setAttribute("aria-pressed", String(signup));
       studentIdLabel.hidden = !signup;
-      authMouseMoves = 0;
-      authMouseStatus.textContent = "Mouse movements: 0. Movement stays on this device and is not required.";
-      void loadImageChallenge();
       authStudentId.required = false;
       authSubmit.textContent = signup ? "Create account" : "Log in";
       authPassword.autocomplete = signup ? "new-password" : "current-password";
@@ -5019,29 +4933,17 @@
       authSubmit.disabled = true;
       tabLogin.disabled = true;
       tabSignup.disabled = true;
-      authChallengeRefresh.disabled = true;
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
-        if (!authChallengeId || authChallengeImage.hidden || !authChallengeImage.src.startsWith("data:image/svg+xml;base64,") || Date.now() - authChallengeLoadedAt >= 240000) {
-          await loadImageChallenge(true);
-          throw new Error("Your verification image was missing or expired, so a new one has been loaded. Enter the characters from the new image and try again.");
-        }
-        let response;
-        try {
-          response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
-            method: "POST",
-            headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
-            body: JSON.stringify({
-              action: signupMode ? "signup_image" : "login_image",
-              username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined,
-              challenge_id: authChallengeId, challenge_answer: authChallengeAnswer.value
-            })
-          });
-        } catch (error) {
-          if (signupMode) throw new Error(`${error.message} Your account may have been created; try logging in before signing up again.`);
-          throw error;
-        }
+        const response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
+          method: "POST",
+          headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
+          body: JSON.stringify({
+            action: signupMode ? "signup" : "login",
+            username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined
+          })
+        });
         const result = await response.json().catch(() => null);
         if (!response.ok) throw new Error(result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`);
         accountCreated = signupMode;
@@ -5061,12 +4963,10 @@
       } catch (error) {
         console.error("Could not sign in.", error);
         messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
-        void loadImageChallenge(true);
       } finally {
         authSubmit.disabled = false;
         tabLogin.disabled = false;
         tabSignup.disabled = false;
-        authChallengeRefresh.disabled = false;
       }
     });
     const resetForm = document.querySelector("#reset-form");
@@ -8880,7 +8780,6 @@
     });
     window.addEventListener("hashchange", route);
     showChat();
-    if (!account) void loadImageChallenge();
     route();
   </script>
 </body>
