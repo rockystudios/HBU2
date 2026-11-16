@@ -33,31 +33,13 @@ const COOLDOWN_MS = 2000;
 const ADMINS = (Deno.env.get("ADMIN_USERNAMES") ?? "rocky").split(",").map((n) => n.trim().toLowerCase()).filter(Boolean);
 const isAdmin = (name: string) => ADMINS.includes(name.toLowerCase());
 
-// Browser-origin allowlist for the two official HBU2 websites.
-// This is a browser CORS / origin gate, NOT cryptographic proof of website identity:
-// non-browser clients can forge the Origin header. Keep authentication and RLS enabled.
-const ALLOWED_ORIGINS = new Set([
-  "https://rockystudios.github.io",
-  "http://hbu2.s3-website.us-east-2.amazonaws.com",
-  "https://hbu2.s3-website.us-east-2.amazonaws.com",
-]);
-
+// No browser-origin allowlist. The private gateway token, account checks,
+// rate limits, and Supabase permissions remain the actual security controls.
 const cors = {
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Vary": "Origin",
 };
-
-function corsForOrigin(origin: string) {
-  return { ...cors, "Access-Control-Allow-Origin": origin };
-}
-
-function originDenied() {
-  return new Response(JSON.stringify({ error: "This website is not authorized to use HBU2 services." }), {
-    status: 403,
-    headers: { "Content-Type": "application/json", "Vary": "Origin" },
-  });
-}
 
 const BOT_PROMPT = `You are mod-bot, the assistant of HBU Arcade, a school-friendly games site with chat, an arcade, daily coin wheel, name plates, settings and DMs.
 You ONLY answer questions about HBU Arcade: how the site works, its games, chat rules, coins, the wheel, name plates, settings, blocking and bans.
@@ -1957,20 +1939,13 @@ export async function handle(req: Request): Promise<Response> {
     });
   }
 
-  const origin = req.headers.get("Origin");
-  if (!origin || !ALLOWED_ORIGINS.has(origin)) return originDenied();
-
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsForOrigin(origin) });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   const response = await handleRequest(req);
   const headers = new Headers(response.headers);
-  headers.set("Access-Control-Allow-Origin", origin);
-  const vary = headers.get("Vary");
-  if (!vary || !vary.split(",").map((value) => value.trim().toLowerCase()).includes("origin")) {
-    headers.set("Vary", vary ? `${vary}, Origin` : "Origin");
-  }
+  headers.set("Access-Control-Allow-Origin", "*");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
