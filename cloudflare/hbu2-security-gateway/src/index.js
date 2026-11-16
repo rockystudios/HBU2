@@ -7,7 +7,7 @@ const ALLOWED_ORIGINS = new Set([
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, HEAD, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hbu-device-id, prefer, range",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hbu-device-id, prefer, range, cache-control, pragma, x-requested-with",
   "Access-Control-Expose-Headers": "content-range, x-hbu-request-id",
   "Access-Control-Max-Age": "86400",
   "Vary": "Origin",
