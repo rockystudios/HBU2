@@ -1,3 +1,5 @@
+# Note: This website will ALWAYS continue even though some dumb ah hackers who know don't what they are doing tried to hack us XD!
+
 # HBU2
 ## HBU Survival App
 
