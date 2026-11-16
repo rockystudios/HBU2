@@ -1,17 +1,14 @@
 const SUPABASE_ORIGIN = "https://xvkjvuxhawlljakfkllu.supabase.co";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://rockystudios.github.io",
-  "http://hbu2.s3-website.us-east-2.amazonaws.com",
-  "https://hbu2.s3-website.us-east-2.amazonaws.com",
-]);
+// The gateway does not restrict browser origins. Authentication, the private
+// gateway token, Supabase RLS, and rate limits remain enforced server-side.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, PATCH, PUT, DELETE, HEAD, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hbu-device-id, prefer, range, cache-control, pragma, x-requested-with",
   "Access-Control-Expose-Headers": "content-range, x-hbu-request-id",
   "Access-Control-Max-Age": "86400",
-  "Vary": "Origin",
+  "Access-Control-Allow-Origin": "*",
 };
 
 const ROUTE_LIMITS = [
@@ -42,9 +39,7 @@ function json(body, status, origin) {
     "Cache-Control": "no-store",
     ...CORS_HEADERS,
   });
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    headers.set("Access-Control-Allow-Origin", origin);
-  }
+  headers.set("Access-Control-Allow-Origin", "*");
   return new Response(JSON.stringify(body), { status, headers });
 }
 
@@ -114,23 +109,13 @@ export default {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
 
+    // Accept preflight requests from any website. CORS is not authentication:
+    // the private gateway token, Supabase RLS, and rate limits still protect data.
     if (request.method === "OPTIONS") {
-      if (!origin || !ALLOWED_ORIGINS.has(origin)) {
-        return new Response(null, { status: 403 });
-      }
       return new Response(null, {
         status: 204,
-        headers: {
-          ...CORS_HEADERS,
-          "Access-Control-Allow-Origin": origin,
-        },
+        headers: CORS_HEADERS,
       });
-    }
-
-    // CORS is a browser-origin gate, not authentication; non-browser clients
-    // can forge Origin. Supabase RLS and grants remain mandatory.
-    if (!origin || !ALLOWED_ORIGINS.has(origin)) {
-      return json({ error: "HBU2 website origin is not allowed." }, 403, null);
     }
 
     if (!validApiPath(url.pathname)) {
@@ -236,7 +221,7 @@ export default {
     }
 
     const responseHeaders = new Headers(upstream.headers);
-    responseHeaders.set("Access-Control-Allow-Origin", origin);
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
     for (const [key, value] of Object.entries(CORS_HEADERS)) {
       responseHeaders.set(key, value);
     }
