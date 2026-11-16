@@ -4218,11 +4218,6 @@
       if (account) {
         void checkWhatsNew();
         void hbuPresencePing();
-        authChallengeRequest++;
-        authChallengeId = "";
-        authChallengeLoading = null;
-      } else if (!document.querySelector("#win-chat").hidden) {
-        void loadImageChallenge();
       }
       chatJoin.hidden = Boolean(account);
       chatRoom.hidden = !account;
@@ -4990,7 +4985,6 @@
       resetForm.hidden = true;
       authForm.hidden = false;
       document.querySelector(".auth-tabs").hidden = false;
-      if (!account) void loadImageChallenge();
     }
 
     document.querySelector("#reset-cancel").addEventListener("click", endPasswordReset);
@@ -6041,7 +6035,7 @@
           }
         }
       },
-      chat: { open: () => { if (account) { loadMessages(); renderConvos(); } else { void loadImageChallenge(); } } },
+      chat: { open: () => { if (account) { loadMessages(); renderConvos(); } } },
       voice: { open: () => { voiceActive.hidden = !voiceState.room; voiceLobby.hidden = Boolean(voiceState.room); if (!voiceState.room) void voiceLoadRooms(); } },
       settings: { open: () => renderSettings() },
       rewards: { open: () => { refreshWallet(); loadPlates(true); } },
