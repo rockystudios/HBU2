@@ -1,10 +1,1 @@
-{
-  "id": 170,
-  "slug": "geometry-dash",
-  "name": "Geometry Dash",
-  "category": "geometry-dash",
-  "description": "The official Geometry Dash WASM web build with full level selection, custom music, and Cloudflare Worker proxy.",
-  "author": "RobTop Games / Proxy by skiingbeast2025",
-  "icon": "icon.png",
-  "isFeatured": true,
-}
+
