@@ -4944,6 +4944,8 @@
       if (!username || !password) return;
       authSubmit.disabled = true;
       // Keep the login/signup tabs available while the request is running.
+      const submitLabel = signupMode ? "Create account" : "Log in";
+      authSubmit.textContent = signupMode ? "Creating account..." : "Logging in...";
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
@@ -4985,6 +4987,7 @@
         messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
       } finally {
         authSubmit.disabled = false;
+        authSubmit.textContent = submitLabel;
       }
     });
     const resetForm = document.querySelector("#reset-form");
