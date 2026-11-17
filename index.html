@@ -4940,7 +4940,10 @@
           })
         });
         const result = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`);
+        if (!response.ok) {
+          const details = result?.receivedPath ? `\\nGateway received path: ${result.receivedPath}` : "";
+          throw new Error((result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`) + details);
+        }
         accountCreated = signupMode;
         if (result?.resetPending === true && !signupMode) {
           startPasswordReset(username);
