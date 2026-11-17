@@ -4941,7 +4941,7 @@
         });
         const result = await response.json().catch(() => null);
         if (!response.ok) {
-          const details = result?.receivedPath ? `\\nGateway received path: ${result.receivedPath}` : "";
+          const details = result?.receivedPath ? `\nGateway received path: ${result.receivedPath}` : "";
           throw new Error((result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`) + details);
         }
         accountCreated = signupMode;
