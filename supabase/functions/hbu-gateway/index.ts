@@ -25,9 +25,21 @@ function json(body: unknown, status = 200) {
 function getTargetPath(req: Request) {
   const url = new URL(req.url);
   const markerIndex = url.pathname.indexOf(GATEWAY_PREFIX);
-  if (markerIndex < 0) return "";
-  const suffix = url.pathname.slice(markerIndex + GATEWAY_PREFIX.length);
-  return suffix + url.search;
+
+  // Depending on the Supabase Edge Runtime/proxy path handling, the function
+  // may receive either the full function URL or only the forwarded suffix.
+  // Support both forms so /rest/v1 and /functions/v1/send-message are routed.
+  if (markerIndex >= 0) {
+    const suffix = url.pathname.slice(markerIndex + GATEWAY_PREFIX.length);
+    return suffix + url.search;
+  }
+
+  if (url.pathname.startsWith("/rest/v1/") ||
+      url.pathname === "/functions/v1/send-message") {
+    return url.pathname + url.search;
+  }
+
+  return "";
 }
 
 function getRouteLimit(path: string, method: string, body: Uint8Array | null) {
