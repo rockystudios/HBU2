@@ -4956,7 +4956,13 @@
             username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined
           })
         });
-        const result = await response.json().catch(() => null);
+        const result = await Promise.race([
+          response.json().catch(() => null),
+          new Promise((_, reject) => window.setTimeout(
+            () => reject(new Error("The account service sent a response but did not finish sending its data. Please retry.")),
+            10000
+          ))
+        ]);
         if (!response.ok) {
           const details = result?.receivedPath ? `\nGateway received path: ${result.receivedPath}` : "";
           throw new Error((result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`) + details);
