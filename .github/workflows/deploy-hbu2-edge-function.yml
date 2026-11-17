@@ -31,6 +31,6 @@ jobs:
           version: 2.58.5
 
       - name: Deploy send-message
-        run: supabase functions deploy send-message --project-ref "$SUPABASE_PROJECT_REF" --yes
+        run: supabase functions deploy send-message --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
       - name: Deploy hbu-gateway
         run: supabase functions deploy hbu-gateway --project-ref "$SUPABASE_PROJECT_REF" --no-verify-jwt --yes
