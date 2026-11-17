@@ -4943,8 +4943,7 @@
       const password = authPassword.value;
       if (!username || !password) return;
       authSubmit.disabled = true;
-      tabLogin.disabled = true;
-      tabSignup.disabled = true;
+      // Keep the login/signup tabs available while the request is running.
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
@@ -4986,8 +4985,6 @@
         messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
       } finally {
         authSubmit.disabled = false;
-        tabLogin.disabled = false;
-        tabSignup.disabled = false;
       }
     });
     const resetForm = document.querySelector("#reset-form");
