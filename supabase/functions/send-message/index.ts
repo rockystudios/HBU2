@@ -36,7 +36,7 @@ const isAdmin = (name: string) => ADMINS.includes(name.toLowerCase());
 // rate limits, and Supabase permissions remain the actual security controls.
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-hbu-device-id",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -1844,18 +1844,10 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 }
 
-// Enforce the allowlist before any database, authentication, or LiveKit work.
-// Only requests from the two configured browser origins receive CORS permission.
+// Direct Supabase requests are supported again. Account/password checks,
+// database permissions, and server-side rate limits remain enforced inside
+// handleRequest; the browser never receives the service-role key.
 export async function handle(req: Request): Promise<Response> {
-  const authorization = req.headers.get("authorization") ?? "";
-  const suppliedServiceKey = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  if (!SERVICE_KEY || suppliedServiceKey.length < 40 || suppliedServiceKey !== SERVICE_KEY) {
-    return new Response(JSON.stringify({ error: "HBU2 gateway authorization required." }), {
-      status: 403,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    });
-  }
-
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: cors });
   }
@@ -1863,6 +1855,8 @@ export async function handle(req: Request): Promise<Response> {
   const response = await handleRequest(req);
   const headers = new Headers(response.headers);
   headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Headers", "authorization, x-client-info, apikey, content-type, x-hbu-device-id");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

@@ -1891,6 +1891,13 @@
       </div>
       <div class="win-body">
         <div class="app-pane">
+          <h2>Network routing</h2>
+          <p class="app-note">Choose whether HBU requests must pass through the Cloudflare Worker or connect directly to Supabase. This setting is saved in this browser.</p>
+          <label class="settings-row" for="owner-cloudflare-required">
+            <span><strong>Cloudflare required</strong><small>ON uses the Cloudflare Worker. OFF connects directly to Supabase.</small></span>
+            <input id="owner-cloudflare-required" type="checkbox">
+          </label>
+          <p class="app-note" id="owner-cloudflare-status" role="status" aria-live="polite"></p>
           <h2>Password resets</h2>
           <p class="app-note">Type a username. The next time someone tries to log in as that account, they can choose a new password. It works once and expires after 48 hours.</p>
           <form class="friends-form" id="owner-form">
@@ -2298,10 +2305,20 @@
     const favoriteStorageKey = "hbu-arcade-favorites";
     const recentStorageKey = "hbu-arcade-recent";
     const usageStorageKey = "hbu-arcade-usage";
-    const hbuGatewayUrl = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1/hbu-gateway";
-    const supabaseRestUrl = `${hbuGatewayUrl}/rest/v1`;
-    const supabaseFunctionsUrl = `${hbuGatewayUrl}/functions/v1`;
-    const supabaseMessagesUrl = `${supabaseRestUrl}/messages`;
+    const cloudflareGatewayUrl = "https://hbu2.schooogle.workers.dev";
+    const supabaseProjectUrl = "https://xvkjvuxhawlljakfkllu.supabase.co";
+    const cloudflareRequiredKey = "hbu-cloudflare-required";
+    let cloudflareRequired = localStorage.getItem(cloudflareRequiredKey) === "true";
+    let apiBaseUrl = cloudflareRequired ? cloudflareGatewayUrl : supabaseProjectUrl;
+    let supabaseRestUrl = apiBaseUrl + "/rest/v1";
+    let supabaseFunctionsUrl = apiBaseUrl + "/functions/v1";
+    let supabaseMessagesUrl = supabaseRestUrl + "/messages";
+    function applyApiRoute() {
+      apiBaseUrl = cloudflareRequired ? cloudflareGatewayUrl : supabaseProjectUrl;
+      supabaseRestUrl = apiBaseUrl + "/rest/v1";
+      supabaseFunctionsUrl = apiBaseUrl + "/functions/v1";
+      supabaseMessagesUrl = supabaseRestUrl + "/messages";
+    }
     const supabaseAnonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
     const sessionKey = "hbu-arcade-session";
     const chatPollMs = 4000;
@@ -5015,6 +5032,25 @@
         resetSubmit.disabled = false;
       }
     });
+
+    const cloudflareToggle = document.querySelector("#owner-cloudflare-required");
+    const cloudflareStatus = document.querySelector("#owner-cloudflare-status");
+    if (cloudflareToggle) {
+      cloudflareToggle.checked = cloudflareRequired;
+      cloudflareToggle.addEventListener("change", () => {
+        if (!isOwner()) {
+          cloudflareToggle.checked = cloudflareRequired;
+          return;
+        }
+        cloudflareRequired = cloudflareToggle.checked;
+        localStorage.setItem(cloudflareRequiredKey, String(cloudflareRequired));
+        applyApiRoute();
+        cloudflareStatus.textContent = cloudflareRequired
+          ? "Cloudflare Worker is now required for this browser."
+          : "Direct Supabase connection is now enabled for this browser.";
+        showToast("Network routing updated. Reload HBU to apply it to all open apps.");
+      });
+    }
 
     const ownerList = document.querySelector("#owner-list");
     const ownerStatus = document.querySelector("#owner-status");
