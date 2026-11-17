@@ -24,20 +24,27 @@ function json(body: unknown, status = 200) {
 
 function getTargetPath(req: Request) {
   const url = new URL(req.url);
-  const markerIndex = url.pathname.indexOf(GATEWAY_PREFIX);
+  const path = url.pathname;
+  const markerIndex = path.indexOf(GATEWAY_PREFIX);
 
-  // Depending on the Supabase Edge Runtime/proxy path handling, the function
-  // may receive either the full function URL or only the forwarded suffix.
-  // Support both forms so /rest/v1 and /functions/v1/send-message are routed.
+  // Supabase may expose the full incoming URL or a path rewritten by its
+  // Edge Runtime. Extract only explicitly supported upstream route suffixes.
   if (markerIndex >= 0) {
-    const suffix = url.pathname.slice(markerIndex + GATEWAY_PREFIX.length);
-    return suffix + url.search;
+    const suffix = path.slice(markerIndex + GATEWAY_PREFIX.length);
+    if (suffix.startsWith("/rest/v1/") ||
+        suffix === "/functions/v1/send-message") {
+      return suffix + url.search;
+    }
   }
 
-  if (url.pathname.startsWith("/rest/v1/") ||
-      url.pathname === "/functions/v1/send-message") {
-    return url.pathname + url.search;
-  }
+  const restIndex = path.lastIndexOf("/rest/v1/");
+  if (restIndex >= 0) return path.slice(restIndex) + url.search;
+
+  const sendMessageSuffix = "/functions/v1/send-message";
+  if (path.endsWith(sendMessageSuffix)) return sendMessageSuffix + url.search;
+  if (path === "/send-message") return "/functions/v1/send-message" + url.search;
+  if (path.startsWith("/rest/v1/")) return path + url.search;
+  if (path === "/functions/v1/send-message") return path + url.search;
 
   return "";
 }
@@ -113,7 +120,7 @@ Deno.serve(async (req: Request) => {
   const target = getTargetPath(req);
   const pathname = target.split("?")[0];
   const validTarget = pathname.startsWith("/rest/v1/") || pathname === "/functions/v1/send-message";
-  if (!validTarget) return json({ error: "Gateway route not found." }, 404);
+  if (!validTarget) return json({ error: "Gateway route not found.", receivedPath: new URL(req.url).pathname }, 404);
   if (!["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD"].includes(req.method)) {
     return json({ error: "Method not allowed." }, 405);
   }
