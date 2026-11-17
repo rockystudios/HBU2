@@ -4,7 +4,6 @@
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const HBU_GATEWAY_TOKEN = Deno.env.get("HBU_GATEWAY_TOKEN") ?? "";
 const GATEWAY_PREFIX = "/hbu-gateway";
 
 const CORS_HEADERS = {
@@ -113,7 +112,7 @@ function isMessageHistoryRead(path: string, method: string) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 
-  if (!SUPABASE_URL || !SERVICE_KEY || HBU_GATEWAY_TOKEN.length < 40) {
+  if (!SUPABASE_URL || !SERVICE_KEY) {
     return json({ error: "HBU2 gateway is not configured. Requests are blocked until setup is complete." }, 503);
   }
 
@@ -158,7 +157,20 @@ Deno.serve(async (req: Request) => {
     if (value) headers.set(name, value);
   }
   if (pathname === "/functions/v1/send-message") {
-    headers.set("x-hbu-gateway-token", HBU_GATEWAY_TOKEN);
+    // Server-side service auth replaces the separately managed gateway token.
+    headers.set("Authorization", "Bearer " + SERVICE_KEY);
+  }
+
+  if (pathname === "/rest/v1/messages" && req.method === "GET") {
+    // Expose only the public chat feed and its non-sensitive display columns.
+    const requested = new URL(upstreamUrl);
+    const select = requested.searchParams.get("select");
+    const receiver = requested.searchParams.get("receiver");
+    const limit = Number(requested.searchParams.get("limit") || "100");
+    if (receiver !== "eq.everyone" || select !== "id,user,message,text_color,created_at" || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+      return json({ error: "Only the public chat history query is allowed." }, 403);
+    }
+    headers.set("Authorization", "Bearer " + SERVICE_KEY);
   }
 
   try {
