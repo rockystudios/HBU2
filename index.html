@@ -1488,6 +1488,19 @@
       </div>
       <span class="win-resize" aria-hidden="true"></span>
     </section>
+    <section class="app-window" id="win-browser" data-app="browser" role="dialog" aria-label="Browser" hidden>
+      <div class="win-titlebar">
+        <span class="win-title"><span aria-hidden="true">🌐</span> Game Hub</span>
+        <span class="win-controls">
+          <button class="win-btn win-full" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+          <button class="win-btn win-close" type="button" aria-label="Close Game Hub" title="Close">✕</button>
+        </span>
+      </div>
+      <div class="win-body">
+        <iframe class="browser-frame" id="browser-frame" title="Browser" allow="autoplay; fullscreen; gamepad; clipboard-write"></iframe>
+      </div>
+      <span class="win-resize" aria-hidden="true"></span>
+    </section>
     <section class="app-window" id="win-paint" data-app="paint" role="dialog" aria-label="Paint" hidden>
       <div class="win-titlebar">
         <span class="win-title"><span aria-hidden="true">🖌️</span> Paint</span>
@@ -6497,7 +6510,7 @@
     const savedAppPins = readLocal(appPinKey, []);
     let appPins = Array.isArray(savedAppPins) ? savedAppPins.filter(id => typeof id === "string") : [];
     const appCategories = {
-      games: ["arcade", "rewards", "leaderboard", "quests", "casino", "pet", "clicker", "achievements", "requests"],
+      games: ["arcade", "rewards", "leaderboard", "quests", "casino", "pet", "clicker", "achievements", "requests", "gamehub"],
       survival: ["survival"],
       social: ["chat", "voice", "profiles", "friends", "social"],
       tools: ["settings", "notes", "calculator", "clock", "themes", "browser", "paint", "creator", "store", "links", "logs", "owner"]
@@ -8684,7 +8697,7 @@
     tickClock();
     window.setInterval(tickClock, 15000);
 
-    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#profiles": "profiles", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner" };
+    const appByHash = { "#games": "arcade", "#messages": "chat", "#settings": "settings", "#rewards": "rewards", "#profiles": "profiles", "#leaderboard": "leaderboard", "#friends": "friends", "#notes": "notes", "#calculator": "calculator", "#clock": "clock", "#themes": "themes", "#browser": "browser", "#paint": "paint", "#casino": "casino", "#quests": "quests", "#links": "links", "#pet": "pet", "#clicker": "clicker", "#achievements": "achievements", "#requests": "requests", "#social": "social", "#logs": "logs", "#creator": "creator", "#store": "store", "#owner": "owner", "#gamehub": "gamehub"};
 
     const ideaDialog = document.querySelector("#idea-dialog");
     const ideaNo = document.querySelector("#idea-no");
