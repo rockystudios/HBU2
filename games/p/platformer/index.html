@@ -576,7 +576,6 @@ function update() {
 
 function resolveTileCollisions(horizontal) {
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
-
   const leftCol = Math.max(0, Math.floor(player.x / TILE));
   const rightCol = Math.min(COLS - 1, Math.floor((player.x + player.w - 0.01) / TILE));
   const topRow = Math.max(0, Math.floor(player.y / TILE));
@@ -614,12 +613,12 @@ function resolveTileCollisions(horizontal) {
       } else if (tile === 3) { // Spikes
         if (rectOverlap(player.x, player.y, player.w, player.h, tx + 5, ty + 10, TILE - 10, TILE - 10)) {
           killPlayer();
-          return;
+          return true;
         }
       } else if (tile === 4 && laserActive) { // Pulsing Laser
         if (rectOverlap(player.x, player.y, player.w, player.h, tx + 11, ty, 8, TILE)) {
           killPlayer();
-          return;
+          return true;
         }
       } else if (tile === 6) { // Speed Boost Pad
         if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty + 18, TILE, 12)) {
@@ -627,28 +626,29 @@ function resolveTileCollisions(horizontal) {
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-        } else if (tile === 9) { // Goal Portal
-          if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-            playSound(880, 'sine', 0.4);
-            spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-            
-            if (isEditor) {
-              toggleEditor(true);
+      } else if (tile === 9) { // Goal Portal
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+          playSound(880, 'sine', 0.4);
+          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+
+          if (isEditor) {
+            toggleEditor(true);
+          } else {
+            if (coins && coins.length > totalCoins * 0.5) {
+              killPlayer();
             } else {
-              // Restart if more than 50% of coins are still uncollected
-              if (coins && coins.length > totalCoins * 0.5) {
-                killPlayer()
-              } else {
-                currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-              }
+              currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+              loadLevel(BUILTIN_LEVELS[currentLevelIdx]); // Verify if .grid is needed or not
             }
-            return; // Stops the loop immediately after loading/restarting
           }
+          return true;
         }
       }
     }
-  } // <-- 13789
+  }
+  return false;
+}
+
 
 function draw() {
   ctx.fillStyle = '#0b0e17';
