@@ -2324,6 +2324,8 @@
     const usageStorageKey = "hbu-arcade-usage";
     const cloudflareGatewayUrl = "https://hbu2.schooogle.workers.dev";
     const supabaseProjectUrl = "https://xvkjvuxhawlljakfkllu.supabase.co";
+    // Authentication must reach Supabase directly; do not route login/signup through the optional Cloudflare Worker.
+    const supabaseAuthFunctionsUrl = supabaseProjectUrl + "/functions/v1";
     const cloudflareRequiredKey = "hbu-cloudflare-required";
     let cloudflareRequired = localStorage.getItem(cloudflareRequiredKey) === "true";
     let apiBaseUrl = cloudflareRequired ? cloudflareGatewayUrl : supabaseProjectUrl;
@@ -4966,7 +4968,7 @@
       messageStatus.textContent = signupMode ? "Creating your account..." : "Logging in...";
       let accountCreated = false;
       try {
-        const response = await authFetch(`${supabaseFunctionsUrl}/send-message`, {
+        const response = await authFetch(`${supabaseAuthFunctionsUrl}/send-message`, {
           method: "POST",
           headers: { apikey: supabaseAnonKey, "Content-Type": "application/json", "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") },
           body: JSON.stringify({
