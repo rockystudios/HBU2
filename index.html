@@ -1015,6 +1015,10 @@
           <span class="app-glyph app-icon-owner" aria-hidden="true"></span>
           <span class="app-label">Owner</span>
         </button>
+        <button class="app-icon" type="button" data-app="gamehub">
+          <span class="app-glyph app-icon-social" aria-hidden="true"></span>
+          <span class="app-label">HBU Game Hub</span>
+        </button>
       </nav>
       </section>
       <aside class="home-ad" aria-label="Advertisement">
@@ -6101,7 +6105,8 @@
       casino: { open: () => { renderCasino(); refreshWallet(); } },
       browser: { open: () => { const frame = document.querySelector("#browser-frame"); if (!frame.src) frame.src = BROWSER_URL; } },
       paint: { open: () => setupPaint() },
-      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); loadOwnerAdRequests(); loadOwnerPresence(); startOwnerPresenceMonitor(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } }
+      owner: { open: () => { loadLogs(); loadOwnerResets(); loadOwnerRoles(); loadMessageArchives(); loadOwnerAdRequests(); loadOwnerPresence(); startOwnerPresenceMonitor(); if (document.querySelector("#owner-accounts").open) loadOwnerAccounts(); } },
+      gamehub: { open: () => { const frame = document.querySelector("#gamehub"); if (!frame.src) frame.src = gamehub_URL; } },
     };
 
     function openApp(name, allowUninstalled = false) {
@@ -6329,6 +6334,7 @@
 
 
     const BROWSER_URL = "https://ownerbysaugatryt.b-cdn.net/#goog_rewarded";
+    const gamehub_URL = "https://rockystudios.github.io/HBU2/games/games.html";
 
     let paintReady = false;
     function paintFloodFill(image, x, y, color) {
