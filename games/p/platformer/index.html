@@ -627,26 +627,29 @@ function resolveTileCollisions(horizontal) {
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-      } else if (tile === 9) { // Goal Portal
-        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-          playSound(880, 'sine', 0.4);
-          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-          if (isEditor) {
-            toggleEditor(true);
-          } else {
-             if (!coins || coins.length === 0 || coins.length < totalCoins * 0.5) {
-               loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-             } else {
-               currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-               loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-           //13789
+        } else if (tile === 9) { // Goal Portal
+          if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+            playSound(880, 'sine', 0.4);
+            spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+            
+            if (isEditor) {
+              toggleEditor(true);
+            } else {
+              // Restart if more than 50% of coins are still uncollected
+              if (coins && coins.length > totalCoins * 0.5) {
+                loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+              } else {
+                currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+              }
+            }
+            return; // Stops the loop immediately after loading/restarting
           }
-          return;
         }
       }
     }
-  }
-}
+  } // <-- This 5th brace was missing
+
 function draw() {
   ctx.fillStyle = '#0b0e17';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
