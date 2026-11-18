@@ -628,21 +628,22 @@ function resolveTileCollisions(horizontal) {
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
       } else if (tile === 9) { // Goal Portal
-        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-          playSound(880, 'sine', 0.4);
-          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-          if (isEditor) {
-            toggleEditor(true);
-          } else {
-            currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-            loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-             if (!coins || coins.length === 0) {
-               loadLevel(grid)
-             }
-           //13789
-          }
-          return;
-        }
+           if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+               playSound(880, 'sine', 0.4);
+               spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+               
+               if (isEditor) {
+                   toggleEditor(true);
+               } else {
+                   currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                   loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+                   
+                   if (!coins || coins.length === 0) {
+                       loadLevel(grid); // 13789
+                   }
+               }
+               return;
+           }
       }
     }
   }
