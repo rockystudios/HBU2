@@ -485,6 +485,17 @@ function killPlayer() {
   loadLevel(grid);
 }
 
+function hasAtLeastHalfCoins(collected, coins) {
+  // Prevent division by zero if a level has no coins
+  if (!coins || coins.length === 0) {
+    return false;
+  }
+
+  return (collected / coins.length) >= 0.5;
+}
+ // 1378
+
+
 function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
@@ -625,6 +636,10 @@ function resolveTileCollisions(horizontal) {
           } else {
             currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
             loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+             if (!coins || coins.length === 0) {
+               loadLevel(grid)
+             }
+           //13789
           }
           return;
         }
