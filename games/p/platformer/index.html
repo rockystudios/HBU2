@@ -486,12 +486,8 @@ function killPlayer() {
 }
 
 function hasAtLeastHalfCoins(collected, coins) {
-  // Prevent division by zero if a level has no coins
-  if (!coins || coins.length === 0) {
-    return false;
-  }
-
-  return (collected / coins.length) >= 0.5;
+  if (!coins || coins.length === 0) return true; // no coins required
+  return collected / coins.length >= 0.5;
 }
  // 1378
 
@@ -626,24 +622,26 @@ function resolveTileCollisions(horizontal) {
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-      } else if (tile === 9) { // Goal Portal
-        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-          playSound(880, 'sine', 0.4);
-          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-
-          if (isEditor) {
-            toggleEditor(true);
-          } else {
-            if (coins && coins.length > totalCoins * 0.5) {
-              killPlayer();
-            } else {
-              currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-              loadLevel(BUILTIN_LEVELS[currentLevelIdx]); // Verify if .grid is needed or not
-            }
-          }
-          return true;
-        }
-      }
+        } else if (tile === 9) { // Goal Portal
+            if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+              playSound(880, 'sine', 0.4);
+              spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+          
+              if (isEditor) {
+                // No progression while editing — just flash the portal.
+                toggleEditor(true);
+              } else {
+                const collected = coins.filter(c => c.collected).length;
+                if (!hasAtLeastHalfCoins(collected, coins)) {
+                  killPlayer();               // not enough coins — back to spawn
+                } else {
+                  currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                  loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+                }
+              }
+           return true;
+         }
+       }
     }
   }
   return false;
