@@ -637,7 +637,7 @@ function resolveTileCollisions(horizontal) {
             } else {
               // Restart if more than 50% of coins are still uncollected
               if (coins && coins.length > totalCoins * 0.5) {
-                loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+                killPlayer()
               } else {
                 currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
                 loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
@@ -648,7 +648,7 @@ function resolveTileCollisions(horizontal) {
         }
       }
     }
-  } // <-- This 5th brace was missing
+  } // <-- 13789
 
 function draw() {
   ctx.fillStyle = '#0b0e17';
