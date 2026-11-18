@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Pulse Platformer & Level Maker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: #0d0f1a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 15px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 960px;
+    margin-bottom: 10px;
+    background: #161b2e;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #2d3759;
+  }
+  h1 { font-size: 1.2rem; color: #38bdf8; letter-spacing: 0.5px; }
+  .stats { display: flex; gap: 18px; font-weight: 600; font-size: 0.95rem; }
+  .stats span { color: #fbbf24; }
+  .controls-bar { display: flex; gap: 8px; }
+  button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+    font-size: 0.85rem;
+  }
+  button:hover { background: #1d4ed8; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.secondary { background: #334155; }
+  button.secondary:hover { background: #475569; }
+  button.success { background: #059669; }
+  button.success:hover { background: #047857; }
+  button.danger { background: #dc2626; }
+  button.danger:hover { background: #b91c1c; }
+  button.active-tool { outline: 2px solid #38bdf8; background: #1e40af; }
+
+  #game-wrapper {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    border: 2px solid #2d3759;
+  }
+  canvas { display: block; background: #0b0e17; }
+
+  #editor-panel {
+    display: none;
+    width: 100%;
+    max-width: 960px;
+    background: #161b2e;
+    border: 1px solid #2d3759;
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-top: 10px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #editor-panel.visible { display: flex; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tool-btn { display: flex; align-items: center; gap: 6px; background: #1e293b; border: 1px solid #334155; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .json-row { display: flex; gap: 8px; width: 100%; }
+  textarea {
+    flex: 1;
+    height: 54px;
+    background: #0b0e17;
+    color: #38bdf8;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    resize: none;
+  }
+  .hint { font-size: 0.8rem; color: #94a3b8; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NEON PULSE</h1>
+  <div class="stats">
+    <div>Level: <span id="ui-level">1</span></div>
+    <div>Coins: <span id="ui-coins">0/0</span></div>
+    <div>Deaths: <span id="ui-deaths">0</span></div>
+  </div>
+  <div class="controls-bar">
+    <button id="btn-mode" class="success">Open Level Maker</button>
+    <button id="btn-reset" class="secondary">Restart (R)</button>
+    <button id="btn-next" class="secondary">Next Built-in Level</button>
+  </div>
+</header>
+
+<div id="game-wrapper">
+  <canvas id="game" width="960" height="540"></canvas>
+</div>
+
+<div id="editor-panel">
+  <div class="toolbar" id="tool-buttons">
+    <strong>Tiles:</strong>
+    <button class="tool-btn active-tool" data-tile="1"><span class="swatch" style="background:#3b82f6"></span>Block</button>
+    <button class="tool-btn" data-tile="2"><span class="swatch" style="background:#10b981"></span>Jump Pad</button>
+    <button class="tool-btn" data-tile="3"><span class="swatch" style="background:#ef4444"></span>Spikes</button>
+    <button class="tool-btn" data-tile="4"><span class="swatch" style="background:#f43f5e"></span>Pulsing Laser</button>
+    <button class="tool-btn" data-tile="5"><span class="swatch" style="background:#f59e0b"></span>Coin</button>
+    <button class="tool-btn" data-tile="6"><span class="swatch" style="background:#a855f7"></span>Speed Boost</button>
+    <button class="tool-btn" data-tile="7"><span class="swatch" style="background:#06b6d4"></span>Moving Platform</button>
+    <button class="tool-btn" data-tile="8"><span class="swatch" style="background:#ffffff"></span>Spawn</button>
+    <button class="tool-btn" data-tile="9"><span class="swatch" style="background:#fde047"></span>Goal Portal</button>
+    <button class="tool-btn" data-tile="0"><span class="swatch" style="background:#0b0e17;border:1px solid #64748b"></span>Erase</button>
+    <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
+  </div>
+  <div class="json-row">
+    <textarea id="json-box" placeholder="Click 'Export JSON' to get shareable level code, or paste someone else's JSON here and click 'Import & Play'..."></textarea>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <button id="btn-export" class="secondary">Export JSON</button>
+      <button id="btn-import" class="success">Import & Play</button>
+    </div>
+  </div>
+  <div class="hint">Left-click or drag on canvas to place tiles. Right-click to erase. Click "Play Custom Level" when done!</div>
+</div>
+
+<div class="hint" id="play-hint">Controls: <b>A/D</b> or <b>Arrow Keys</b> to Move | <b>W / Space / Up</b> to Jump (Double Jump supported!) | <b>R</b> to Restart</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const TILE = 30;
+const COLS = 32; // 960 / 30
+const ROWS = 18; // 540 / 30
+
+// Simple Web Audio Synthesizer (No external files needed)
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const actx = new AudioCtx();
+function playSound(freq, type, duration, vol = 0.12) {
+  if (actx.state === 'suspended') actx.resume();
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, actx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(freq * 0.5, actx.currentTime + duration);
+  gain.gain.setValueAtTime(vol, actx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  osc.start();
+  osc.stop(actx.currentTime + duration);
+}
+
+// Tile Legend:
+// 0: Empty, 1: Solid Block, 2: Jump Pad, 3: Spikes, 4: Pulsing Laser,
+// 5: Coin, 6: Speed Boost Pad, 7: Moving Platform, 8: Player Spawn, 9: Goal
+
+const BUILTIN_LEVELS = [
+  {
+    name: "Neon Awakening",
+    grid: [
+      "11111111111111111111111111111111",
+      "10000000000000000000000000000001",
+      "10000000000000000000050000000091",
+      "10000000000000000000111000000111",
+      "10000000000005000000000000000001",
+      "10000000000011100000000070000001",
+      "10000000000000000000000000000001",
+      "10000050000000000400000000000001",
+      "10001111000000000400000000050001",
+      "10000000000000001110000000111001",
+      "10000000000200000000000000000001",
+      "10800000011110000000000000000001",
+      "11110000000000000000006600000001",
+      "10000000000000000000111111000001",
+      "10000000000000500000000000000001",
+      "10000033300001110000000000000001",
+      "11111111111111111113333333333111",
+      "11111111111111111111111111111111"
+    ].map(r => r.split('').map(Number))
+  },
+  {
+    name: "Laser Gauntlet",
+    grid: [
+      "11111111111111111111111111111111",
+      "19000000040000000400000000000001",
+      "11110000040050000400005000000001",
+      "10000000000111000000011100000001",
+      "10000000000000000000000000000201",
+      "10000700000000000000000000011111",
+      "10000000000000000000000000000001",
+      "10000000000000000040000000000001",
+      "10020000000000000040000050000001",
+      "11111000000000001111100111000001",
+      "10000000005000000000000000000001",
+      "10000000111110000000000000000001",
+      "10000000000000000000000000000001",
+      "10800066000000000000000000000201",
+      "11111111100000000000000000011111",
+      "10000000000000000000000000000001",
+      "13333333333333333333333333333331",
+      "11111111111111111111111111111111"
+    ].map(r => r.split('').map(Number))
+  }
+];
+
+let currentLevelIdx = 0;
+let grid = [];
+let isEditor = false;
+let selectedTile = 1;
+let isMouseDown = false;
+let mouseButton = 0;
+let deaths = 0;
+let frameCount = 0;
+let particles = [];
+let coins = [];
+let movingPlatforms = [];
+
+const player = {
+  x: 60, y: 300, w: 22, h: 26,
+  vx: 0, vy: 0,
+  speed: 4.5,
+  jumpForce: -10.5,
+  grounded: false,
+  jumpsLeft: 2,
+  speedBoostTimer: 0,
+  trail: []
+};
+
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (!isEditor && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW')) {
+    jump();
+  }
+  if (!isEditor && e.code === 'KeyR') loadLevel(grid);
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+function cloneGrid(g) {
+  return g.map(row => [...row]);
+}
+
+function loadLevel(sourceGrid) {
+  grid = cloneGrid(sourceGrid);
+  coins = [];
+  movingPlatforms = [];
+  particles = [];
+  player.vx = 0;
+  player.vy = 0;
+  player.speedBoostTimer = 0;
+  player.trail = [];
+
+  let foundSpawn = false;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const val = grid[r][c];
+      if (val === 8) {
+        player.x = c * TILE + 4;
+        player.y = r * TILE + 2;
+        foundSpawn = true;
+      } else if (val === 5) {
+        coins.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2, collected: false });
+      } else if (val === 7) {
+        movingPlatforms.push({
+          startX: c * TILE, x: c * TILE, y: r * TILE,
+          w: TILE * 2, h: 14, dir: 1, range: 90, speed: 1.8
+        });
+      }
+    }
+  }
+  if (!foundSpawn) { player.x = 60; player.y = 60; }
+  updateHUD();
+}
+
+function updateHUD() {
+  const collected = coins.filter(c => c.collected).length;
+  document.getElementById('ui-coins').textContent = `${collected}/${coins.length}`;
+  document.getElementById('ui-deaths').textContent = deaths;
+  document.getElementById('ui-level').textContent = isEditor ? "Editor" : (currentLevelIdx + 1);
+}
+
+function spawnParticles(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 7,
+      vy: (Math.random() - 0.5) * 7,
+      life: 1,
+      color
+    });
+  }
+}
+
+function jump() {
+  if (player.grounded || player.jumpsLeft > 0) {
+    player.vy = player.jumpForce;
+    if (!player.grounded) spawnParticles(player.x + player.w / 2, player.y + player.h, '#38bdf8', 8);
+    player.grounded = false;
+    player.jumpsLeft--;
+    playSound(320, 'sine', 0.15);
+  }
+}
+
+function killPlayer() {
+  deaths++;
+  playSound(120, 'sawtooth', 0.3, 0.2);
+  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444', 25);
+  loadLevel(grid);
+}
+
+function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function update() {
+  frameCount++;
+  if (isEditor) return;
+
+  // Horizontal movement
+  let moveDir = 0;
+  if (keys['ArrowLeft'] || keys['KeyA']) moveDir -= 1;
+  if (keys['ArrowRight'] || keys['KeyD']) moveDir += 1;
+
+  if (player.speedBoostTimer > 0) player.speedBoostTimer--;
+  const maxSpeed = player.speedBoostTimer > 0 ? player.speed * 1.75 : player.speed;
+  player.vx = moveDir * maxSpeed;
+
+  // Gravity
+  player.vy += 0.52;
+  if (player.vy > 13) player.vy = 13;
+
+  // Moving platforms update
+  for (const mp of movingPlatforms) {
+    mp.x += mp.speed * mp.dir;
+    if (Math.abs(mp.x - mp.startX) >= mp.range) mp.dir *= -1;
+  }
+
+  // Move X & resolve solid tiles
+  player.x += player.vx;
+  resolveTileCollisions(true);
+
+  // Move Y & resolve solid tiles
+  player.grounded = false;
+  player.y += player.vy;
+  resolveTileCollisions(false);
+
+  // Moving platform landing
+  for (const mp of movingPlatforms) {
+    if (player.vy >= 0 &&
+        player.x + player.w > mp.x && player.x < mp.x + mp.w &&
+        player.y + player.h >= mp.y && player.y + player.h <= mp.y + mp.h + 10) {
+      player.y = mp.y - player.h;
+      player.vy = 0;
+      player.grounded = true;
+      player.jumpsLeft = 2;
+      player.x += mp.speed * mp.dir;
+    }
+  }
+
+  // Trail effect
+  if (frameCount % 2 === 0) {
+    player.trail.push({ x: player.x, y: player.y, alpha: 0.5 });
+    if (player.trail.length > 8) player.trail.shift();
+  }
+
+  // Coin collection
+  for (const c of coins) {
+    if (!c.collected && rectOverlap(player.x, player.y, player.w, player.h, c.x - 8, c.y - 8, 16, 16)) {
+      c.collected = true;
+      playSound(780, 'triangle', 0.14);
+      spawnParticles(c.x, c.y, '#f59e0b', 10);
+      updateHUD();
+    }
+  }
+
+  // Out of bounds
+  if (player.y > canvas.height + 40) killPlayer();
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.04;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function resolveTileCollisions(horizontal) {
+  const laserActive = Math.floor(frameCount / 75) % 2 === 0;
+
+  const leftCol = Math.max(0, Math.floor(player.x / TILE));
+  const rightCol = Math.min(COLS - 1, Math.floor((player.x + player.w - 0.01) / TILE));
+  const topRow = Math.max(0, Math.floor(player.y / TILE));
+  const botRow = Math.min(ROWS - 1, Math.floor((player.y + player.h - 0.01) / TILE));
+
+  for (let r = topRow; r <= botRow; r++) {
+    for (let c = leftCol; c <= rightCol; c++) {
+      const tile = grid[r][c];
+      const tx = c * TILE;
+      const ty = r * TILE;
+
+      if (tile === 1) { // Solid block
+        if (horizontal) {
+          if (player.vx > 0) player.x = tx - player.w;
+          else if (player.vx < 0) player.x = tx + TILE;
+          player.vx = 0;
+        } else {
+          if (player.vy > 0) {
+            player.y = ty - player.h;
+            player.grounded = true;
+            player.jumpsLeft = 2;
+          } else if (player.vy < 0) {
+            player.y = ty + TILE;
+          }
+          player.vy = 0;
+        }
+      } else if (tile === 2) { // Jump Boost Pad
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 2, ty + 14, TILE - 4, 16)) {
+          player.vy = -16.5;
+          player.grounded = false;
+          player.jumpsLeft = 2;
+          playSound(520, 'sine', 0.25);
+          spawnParticles(tx + TILE / 2, ty + 16, '#10b981', 15);
+        }
+      } else if (tile === 3) { // Spikes
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 5, ty + 10, TILE - 10, TILE - 10)) {
+          killPlayer();
+          return;
+        }
+      } else if (tile === 4 && laserActive) { // Pulsing Laser
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 11, ty, 8, TILE)) {
+          killPlayer();
+          return;
+        }
+      } else if (tile === 6) { // Speed Boost Pad
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty + 18, TILE, 12)) {
+          player.speedBoostTimer = 90;
+          playSound(640, 'square', 0.12, 0.08);
+          spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
+        }
+      } else if (tile === 9) { // Goal Portal
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+          playSound(880, 'sine', 0.4);
+          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+          if (isEditor) {
+            toggleEditor(true);
+          } else {
+            currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+            loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+          }
+          return;
+        }
+      }
+    }
+  }
+}
+function draw() {
+  ctx.fillStyle = '#0b0e17';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle background grid
+  ctx.strokeStyle = isEditor ? '#1e293b' : '#111626';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= canvas.width; x += TILE) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y <= canvas.height; y += TILE) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  const laserActive = Math.floor(frameCount / 75) % 2 === 0;
+
+  // Draw Grid Tiles
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const tile = grid[r][c];
+      const x = c * TILE;
+      const y = r * TILE;
+
+      if (tile === 1) {
+        ctx.fillStyle = '#1e3a8a';
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
+      } else if (tile === 2) {
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(x + 2, y + 18, TILE - 4, 12);
+        ctx.fillStyle = '#6ee7b7';
+        ctx.fillRect(x + 5, y + 14, TILE - 10, 4);
+      } else if (tile === 3) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.moveTo(x + 2, y + TILE);
+        ctx.lineTo(x + TILE / 2, y + 6);
+        ctx.lineTo(x + TILE - 2, y + TILE);
+        ctx.fill();
+      } else if (tile === 4) {
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + 8, y, 14, 4);
+        ctx.fillRect(x + 8, y + TILE - 4, 14, 4);
+        if (laserActive || isEditor) {
+          ctx.fillStyle = laserActive ? '#f43f5e' : 'rgba(244, 63, 94, 0.25)';
+          ctx.fillRect(x + 12, y + 4, 6, TILE - 8);
+        }
+      } else if (tile === 5 && isEditor) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath(); ctx.arc(x + 15, y + 15, 7, 0, Math.PI * 2); ctx.fill();
+      } else if (tile === 6) {
+        ctx.fillStyle = '#a855f7';
+        ctx.fillRect(x, y + 22, TILE, 8);
+      } else if (tile === 7 && isEditor) {
+        ctx.fillStyle = '#06b6d4';
+        ctx.fillRect(x, y, TILE * 2, 14);
+      } else if (tile === 8 && isEditor) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(x + 4, y + 2, 22, 26);
+      } else if (tile === 9) {
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x + 15, y + 15, 10 + Math.sin(frameCount * 0.1) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+    }
+  }
+
+  if (!isEditor) {
+    // Active Coins
+    for (const c of coins) {
+      if (c.collected) continue;
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(c.x, c.y + Math.sin(frameCount * 0.1) * 3, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Active Moving Platforms
+    ctx.fillStyle = '#06b6d4';
+    for (const mp of movingPlatforms) {
+      ctx.fillRect(mp.x, mp.y, mp.w, mp.h);
+    }
+
+    // Player Trail & Body
+    for (const t of player.trail) {
+      ctx.fillStyle = player.speedBoostTimer > 0 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.2)';
+      ctx.fillRect(t.x, t.y, player.w, player.h);
+    }
+    ctx.fillStyle = player.speedBoostTimer > 0 ? '#d8b4fe' : '#38bdf8';
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(player.x + (player.vx >= 0 ? 13 : 4), player.y + 6, 5, 5);
+
+    // Particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// --- Level Editor & JSON Controls ---
+const btnMode = document.getElementById('btn-mode');
+const editorPanel = document.getElementById('editor-panel');
+const jsonBox = document.getElementById('json-box');
+
+function toggleEditor(forceState) {
+  isEditor = typeof forceState === 'boolean' ? forceState : !isEditor;
+  editorPanel.classList.toggle('visible', isEditor);
+  btnMode.textContent = isEditor ? 'Play Custom Level' : 'Open Level Maker';
+  btnMode.className = isEditor ? 'success' : 'secondary';
+  if (!isEditor) loadLevel(grid);
+  updateHUD();
+}
+
+btnMode.addEventListener('click', () => toggleEditor());
+document.getElementById('btn-reset').addEventListener('click', () => loadLevel(grid));
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (isEditor) toggleEditor(false);
+  currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+  loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+});
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
+    btn.classList.add('active-tool');
+    selectedTile = Number(btn.dataset.tile);
+  });
+});
+
+document.getElementById('btn-clear-map').addEventListener('click', () => {
+  grid = Array.from({ length: ROWS }, (_, r) =>
+    Array.from({ length: COLS }, (_, c) => (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? 1 : 0))
+  );
+});
+
+function paintTile(e) {
+  if (!isEditor) return;
+  const rect = canvas.getBoundingClientRect();
+  const c = Math.floor((e.clientX - rect.left) / TILE);
+  const r = Math.floor((e.clientY - rect.top) / TILE);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+  const tileToPlace = mouseButton === 2 ? 0 : selectedTile;
+  // Ensure only one spawn point exists
+  if (tileToPlace === 8) {
+    for (let rr = 0; rr < ROWS; rr++)
+      for (let cc = 0; cc < COLS; cc++)
+        if (grid[rr][cc] === 8) grid[rr][cc] = 0;
+  }
+  grid[r][c] = tileToPlace;
+}
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => { isMouseDown = true; mouseButton = e.button; paintTile(e); });
+canvas.addEventListener('mousemove', e => { if (isMouseDown) paintTile(e); });
+window.addEventListener('mouseup', () => isMouseDown = false);
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const payload = JSON.stringify({ game: "NeonPulse", version: 1, grid });
+  jsonBox.value = payload;
+  jsonBox.select();
+  navigator.clipboard?.writeText(payload);
+});
+
+document.getElementById('btn-import').addEventListener('click', () => {
+  try {
+    const parsed = JSON.parse(jsonBox.value.trim());
+    if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) throw new Error("Invalid grid");
+    grid = parsed.grid;
+    toggleEditor(false);
+  } catch (err) {
+    alert("Invalid level JSON! Make sure you pasted the complete JSON text.");
+  }
+});
+
+// Start Game
+loadLevel(BUILTIN_LEVELS[0].grid);
+loop();
+</script>
+</body>
+</html>
