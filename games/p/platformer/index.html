@@ -650,28 +650,26 @@ function resolveTileCollisions(horizontal) {
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-      } else if (tile === 9) { // Goal Portal
-           if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-               playSound(880, 'sine', 0.4);
-               spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-               
-               if (isEditor) {
-                   toggleEditor(true);
-               } else {
-                   
-                   if (!coins || coins.length === 0) {
-                       loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid); // 13789
-                    
-                   } else {
-                      currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                      loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-                    
-                   
-               }
-               return;
-           }
-      }
-    }
+        } else if (tile === 9) { // Goal Portal
+            if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+                playSound(880, 'sine', 0.4);
+                spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+        
+                if (isEditor) {
+                    toggleEditor(true);
+                } else {
+                    // If all coins are collected (array is empty), advance to the next level
+                    if (!coins || coins.length === 0 || (coins.length / totalItems.length) < 0.5) {
+                        currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                        loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+                    } else {
+                        // Otherwise, restart the current level
+                        loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid); 
+                    }
+                    return;
+                }
+            }
+        }
   }
 }
 function draw() {
