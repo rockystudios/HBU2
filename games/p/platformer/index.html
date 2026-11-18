@@ -377,29 +377,6 @@ const BUILTIN_LEVELS = [
     "13333333333333333333333333333331",
     "11111111111111111111111111111111"
   ].map(r => r.split("").map(Number))
-},
-{
-  name: "Grayson",
-  grid: [
-    "11111111111111111111111111111111",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000001111",
-    "10000000000000000000000000004651",
-    "10000000000000000000000000001111",
-    "10000000000000006666000077700031",
-    "10000000000000001111000000000031",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000000005",
-    "10000000000066200000000000000009",
-    "10000000000011100000000000000001",
-    "10003850000000000000000000000031",
-    "10001110000000000000000000000031",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000000001",
-    "10000000000000000000000000000001"
-  ].map(r => r.split("").map(Number))
 }
 
 ];
@@ -650,30 +627,24 @@ function resolveTileCollisions(horizontal) {
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-        } else if (tile === 9) { // Goal Portal
-            if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-                playSound(880, 'sine', 0.4);
-                spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-        
-                if (isEditor) {
-                    toggleEditor(true);
-                } else {
-                    currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                    loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-                    // If all coins are collected (array is empty), advance to the next level
-                    /*if (!coins || coins.length === 0 || (coins.length / totalItems.length) < 0.5) {
-                        currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                        loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-                    } else {
-                        // Otherwise, restart the current level
-                        loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid); 
-                    }
-                    */
-                    return; // 13789
-                    
-                }
-            }
+      } else if (tile === 9) { // Goal Portal
+        if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+          playSound(880, 'sine', 0.4);
+          spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+          if (isEditor) {
+            toggleEditor(true);
+          } else {
+            currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+            loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+             if (!coins || coins.length === 0) {
+               loadLevel(grid)
+             }
+           //13789
+          }
+          return;
         }
+      }
+    }
   }
 }
 function draw() {
