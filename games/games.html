@@ -3,41 +3,264 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
+  <title>✦ HbuOS — Game Vault</title>
   <style>
+    :root {
+      --bg-dark: #0b0914;
+      --card-bg: rgba(24, 20, 40, 0.85);
+      --border-glow: rgba(168, 85, 247, 0.25);
+      --accent-purple: #a855f7;
+      --accent-violet: #7c3aed;
+      --text-main: #f4efff;
+      --text-muted: #a39bb8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
-      color: #333;
-      margin: 40px;
-      line-height: 1.6;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(124, 58, 237, 0.18), transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.12), transparent 40%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
     }
-    .container {
-      max-width: 600px;
-      background: #fff;
-      padding: 25px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+
+    /* Top HbuOS Status Bar */
+    .top-bar {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-glow);
+      backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      border-radius: 14px;
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
+
+    .brand {
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand span {
+      color: var(--accent-purple);
+    }
+
+    .status-pills {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .coin-badge {
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid var(--border-glow);
+      color: var(--text-main);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* OS App Window */
+    .os-window {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(124, 58, 237, 0.1);
+      overflow: hidden;
+    }
+
+    .window-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .window-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      user-select: none;
+    }
+
+    .window-body {
+      padding: 28px 24px;
+    }
+
+    .tagline {
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-purple);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
     h1 {
-      color: #2c3e50;
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #ffffff, #d8b4fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    a {
-      color: #0066cc;
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+
+    /* Game Grid */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+
+    .game-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px;
+      border-radius: 14px;
       text-decoration: none;
-      font-weight: bold;
+      color: var(--text-main);
+      transition: all 0.2s ease;
     }
-    a:hover {
-      text-decoration: underline;
+
+    .game-card:hover {
+      background: rgba(124, 58, 237, 0.18);
+      border-color: var(--accent-purple);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.25);
+    }
+
+    .game-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-violet), var(--accent-purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+    }
+
+    .game-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-name {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 2px;
+    }
+
+    .game-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>Games</h1>
-    <a href="https://rockystudios.github.io/HBU2/geo/index.html">Geo Dash Webport</a>
-    <a href="https://rockystudios.github.io/HBU2/games/b/backrooms">Backrooms</a>
+  <!-- Top HbuOS Bar -->
+  <div class="top-bar">
+    <div class="brand"><span>✦</span> HbuOS</div>
+    <div class="status-pills">
+      <span>🔇</span>
+      <span class="coin-badge">🪙 0</span>
+    </div>
+  </div>
+
+  <!-- Main Arcade Window -->
+  <div class="os-window">
+    <div class="window-header">
+      <div class="window-title">🕹 Arcade — The game vault</div>
+      <div class="window-controls">
+        <span>⛶</span>
+        <span>✕</span>
+      </div>
+    </div>
+
+    <div class="window-body">
+      <div class="tagline">✧ PLAY BEFORE THE TEACHER COMES</div>
+      <h1>Welcome, Fellow Humans.</h1>
+      <p class="subtitle">Pick a game to start playing. Shhhh, don't ask where I got the games.</p>
+
+      <div class="game-grid">
+        <a class="game-card" href="https://rockystudios.github.io/HBU2/geo/index.html">
+          <div class="game-icon">🟦</div>
+          <div class="game-info">
+            <span class="game-name">Geo Dash Webport</span>
+            <span class="game-meta">Rhythm · Platformer ↗</span>
+          </div>
+        </a>
+
+        <a class="game-card" href="https://rockystudios.github.io/HBU2/games/b/backrooms">
+          <div class="game-icon">🟨</div>
+          <div class="game-info">
+            <span class="game-name">Backrooms</span>
+            <span class="game-meta">Horror · Survival ↗</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="footer-note">
+        <span>HbuOS Game Vault</span>
+        <span>● Live</span>
+      </div>
+    </div>
   </div>
 
 </body>
