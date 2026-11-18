@@ -116,7 +116,16 @@ Deno.serve(async (req: Request) => {
     return json({ error: "HBU2 gateway is not configured. Requests are blocked until setup is complete." }, 503);
   }
 
-  const target = getTargetPath(req);
+  let target = getTargetPath(req);
+
+  // Supabase's Edge Runtime can expose only the function root path
+  // (/hbu-gateway), even when the browser requested a nested suffix.
+  // The browser-facing gateway uses POST at its root only for send-message
+  // actions such as login and signup, so safely normalize that request.
+  if (!target && req.method === "POST" && new URL(req.url).pathname === GATEWAY_PREFIX) {
+    target = "/functions/v1/send-message";
+  }
+
   const pathname = target.split("?")[0];
   const validTarget = pathname.startsWith("/rest/v1/") || pathname === "/functions/v1/send-message";
   if (!validTarget) return json({ error: "Gateway route not found.", receivedPath: new URL(req.url).pathname }, 404);
