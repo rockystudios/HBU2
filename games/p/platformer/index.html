@@ -660,7 +660,7 @@ function resolveTileCollisions(horizontal) {
                } else {
                    
                    if (!coins || coins.length === 0) {
-                       loadLevel(grid); // 13789
+                       loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid); // 13789
                     
                    } else {
                       currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
