@@ -658,15 +658,19 @@ function resolveTileCollisions(horizontal) {
                 if (isEditor) {
                     toggleEditor(true);
                 } else {
+                    currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                    loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
                     // If all coins are collected (array is empty), advance to the next level
-                    if (!coins || coins.length === 0 || (coins.length / totalItems.length) < 0.5) {
+                    /*if (!coins || coins.length === 0 || (coins.length / totalItems.length) < 0.5) {
                         currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
                         loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
                     } else {
                         // Otherwise, restart the current level
                         loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid); 
                     }
-                    return;
+                    */
+                    return; // 13789
+                    
                 }
             }
         }
