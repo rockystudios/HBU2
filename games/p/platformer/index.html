@@ -634,11 +634,11 @@ function resolveTileCollisions(horizontal) {
           if (isEditor) {
             toggleEditor(true);
           } else {
-            currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-            loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
-             if (!coins || coins.length === 0) {
-               loadLevel(grid)
-             }
+             if (!coins || coins.length === 0 || coins.length < totalCoins * 0.5) {
+               loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+             } else {
+               currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+               loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
            //13789
           }
           return;
