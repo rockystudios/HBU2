@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Pulse Platformer & Level Maker</title>
+<title>Clever</title>
+<link rel="icon" type="image/jpg" href="../../../assets/logo.jpg">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
   body {
@@ -100,9 +101,11 @@
 <header>
   <h1>NEON PULSE</h1>
   <div class="stats">
+   
     <div>Level: <span id="ui-level">1</span></div>
     <div>Coins: <span id="ui-coins">0/0</span></div>
     <div>Deaths: <span id="ui-deaths">0</span></div>
+    <div>Name: <span id="ui-name">Idk</span></div>
   </div>
   <div class="controls-bar">
     <button id="btn-mode" class="success">Open Level Maker</button>
@@ -173,7 +176,6 @@ function playSound(freq, type, duration, vol = 0.12) {
 // Tile Legend:
 // 0: Empty, 1: Solid Block, 2: Jump Pad, 3: Spikes, 4: Pulsing Laser,
 // 5: Coin, 6: Speed Boost Pad, 7: Moving Platform, 8: Player Spawn, 9: Goal
-
 const BUILTIN_LEVELS = [
   {
     name: "Neon Awakening",
@@ -659,6 +661,30 @@ const BUILTIN_LEVELS = [
     "10000000000000100000000000000001",
     "00000000000000900000000000000000"
   ].map(r => r.split("").map(Number))
+},
+{
+  name: "Caves",
+  portals: {"orange":{"r":14,"c":19},"blue":{"r":2,"c":21}},
+  grid: [
+    "11111111111111111111111111111111",
+    "11111111300011111111100003111111",
+    "11111113000031111111100000311111",
+    "11111130000003111111111000031111",
+    "11111300001000311111111000001111",
+    "11111000001300031111111000001331",
+    "11113000331130003111111000003001",
+    "11130000111110000311111000000001",
+    "13300001111110000311111300000001",
+    "10000001111113000011111100000091",
+    "10000031111111110003311100000111",
+    "10000311111111113000311100000001",
+    "10001111111111111300311100003001",
+    "10031111111111111100311103031001",
+    "10311111111111111130311101110001",
+    "18111111111111111111111133333331",
+    "11111111111111111111111111111111",
+    "11111111111111111111111111111111"
+  ].map(r => r.split("").map(Number))
 }
 ];
 
@@ -676,6 +702,7 @@ let movingPlatforms = [];
 let portals = { orange: null, blue: null };   // {r, c} tile coords
 let portalCooldown = 0;
 let currentLevel = null;
+
 
 const player = {
   x: 60, y: 300, w: 22, h: 26,
@@ -759,6 +786,9 @@ function updateHUD() {
   document.getElementById('ui-coins').textContent = `${collected}/${coins.length}`;
   document.getElementById('ui-deaths').textContent = deaths;
   document.getElementById('ui-level').textContent = isEditor ? "Editor" : (currentLevelIdx + 1);
+  document.getElementById('ui-name').textContent =
+    isEditor ? "Editor" : ((currentLevel && currentLevel.name) || "Custom Level");
+  
 }
 
 function spawnParticles(x, y, color, count = 12) {
