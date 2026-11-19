@@ -2,225 +2,516 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>8-Bit Binary Game Studio</title>
+<title>8-Bit Pure Binary Game Machine</title>
 <style>
-  :root {
-    --bg: #121214;
-    --panel: #1e1e24;
-    --accent: #00ff66;
-    --text: #e0e0e0;
-    --border: #33333d;
-  }
-  * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
   body {
-    margin: 0; padding: 20px; background: var(--bg); color: var(--text);
-    display: flex; flex-direction: column; height: 100vh; gap: 15px;
+    background-color: #0d1117;
+    color: #00ff66;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
   }
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid var(--border); padding-bottom: 10px;
-  }
-  h1 { margin: 0; font-size: 1.4rem; color: var(--accent); }
-  .workspace {
-    display: grid; grid-template-columns: 1fr 340px 1fr; gap: 15px; flex: 1; min-height: 0;
+  h1 { margin-bottom: 5px; text-shadow: 0 0 8px #00ff66; }
+  .subtitle { color: #8b949e; margin-bottom: 20px; font-size: 14px; }
+  .main-container {
+    display: flex;
+    gap: 20px;
+    max-width: 1100px;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
-    padding: 15px; display: flex; flex-direction: column; overflow: hidden;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
   }
-  .panel h2 { margin: 0 0 10px 0; font-size: 1rem; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-  textarea {
-    flex: 1; background: #0a0a0c; color: var(--accent); border: 1px solid var(--border);
-    padding: 10px; font-size: 14px; resize: none; line-height: 1.5; outline: none;
-  }
-  .controls { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-  button {
-    background: var(--accent); color: #000; border: none; padding: 8px 12px;
-    font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;
-  }
-  button:hover { opacity: 0.8; }
-  button.secondary { background: #33333d; color: #fff; }
   canvas {
-    background: #000; border: 2px solid var(--accent); width: 300px; height: 300px;
-    image-rendering: pixelated; align-self: center; margin: auto 0;
+    background: #000;
+    border: 2px solid #00ff66;
+    image-rendering: pixelated;
+    width: 320px;
+    height: 320px;
+    display: block;
+    margin-bottom: 10px;
   }
-  .manual { overflow-y: auto; font-size: 0.85rem; line-height: 1.4; }
-  .manual code { background: #000; color: var(--accent); padding: 2px 4px; border-radius: 3px; }
-  .manual table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  .manual td, .manual th { border: 1px solid var(--border); padding: 5px; text-align: left; }
-  .status { font-size: 0.85rem; color: #aaa; margin-top: 8px; }
+  textarea {
+    width: 340px;
+    height: 320px;
+    background: #010409;
+    color: #00ff66;
+    border: 1px solid #30363d;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    padding: 10px;
+    resize: none;
+    line-height: 1.4;
+  }
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: #238636;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover { background: #2ea043; }
+  button.stop { background: #da3633; }
+  button.stop:hover { background: #f85149; }
+  button.secondary { background: #30363d; }
+  button.secondary:hover { background: #484f58; }
+  .registers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+    background: #010409;
+    padding: 10px;
+    border: 1px solid #30363d;
+    font-size: 13px;
+  }
+  .tutorial {
+    max-width: 1060px;
+    margin-top: 25px;
+    line-height: 1.6;
+    color: #c9d1d9;
+  }
+  .tutorial h2, .tutorial h3 { color: #00ff66; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px; }
+  th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
+  th { background: #010409; color: #00ff66; }
+  code { background: #010409; padding: 2px 5px; color: #79c0ff; border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>[0101] 8-BIT BINARY GAME STUDIO</h1>
-  <div>Use <strong>Arrow Keys</strong> to play!</div>
-</header>
+<h1>8-BIT BINARY VIRTUAL MACHINE</h1>
+<div class="subtitle">Zero abstractions. Write pure 8-bit opcodes and operands directly into RAM.</div>
 
-<div class="workspace">
-  <!-- LEFT: CODE EDITOR -->
+<div class="main-container">
+  <!-- Left Panel: Binary Editor -->
   <div class="panel">
-    <h2>1. Binary Code Editor (8-Bit Instructions)</h2>
-    <textarea id="code" spellcheck="false" placeholder="Enter 8-bit binary instructions..."></textarea>
+    <strong>RAM PROGRAM LOADER (8-bit Binary)</strong><br>
+    <small style="color:#8b949e;">One 8-bit byte per line. Anything after // is ignored.</small><br><br>
+    <textarea id="binaryInput" spellcheck="false"></textarea>
     <div class="controls">
-      <button onclick="runCode()">▶ RUN GAME</button>
-      <button class="secondary" onclick="stopCode()">■ STOP</button>
-      <button class="secondary" onclick="loadDemo('mover')">Demo: Mover</button>
-      <button class="secondary" onclick="loadDemo('dodge')">Demo: Dodger</button>
+      <button onclick="loadAndRun()">LOAD & RUN</button>
+      <button class="stop" onclick="stopCPU()">HALT</button>
+      <button class="secondary" onclick="stepCPU()">STEP (1 INSTR)</button>
+      <button class="secondary" onclick="loadDemoGame()">LOAD DEMO GAME</button>
     </div>
-    <div class="status" id="status">Status: Ready</div>
   </div>
 
-  <!-- MIDDLE: GAME SCREEN -->
+  <!-- Right Panel: Screen & CPU State -->
   <div class="panel">
-    <h2>2. 16x16 Pixel Screen</h2>
+    <strong>16x16 MEMORY-MAPPED DISPLAY (RAM 240–255)</strong><br>
+    <small style="color:#8b949e;">Use W, A, S, D keys to send signals to Input Port 239.</small><br><br>
     <canvas id="screen" width="16" height="16"></canvas>
-    <div class="status" id="registers">X: 0 | Y: 0 | Enemy: (0,0)</div>
-  </div>
-
-  <!-- RIGHT: TUTORIAL & OPCODES -->
-  <div class="panel">
-    <h2>3. Binary Instruction Manual</h2>
-    <div class="manual">
-      <p>Every instruction is <strong>8 bits</strong> long:<br><code>[4-bit Opcode] [4-bit Value]</code></p>
-      <p>Spaces and text after <code>;</code> are ignored (comments).</p>
-      <table>
-        <tr><th>Opcode</th><th>Action</th></tr>
-        <tr><td><code>0000</code></td><td>Clear Screen</td></tr>
-        <tr><td><code>0001</code></td><td>Set Player X (0000-1111)</td></tr>
-        <tr><td><code>0010</code></td><td>Set Player Y (0000-1111)</td></tr>
-        <tr><td><code>0011</code></td><td>Draw Player (Value = Color 1-7)</td></tr>
-        <tr><td><code>0100</code></td><td>Move Player on Arrow Key</td></tr>
-        <tr><td><code>0101</code></td><td>Draw Pixel at Enemy X,Y (Color)</td></tr>
-        <tr><td><code>0110</code></td><td>Move Enemy Down (Wraps at bottom)</td></tr>
-        <tr><td><code>0111</code></td><td>Reset Game if Player hits Enemy</td></tr>
-        <tr><td><code>1111</code></td><td>Loop back to start (60 FPS)</td></tr>
-      </table>
-      <p><strong>Colors (4-bit):</strong><br>
-      <code>0001</code> Red | <code>0010</code> Green | <code>0011</code> Blue<br>
-      <code>0100</code> Yellow | <code>0111</code> White</p>
+    <div class="registers" id="cpuState">
+      <div>PC: 00000000</div>
+      <div>R0: 00000000</div>
+      <div>R1: 00000000</div>
+      <div>R2: 00000000</div>
+      <div>R3: 00000000</div>
+      <div>ZERO FLAG: 0</div>
     </div>
   </div>
 </div>
 <script>
-  const canvas = document.getElementById('screen');
-  const ctx = canvas.getContext('2d');
-  const codeBox = document.getElementById('code');
-  const statusEl = document.getElementById('status');
-  const regEl = document.getElementById('registers');
+// HARDWARE ARCHITECTURE:
+// - 256 Bytes of RAM (Addresses 0 to 255)
+// - Addresses 0 to 238: Program Code & Variables
+// - Address 239 (11101111): Keyboard Input Register (1=W, 2=S, 3=A, 4=D, 0=None)
+// - Addresses 240 to 255 (11110000 to 11111111): Video RAM (16 rows of 16 pixels!)
 
-  const COLORS = ['#000000', '#ff3333', '#00ff66', '#3399ff', '#ffff33', '#ff33ff', '#33ffff', '#ffffff'];
+const RAM = new Uint8Array(256);
+let R = new Uint8Array(4); // 4 General Purpose Registers: R0 (00), R1 (01), R2 (10), R3 (11)
+let PC = 0;                // Program Counter
+let ZF = 0;                // Zero Flag (1 if last comparison/math was zero)
+let running = false;
+let cpuInterval = null;
+
+const canvas = document.getElementById('screen');
+const ctx = canvas.getContext('2d');
+
+// Hardware Keyboard Listener -> Writes directly to RAM[239]
+window.addEventListener('keydown', (e) => {
+  const key = e.key.toLowerCase();
+  if (key === 'w') RAM[239] = 1;
+  if (key === 's') RAM[239] = 2;
+  if (key === 'a') RAM[239] = 3;
+  if (key === 'd') RAM[239] = 4;
+});
+
+window.addEventListener('keyup', (e) => {
+  const key = e.key.toLowerCase();
+  if (['w','a','s','d'].includes(key)) RAM[239] = 0;
+});
+
+// Fetch next byte from RAM and increment Program Counter
+function fetch() {
+  const val = RAM[PC];
+  PC = (PC + 1) & 0xFF;
+  return val;
+}
+
+// Execute a single machine cycle (Fetch -> Decode -> Execute)
+function executeCycle() {
+  const instruction = fetch();
   
-  let loopId = null;
-  let state = { x: 7, y: 7, ex: 7, ey: 0, key: null };
+  // Top 4 bits = OPCODE (16 possible instructions)
+  // Bottom 4 bits = OPERANDS (usually two 2-bit register IDs: RegA and RegB)
+  const opcode = (instruction >> 4) & 0x0F;
+  const regA   = (instruction >> 2) & 0x03;
+  const regB   = instruction & 0x03;
 
-  window.addEventListener('keydown', (e) => {
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      state.key = e.key;
-    }
-  });
-
-  function parseBinary(raw) {
-    return raw.split('\n')
-      .map(line => line.split(';')[0].replace(/[^01]/g, '')) // Strip comments & spaces
-      .filter(line => line.length > 0);
+  switch (opcode) {
+    case 0b0000: // HLT - Halt CPU
+      stopCPU();
+      break;
+    case 0b0001: // LDI RegA, [Next Byte] - Load immediate 8-bit number into RegA
+      R[regA] = fetch();
+      break;
+    case 0b0010: // LD RegA, [Next Byte Address] - Load value from RAM address into RegA
+      R[regA] = RAM[fetch()];
+      break;
+    case 0b0011: // ST RegA, [Next Byte Address] - Store RegA value into RAM address
+      RAM[fetch()] = R[regA];
+      break;
+    case 0b0100: // STP RegA, RegB - Store RegA into RAM address pointed to by RegB
+      RAM[R[regB]] = R[regA];
+      break;
+    case 0b0101: // ADD RegA, RegB - RegA = RegA + RegB
+      R[regA] = (R[regA] + R[regB]) & 0xFF;
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b0110: // SUB RegA, RegB - RegA = RegA - RegB
+      R[regA] = (R[regA] - R[regB]) & 0xFF;
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b0111: // CMP RegA, RegB - Compare RegA and RegB (Sets Zero Flag if equal)
+      ZF = (R[regA] === R[regB]) ? 1 : 0;
+      break;
+    case 0b1000: // JMP [Next Byte Address] - Unconditional Jump
+      PC = fetch();
+      break;
+    case 0b1001: // JZ [Next Byte Address] - Jump if Zero Flag == 1
+      {
+        const addr = fetch();
+        if (ZF === 1) PC = addr;
+      }
+      break;
+    case 0b1010: // JNZ [Next Byte Address] - Jump if Zero Flag == 0
+      {
+        const addr = fetch();
+        if (ZF === 0) PC = addr;
+      }
+      break;
+    case 0b1011: // SHL RegA - Shift RegA bits left by 1 (Multiply by 2)
+      R[regA] = (R[regA] << 1) & 0xFF;
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b1100: // SHR RegA - Shift RegA bits right by 1 (Divide by 2)
+      R[regA] = (R[regA] >> 1) & 0xFF;
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b1101: // OR RegA, RegB - Bitwise OR
+      R[regA] = R[regA] | R[regB];
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b1110: // XOR RegA, RegB - Bitwise XOR
+      R[regA] = R[regA] ^ R[regB];
+      ZF = (R[regA] === 0) ? 1 : 0;
+      break;
+    case 0b1111: // MOV RegA, RegB - Copy RegB into RegA
+      R[regA] = R[regB];
+      break;
   }
+  renderScreen();
+  updateUI();
+}
+// Render RAM[240..255] as a 16x16 black-and-green pixel grid
+function renderScreen() {
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, 16, 16);
+  ctx.fillStyle = '#00ff66';
 
-  function runCode() {
-    stopCode();
-    const instructions = parseBinary(codeBox.value);
+  for (let row = 0; row < 16; row++) {
+    const rowByte = RAM[240 + row]; // High byte = Left 8 pixels
+    // Note: Each row in a 16x16 display uses 1 byte for simplicity (8 wide stretched or 2 bytes per row).
+    // Here, each of the 16 bytes (240-255) controls 8 horizontal pixels (doubled to 16x16 aspect).
+    for (let bit = 0; bit < 8; bit++) {
+      if ((rowByte >> (7 - bit)) & 1) {
+        ctx.fillRect(bit * 2, row, 2, 1);
+      }
+    }
+  }
+}
+
+function toBin(num) {
+  return num.toString(2).padStart(8, '0');
+}
+
+function updateUI() {
+  document.getElementById('cpuState').innerHTML = `
+    <div>PC: ${toBin(PC)}</div>
+    <div>R0: ${toBin(R[0])}</div>
+    <div>R1: ${toBin(R[1])}</div>
+    <div>R2: ${toBin(R[2])}</div>
+    <div>R3: ${toBin(R[3])}</div>
+    <div>ZERO FLAG: ${ZF}</div>
+  `;
+}
+
+function parseBinaryToRAM() {
+  RAM.fill(0);
+  R.fill(0);
+  PC = 0;
+  ZF = 0;
+
+  const lines = document.getElementById('binaryInput').value.split('\n');
+  let addr = 0;
+  for (let line of lines) {
+    // Strip comments
+    const clean = line.split('//')[0].replace(/\s+/g, '');
+    if (clean.length === 0) continue;
+    if (!/^[01]{8}$/.test(clean)) {
+      alert(`Syntax Error at byte ${addr}: "${clean}" is not a valid 8-bit binary string!`);
+      return false;
+    }
+    if (addr > 238) {
+      alert("Program too large! Must fit in bytes 0-238.");
+      return false;
+    }
+    RAM[addr++] = parseInt(clean, 2);
+  }
+  renderScreen();
+  updateUI();
+  return true;
+}
+
+function loadAndRun() {
+  stopCPU();
+  if (!parseBinaryToRAM()) return;
+  running = true;
+  // Run at ~60 cycles per second so you can see your game execute
+  cpuInterval = setInterval(() => {
+    if (running) executeCycle();
+  }, 16);
+}
+
+function stepCPU() {
+  if (PC === 0 && !running) parseBinaryToRAM();
+  executeCycle();
+}
+
+function stopCPU() {
+  running = false;
+  clearInterval(cpuInterval);
+}
+
+// REAL PLAYABLE BINARY PROGRAM: Move a pixel with W, A, S, D!
+// Uses R0 = X-axis bitmask, R1 = Y-axis VRAM address (240 to 255)
+function loadDemoGame() {
+  const demoCode = [
+    "00010000 // [00] LDI R0, 00010000 (Player X bitmask)",
+    "00010000 // [01] Value: 00010000",
+    "00010100 // [02] LDI R1, 247 (Player Y VRAM row)",
+    "11110111 // [03] Value: 247 (11110111)",
     
-    // Validate 8-bit length
-    for (let i = 0; i < instructions.length; i++) {
-      if (instructions[i].length !== 8) {
-        statusEl.textContent = `Error on instruction ${i + 1}: Must be exactly 8 bits!`;
-        statusEl.style.color = '#ff4444';
-        return;
-      }
-    }
+    "// --- MAIN GAME LOOP (Byte 04) ---",
+    "01000001 // [04] STP R0, R1 (Draw player to VRAM)",
+    "00101000 // [05] LD R2, [239] (Read keyboard input)",
+    "11101111 // [06] Address 239 (Keyboard port)",
+    
+    "// Check if key == 0 (No key pressed)",
+    "00011100 // [07] LDI R3, 0",
+    "00000000 // [08] Value: 0",
+    "01111011 // [09] CMP R2, R3",
+    "10010000 // [10] JZ 04 (Loop back if no key)",
+    "00000100 // [11] Jump target: Byte 04",
+    
+    "// Erase old player position before moving",
+    "01001101 // [12] STP R3, R1 (Write 0 to old VRAM row)",
+    
+    "// Check W (1) -> Move Up",
+    "00011100 // [13] LDI R3, 1",
+    "00000001 // [14] Value: 1",
+    "01111011 // [15] CMP R2, R3",
+    "10100000 // [16] JNZ 21 (Skip if not W)",
+    "00010101 // [17] Jump target: Byte 21",
+    "01100111 // [18] SUB R1, R3 (Y = Y - 1)",
+    "10000000 // [19] JMP 04",
+    "00000100 // [20] Jump target: Byte 04",
 
-    statusEl.textContent = `Running (${instructions.length} bytes loaded)...`;
-    statusEl.style.color = '#00ff66';
-    state = { x: 7, y: 12, ex: Math.floor(Math.random() * 16), ey: 0, key: null };
+    "// Check S (2) -> Move Down",
+    "00011100 // [21] LDI R3, 2",
+    "00000010 // [22] Value: 2",
+    "01111011 // [23] CMP R2, R3",
+    "10100000 // [24] JNZ 31 (Skip if not S)",
+    "00011111 // [25] Jump target: Byte 31",
+    "00011100 // [26] LDI R3, 1",
+    "00000001 // [27] Value: 1",
+    "01010111 // [28] ADD R1, R3 (Y = Y + 1)",
+    "10000000 // [29] JMP 04",
+    "00000100 // [30] Jump target: Byte 04",
 
-    let frame = 0;
-    function step() {
-      frame++;
-      for (let i = 0; i < instructions.length; i++) {
-        const opcode = instructions[i].slice(0, 4);
-        const val = parseInt(instructions[i].slice(4, 8), 2);
+    "// Check A (3) -> Move Left",
+    "00011100 // [31] LDI R3, 3",
+    "00000011 // [32] Value: 3",
+    "01111011 // [33] CMP R2, R3",
+    "10100000 // [34] JNZ 39 (Skip if not A)",
+    "00100111 // [35] Jump target: Byte 39",
+    "10110000 // [36] SHL R0 (Shift bit left)",
+    "10000000 // [37] JMP 04",
+    "00000100 // [38] Jump target: Byte 04",
 
-        switch (opcode) {
-          case '0000': // Clear screen
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, 16, 16);
-            break;
-          case '0001': // Set X
-            state.x = val;
-            break;
-          case '0010': // Set Y
-            state.y = val;
-            break;
-          case '0011': // Draw Player
-            ctx.fillStyle = COLORS[val % 8];
-            ctx.fillRect(state.x, state.y, 1, 1);
-            break;
-          case '0100': // Handle Input
-            if (state.key === 'ArrowLeft' && state.x > 0) state.x--;
-            if (state.key === 'ArrowRight' && state.x < 15) state.x++;
-            if (state.key === 'ArrowUp' && state.y > 0) state.y--;
-            if (state.key === 'ArrowDown' && state.y < 15) state.y++;
-            state.key = null;
-            break;
-          case '0101': // Draw Enemy
-            ctx.fillStyle = COLORS[val % 8];
-            ctx.fillRect(state.ex, state.ey, 1, 1);
-            break;
-          case '0110': // Move Enemy (throttled for playability)
-            if (frame % 4 === 0) {
-              state.ey++;
-              if (state.ey > 15) {
-                state.ey = 0;
-                state.ex = Math.floor(Math.random() * 16);
-              }
-            }
-            break;
-          case '0111': // Collision check
-            if (state.x === state.ex && state.y === state.ey) {
-              state.x = 7; state.y = 14; state.ey = 0;
-            }
-            break;
-          case '1111': // Loop frame
-            regEl.textContent = `X: ${state.x} | Y: ${state.y} | Enemy: (${state.ex},${state.ey})`;
-            loopId = requestAnimationFrame(step);
-            return;
-        }
-      }
-      regEl.textContent = `X: ${state.x} | Y: ${state.y} | Enemy: (${state.ex},${state.ey})`;
-    }
-    step();
-  }
+    "// Check D (4) -> Move Right",
+    "11000000 // [39] SHR R0 (Shift bit right)",
+    "10000000 // [40] JMP 04",
+    "00000100 // [41] Jump target: Byte 04"
+  ];
+  document.getElementById('binaryInput').value = demoCode.join('\n');
+}
 
-  function stopCode() {
-    if (loopId) cancelAnimationFrame(loopId);
-    statusEl.textContent = 'Status: Stopped';
-    statusEl.style.color = '#aaa';
-  }
-
-  const DEMOS = {
-    mover: `; Move a green pixel with arrow keys\n0000 0000 ; Clear screen\n0100 0000 ; Read arrow keys\n0011 0010 ; Draw player (Green)\n1111 0000 ; Loop game`,
-    dodge: `; Dodge the falling red blocks!\n0000 0000 ; Clear screen\n0100 0000 ; Move player\n0110 0000 ; Move enemy down\n0111 0000 ; Check crash\n0011 0010 ; Draw player (Green)\n0101 0001 ; Draw enemy (Red)\n1111 0000 ; Loop game`
-  };
-
-  function loadDemo(name) {
-    codeBox.value = DEMOS[name];
-    runCode();
-  }
-
-  // Load default game on open
-  loadDemo('dodge');
+// Initialize on page load
+loadDemoGame();
+parseBinaryToRAM();
 </script>
+<div class="panel tutorial">
+  <h2>HOW TO CODE GAMES IN PURE BINARY</h2>
+  <p>Every instruction in this machine is <strong>8 bits (1 byte)</strong> long. The CPU splits each instruction byte into two halves:</p>
+  <ul>
+    <li><strong>First 4 bits (Opcode):</strong> Tells the CPU <em>what</em> operation to perform.</li>
+    <li><strong>Last 4 bits (Operands):</strong> Tells the CPU <em>which registers</em> to use. Registers are addressed in 2 bits: <code>R0 = 00</code>, <code>R1 = 01</code>, <code>R2 = 10</code>, <code>R3 = 11</code>.</li>
+  </ul>
+
+  <h3>Complete Binary Opcode Table</h3>
+  <table>
+    <tr>
+      <th>Binary Opcode</th>
+      <th>Format (8 Bits)</th>
+      <th>Next Byte?</th>
+      <th>What It Does</th>
+    </tr>
+    <tr>
+      <td><code>0000</code></td>
+      <td><code>0000 0000</code></td>
+      <td>No</td>
+      <td><strong>HALT:</strong> Stops the CPU completely.</td>
+    </tr>
+    <tr>
+      <td><code>0001</code></td>
+      <td><code>0001 [AA] 00</code></td>
+      <td>Yes (Value)</td>
+      <td><strong>LOAD IMMEDIATE:</strong> Loads the next byte directly into Register <code>AA</code>.</td>
+    </tr>
+    <tr>
+      <td><code>0010</code></td>
+      <td><code>0010 [AA] 00</code></td>
+      <td>Yes (Address)</td>
+      <td><strong>LOAD RAM:</strong> Reads RAM at the given address and puts it in Register <code>AA</code>.</td>
+    </tr>
+    <tr>
+      <td><code>0011</code></td>
+      <td><code>0011 [AA] 00</code></td>
+      <td>Yes (Address)</td>
+      <td><strong>STORE RAM:</strong> Writes Register <code>AA</code> into RAM at the given address.</td>
+    </tr>
+    <tr>
+      <td><code>0100</code></td>
+      <td><code>0100 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>STORE POINTER:</strong> Writes Register <code>AA</code> into the RAM address stored inside Register <code>BB</code>. (Used for drawing pixels!)</td>
+    </tr>
+    <tr>
+      <td><code>0101</code></td>
+      <td><code>0101 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>ADD:</strong> Adds <code>BB</code> to <code>AA</code> (<code>AA = AA + BB</code>).</td>
+    </tr>
+    <tr>
+      <td><code>0110</code></td>
+      <td><code>0110 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>SUBTRACT:</strong> Subtracts <code>BB</code> from <code>AA</code> (<code>AA = AA - BB</code>).</td>
+    </tr>
+    <tr>
+      <td><code>0111</code></td>
+      <td><code>0111 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>COMPARE:</strong> Sets Zero Flag to <code>1</code> if <code>AA == BB</code>, otherwise <code>0</code>.</td>
+    </tr>
+    <tr>
+      <td><code>1000</code></td>
+      <td><code>1000 0000</code></td>
+      <td>Yes (Address)</td>
+      <td><strong>JUMP:</strong> Sets Program Counter to the next byte (creates loops).</td>
+    </tr>
+    <tr>
+      <td><code>1001</code></td>
+      <td><code>1001 0000</code></td>
+      <td>Yes (Address)</td>
+      <td><strong>JUMP IF ZERO:</strong> Jumps to the next byte only if Zero Flag is <code>1</code>.</td>
+    </tr>
+    <tr>
+      <td><code>1010</code></td>
+      <td><code>1010 0000</code></td>
+      <td>Yes (Address)</td>
+      <td><strong>JUMP IF NOT ZERO:</strong> Jumps to the next byte only if Zero Flag is <code>0</code>.</td>
+    </tr>
+    <tr>
+      <td><code>1011</code></td>
+      <td><code>1011 [AA] 00</code></td>
+      <td>No</td>
+      <td><strong>SHIFT LEFT:</strong> Shifts bits in <code>AA</code> left (moves pixels left).</td>
+    </tr>
+    <tr>
+      <td><code>1100</code></td>
+      <td><code>1100 [AA] 00</code></td>
+      <td>No</td>
+      <td><strong>SHIFT RIGHT:</strong> Shifts bits in <code>AA</code> right (moves pixels right).</td>
+    </tr>
+    <tr>
+      <td><code>1101</code></td>
+      <td><code>1101 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>BITWISE OR:</strong> Combines bits of <code>AA</code> and <code>BB</code> (great for drawing two sprites on the same row!).</td>
+    </tr>
+    <tr>
+      <td><code>1110</code></td>
+      <td><code>1110 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>BITWISE XOR:</strong> Toggles bits (great for collision detection!).</td>
+    </tr>
+    <tr>
+      <td><code>1111</code></td>
+      <td><code>1111 [AA] [BB]</code></td>
+      <td>No</td>
+      <td><strong>MOVE:</strong> Copies value from <code>BB</code> into <code>AA</code>.</td>
+    </tr>
+  </table>
+
+  <h3>Hardware Memory Map</h3>
+  <ul>
+    <li><strong>Bytes <code>00000000</code> to <code>11101110</code> (0–238):</strong> Your game code and variables.</li>
+    <li><strong>Byte <code>11101111</code> (239):</strong> Keyboard Input Port. Automatically becomes <code>00000001</code> (W), <code>00000010</code> (S), <code>00000011</code> (A), or <code>00000100</code> (D) when pressed.</li>
+    <li><strong>Bytes <code>11110000</code> to <code>11111111</code> (240–255):</strong> Video RAM. Each byte represents one horizontal row of the screen from top (240) to bottom (255). Every <code>1</code> bit turns a pixel green; every <code>0</code> bit turns it black.</li>
+  </ul>
+</div>
+
 </body>
 </html>
