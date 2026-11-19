@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Pulse — Skin Studio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0f1a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: #161b2e;
+    border: 1px solid #2d3759;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+  h1 {
+    font-size: 1.4rem;
+    color: #38bdf8;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  p.sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; }
+  .preview {
+    border: 1px solid #2d3759;
+    border-radius: 10px;
+    background: #0b0e17;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 120px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .preview canvas { display: block; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.8rem; color: #cbd5e1; display: flex; align-items: center; gap: 8px; }
+  .field input[type="color"] {
+    width: 100%; height: 40px;
+    background: #0b0e17;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 3px;
+    cursor: pointer;
+  }
+  .actions { display: flex; gap: 10px; }
+  button {
+    flex: 1;
+    background: #2563eb; color: white; border: none;
+    padding: 11px; border-radius: 8px; font-weight: 600;
+    font-size: 0.9rem; cursor: pointer; transition: background .2s;
+  }
+  button:hover { background: #1d4ed8; }
+  button.danger { background: #334155; }
+  button.danger:hover { background: #475569; }
+  .status {
+    margin-top: 14px; font-size: 0.85rem; color: #fbbf24;
+    min-height: 18px; text-align: center;
+  }
+  .status.ok { color: #34d399; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>NEON PULSE — SKIN STUDIO</h1>
+  <p class="sub">Pick colors, save locally, and they'll show up when you open index.html.</p>
+
+  <div class="preview"><canvas id="preview" width="240" height="100"></canvas></div>
+
+  <div class="grid">
+    <div class="field">
+      <label>Body Color</label>
+      <input type="color" id="bodyColor" value="#38bdf8">
+    </div>
+    <div class="field">
+      <label>Eye Color</label>
+      <input type="color" id="eyeColor" value="#0f172a">
+    </div>
+    <div class="field">
+      <label>Trail Color</label>
+      <input type="color" id="trailColor" value="#38bdf8">
+    </div>
+    <div class="field">
+      <label>Speed Boost Color</label>
+      <input type="color" id="boostedColor" value="#d8b4fe">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="save">Save Skin</button>
+    <button id="reset" class="danger">Reset to Default</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const SKIN_KEY = 'neonPulseSkin';
+const defaults = { bodyColor:'#38bdf8', eyeColor:'#0f172a',
+                   trailColor:'#38bdf8', boostedColor:'#d8b4fe' };
+
+const inputs = {
+  bodyColor: document.getElementById('bodyColor'),
+  eyeColor: document.getElementById('eyeColor'),
+  trailColor: document.getElementById('trailColor'),
+  boostedColor: document.getElementById('boostedColor')
+};
+const statusEl = document.getElementById('status');
+
+// --- tiny player preview ---
+const cvs = document.getElementById('preview');
+const ctx = cvs.getContext('2d');
+let previewFrame = 0;
+
+function drawPreview() {
+  previewFrame++;
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  const px = 108, py = 40, w = 22, h = 26;
+  const bx = px + Math.sin(previewFrame * 0.04) * 14; // player bobs side to side
+
+  // trail
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = inputs.bodyColor.value;
+    ctx.globalAlpha = 0.25 - i * 0.035;
+    ctx.fillRect(bx - 6 - i * 5, py + 2, w, h);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = inputs.bodyColor.value;
+  ctx.fillRect(bx, py, w, h);
+  ctx.fillStyle = inputs.eyeColor.value;
+  ctx.fillRect(bx + 13, py + 6, 5, 5);
+
+  requestAnimationFrame(drawPreview);
+}
+drawPreview();
+
+// --- load/save ---
+function load() {
+  try {
+    const skin = JSON.parse(localStorage.getItem(SKIN_KEY));
+    if (skin) {
+      for (const k in defaults) if (skin[k]) inputs[k].value = skin[k];
+    }
+  } catch (e) { /* corrupt skin, use defaults */ }
+}
+
+function flash(msg, ok) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (ok ? ' ok' : '');
+  setTimeout(() => statusEl.textContent = '', 2500);
+}
+
+document.getElementById('save').addEventListener('click', () => {
+  const skin = {};
+  for (const k in inputs) skin[k] = inputs[k].value;
+  localStorage.setItem(SKIN_KEY, JSON.stringify(skin));
+  flash('Skin saved! Open index.html to see it.', true);
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  for (const k in defaults) inputs[k].value = defaults[k];
+  localStorage.setItem(SKIN_KEY, JSON.stringify(defaults));
+  flash('Reset to default & saved.');
+});
+
+load();
+</script>
+</body>
+</html>
