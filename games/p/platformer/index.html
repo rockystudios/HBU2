@@ -605,6 +605,7 @@ let coins = [];
 let movingPlatforms = [];
 let portals = { orange: null, blue: null };   // {r, c} tile coords
 let portalCooldown = 0;
+let currentLevel = null;
 
 const player = {
   x: 60, y: 300, w: 22, h: 26,
@@ -620,24 +621,14 @@ const player = {
 const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (!isEditor && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW')) { //jump
+  if (!isEditor && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW')) {
     jump();
   }
-  if (!isEditor && e.code === 'KeyR') loadLevel(grid);
+  if (!isEditor && e.code === 'KeyR') loadLevel(currentLevel);
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
 function cloneGrid(g) {
   return g.map(row => [...row]);
-}
-function loadLevel(level) {
-  grid  = cloneGrid(level.grid);
-  portals = JSON.parse(JSON.stringify(level.portals || { orange: null, blue: null }));
-  currentLevel = level;
-  portalCooldown = 0;
-  coins = []; movingPlatforms = []; particles = [];
-  player.vx = 0; player.vy = 0;
-  player.speedBoostTimer = 0; player.trail = [];
-  /* ...rest of your spawn-scan unchanged... */
 }
  
 function handlePortals() {
@@ -659,15 +650,16 @@ function handlePortals() {
 }
  
 function loadLevel(level) {
-  grid  = cloneGrid(level.grid);
+  grid = cloneGrid(level.grid);
   portals = JSON.parse(JSON.stringify(level.portals || { orange: null, blue: null }));
   currentLevel = level;
   portalCooldown = 0;
-  coins = []; movingPlatforms = []; 
+  coins = [];
+  movingPlatforms = [];
   particles = [];
-  player.vx = 0; 
+  player.vx = 0;
   player.vy = 0;
-  player.speedBoostTimer = 0; 
+  player.speedBoostTimer = 0;
   player.trail = [];
 
   let foundSpawn = false;
@@ -739,6 +731,29 @@ function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
+function teleportTo(from, to) {
+  const dx = (player.x + player.w / 2) - (from.c * TILE + TILE / 2);
+  const dy = (player.y + player.h / 2) - (from.r * TILE + TILE / 2);
+  player.x = to.c * TILE + TILE / 2 + dx - player.w / 2;
+  player.y = to.r * TILE + TILE / 2 + dy - player.h / 2;
+  player.vy = 0;
+  portalCooldown = 15;
+  playSound(520, 'sine', 0.15);
+  spawnParticles(from.c * TILE + TILE / 2, from.r * TILE + TILE / 2, '#f97316', 14);
+}
+
+function handlePortals() {
+  if (portalCooldown > 0) { portalCooldown--; return; }
+  if (!portals.orange || !portals.blue) return;
+  if (rectOverlap(player.x, player.y, player.w, player.h,
+                 portals.orange.c * TILE + 8, portals.orange.r * TILE + 8, TILE - 16, TILE - 16)) {
+    teleportTo(portals.orange, portals.blue);
+  } else if (rectOverlap(player.x, player.y, player.w, player.h,
+                 portals.blue.c * TILE + 8, portals.blue.r * TILE + 8, TILE - 16, TILE - 16)) {
+    teleportTo(portals.blue, portals.orange);
+  }
+}
+
 function update() {
   frameCount++;
   if (isEditor) return;
@@ -770,6 +785,7 @@ function update() {
   player.grounded = false;
   player.y += player.vy;
   resolveTileCollisions(false);
+  handlePortals();
 
   // Moving platform landing
   for (const mp of movingPlatforms) {
@@ -879,7 +895,7 @@ function resolveTileCollisions(horizontal) {
                   killPlayer();               // not enough coins — back to spawn
                 } else {
                   currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                  loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+                  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
                 }
               }
            return true;
@@ -889,7 +905,24 @@ function resolveTileCollisions(horizontal) {
   }
   return false;
 }
-
+ 
+function drawPortal(p, color) {
+  const x = p.c * TILE + TILE / 2;
+  const y = p.r * TILE + TILE / 2;
+  const pulse = 8 + Math.sin(frameCount * 0.12) * 2;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x + 2, y, pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  ctx.arc(x + 2, y, pulse * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 1;
+}
 
 function draw() {
   ctx.fillStyle = '#0b0e17';
@@ -903,6 +936,8 @@ function draw() {
   }
   for (let y = 0; y <= canvas.height; y += TILE) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
   if (portals.orange) drawPortal(portals.orange, '#f97316');
   if (portals.blue)   drawPortal(portals.blue,   '#60a5fa');
   }
@@ -1016,16 +1051,16 @@ function toggleEditor(forceState) {
   editorPanel.classList.toggle('visible', isEditor);
   btnMode.textContent = isEditor ? 'Play Custom Level' : 'Open Level Maker';
   btnMode.className = isEditor ? 'success' : 'secondary';
-  if (!isEditor) loadLevel(grid);
+  if (!isEditor) loadLevel({ grid, portals });
   updateHUD();
 }
 
 btnMode.addEventListener('click', () => toggleEditor());
-document.getElementById('btn-reset').addEventListener('click', () => loadLevel(grid));
+document.getElementById('btn-reset').addEventListener('click', () => loadLevel(currentLevel));
 document.getElementById('btn-next').addEventListener('click', () => {
   if (isEditor) toggleEditor(false);
   currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-  loadLevel(BUILTIN_LEVELS[currentLevelIdx].grid);
+  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
 });
 
 document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -1040,11 +1075,13 @@ document.getElementById('btn-clear-map').addEventListener('click', () => {
   grid = Array.from({ length: ROWS }, (_, r) =>
     Array.from({ length: COLS }, (_, c) => (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? 1 : 0))
   );
+  portals = { orange: null, blue: null };
 });
 function clearPortalAt(r, c) {
   if (portals.orange && portals.orange.r === r && portals.orange.c === c) portals.orange = null;
-  if (portals.blue   && portals.blue.r   === r && portals.blue.c   === c) portals.blue   = null;
+  if (portals.blue && portals.blue.r === r && portals.blue.c === c) portals.blue = null;
 }
+
 function paintTile(e) {
   if (!isEditor) return;
   const rect = canvas.getBoundingClientRect();
@@ -1053,19 +1090,18 @@ function paintTile(e) {
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
   const tileToPlace = mouseButton === 2 ? 0 : selectedTile;
-  // inside paintTile, before grid[r][c] = tileToPlace:
+
   if (tileToPlace === 0) { clearPortalAt(r, c); grid[r][c] = 0; return; }
   if (tileToPlace === 10) { portals.orange = { r, c }; grid[r][c] = 0; return; }
-  if (tileToPlace === 11) { portals.blue   = { r, c }; grid[r][c] = 0; return; }
-  clearPortalAt(r, c); // a normal tile removes a portal overlapping it
-  // Ensure only one spawn point exists
+  if (tileToPlace === 11) { portals.blue = { r, c }; grid[r][c] = 0; return; }
+  clearPortalAt(r, c);
+
   if (tileToPlace === 8) {
     for (let rr = 0; rr < ROWS; rr++)
       for (let cc = 0; cc < COLS; cc++)
         if (grid[rr][cc] === 8) grid[rr][cc] = 0;
   }
   grid[r][c] = tileToPlace;
-  
 }
  
  
@@ -1078,22 +1114,22 @@ window.addEventListener('mouseup', () => isMouseDown = false);
 document.getElementById('btn-export').addEventListener('click', () => {
   const levelName = prompt("Enter a name for this level:", "HBU") || "CustomLevel";
   const stringRows = grid.map(row => `    "${row.join("")}"`).join(",\n");
-  
-  const payload = `{\n  name: ${JSON.stringify(levelName)},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
+
+  const payload = `{\n  name: ${JSON.stringify(levelName)},\n  portals: ${JSON.stringify(portals)},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
 
   jsonBox.value = payload;
   jsonBox.select();
   navigator.clipboard?.writeText(payload);
 });
 
+
 document.getElementById('btn-import').addEventListener('click', () => {
   try {
     let raw = jsonBox.value.trim();
 
-    // Clean up JS snippet formatting (trailing comma, .map(...) suffix, unquoted keys)
     raw = raw.replace(/,\s*$/, '');
-    raw = raw.replace(/\.map\s*\([\s\S]*?\)\s*\}$/, '}');
-    raw = raw.replace(/([{,]\s*)(name|grid)\s*:/g, '$1"$2":');
+    raw = raw.replace(/\.map\s*$[\s\S]*?$\s*\}$/, '}');
+    raw = raw.replace(/([{,]\s*)(name|portals|grid)\s*:/g, '$1"$2":');
 
     const parsed = JSON.parse(raw);
 
@@ -1101,10 +1137,10 @@ document.getElementById('btn-import').addEventListener('click', () => {
       throw new Error("Invalid grid");
     }
 
-    // Convert string rows back into arrays of numbers if needed
-    grid = parsed.grid.map(row => 
+    grid = parsed.grid.map(row =>
       typeof row === "string" ? row.split("").map(Number) : row
     );
+    portals = parsed.portals || { orange: null, blue: null };
 
     toggleEditor(false);
   } catch (err) {
@@ -1114,7 +1150,8 @@ document.getElementById('btn-import').addEventListener('click', () => {
 
 
 // Start Game
-loadLevel(BUILTIN_LEVELS[0].grid);
+loadLevel(BUILTIN_LEVELS[0]);
+ 
 loop();
 </script>
 </body>
