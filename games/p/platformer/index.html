@@ -79,6 +79,7 @@
   .tool-btn { display: flex; align-items: center; gap: 6px; background: #1e293b; border: 1px solid #334155; }
   .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
   .json-row { display: flex; gap: 8px; width: 100%; }
+ 
   textarea {
     flex: 1;
     height: 54px;
@@ -127,7 +128,10 @@
     <button class="tool-btn" data-tile="8"><span class="swatch" style="background:#ffffff"></span>Spawn</button>
     <button class="tool-btn" data-tile="9"><span class="swatch" style="background:#fde047"></span>Goal Portal</button>
     <button class="tool-btn" data-tile="0"><span class="swatch" style="background:#0b0e17;border:1px solid #64748b"></span>Erase</button>
+    <button class="tool-btn" data-tile="10"><span class="swatch" style="background:#f97316"></span>Orange Portal</button>
+    <button class="tool-btn" data-tile="11"><span class="swatch" style="background:#60a5fa"></span>Blue Portal</button>
     <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
+
   </div>
   <div class="json-row">
     <textarea id="json-box" placeholder="Click 'Export JSON' to get shareable level code, or paste someone else's JSON here and click 'Import & Play'..."></textarea>
@@ -599,6 +603,8 @@ let frameCount = 0;
 let particles = [];
 let coins = [];
 let movingPlatforms = [];
+let portals = { orange: null, blue: null };   // {r, c} tile coords
+let portalCooldown = 0;
 
 const player = {
   x: 60, y: 300, w: 22, h: 26,
@@ -623,15 +629,45 @@ window.addEventListener('keyup', e => keys[e.code] = false);
 function cloneGrid(g) {
   return g.map(row => [...row]);
 }
-
-function loadLevel(sourceGrid) {
-  grid = cloneGrid(sourceGrid);
-  coins = [];
-  movingPlatforms = [];
+function loadLevel(level) {
+  grid  = cloneGrid(level.grid);
+  portals = JSON.parse(JSON.stringify(level.portals || { orange: null, blue: null }));
+  currentLevel = level;
+  portalCooldown = 0;
+  coins = []; movingPlatforms = []; particles = [];
+  player.vx = 0; player.vy = 0;
+  player.speedBoostTimer = 0; player.trail = [];
+  /* ...rest of your spawn-scan unchanged... */
+}
+ 
+function handlePortals() {
+  if (portalCooldown > 0) { portalCooldown--; return; }
+  if (!portals.orange || !portals.blue) return;
+  if (rectOverlap(player.x, player.y, player.w, player.h,
+                 portals.orange.c * TILE + 8, portals.orange.r * TILE + 8, TILE - 16, TILE - 16)) {
+    const dx = (player.x + player.w / 2) - (portals.orange.c * TILE + TILE / 2);
+    const dy = (player.y + player.h / 2) - (portals.orange.r * TILE + TILE / 2);
+    player.x = portals.blue.c * TILE + TILE / 2 + dx - player.w / 2;
+    player.y = portals.blue.r * TILE + TILE / 2 + dy - player.h / 2;
+    player.vy = 0; portalCooldown = 15;
+    playSound(520, 'sine', 0.15);
+    spawnParticles(portals.orange.c * TILE + TILE / 2, portals.orange.r * TILE + TILE / 2, '#f97316', 14);
+  } else if (rectOverlap(player.x, player.y, player.w, player.h,
+                 portals.blue.c * TILE + 8, portals.blue.r * TILE + 8, TILE - 16, TILE - 16)) {
+    // mirror: blue -> orange (swap orange/blue in the above)
+  }
+}
+ 
+function loadLevel(level) {
+  grid  = cloneGrid(level.grid);
+  portals = JSON.parse(JSON.stringify(level.portals || { orange: null, blue: null }));
+  currentLevel = level;
+  portalCooldown = 0;
+  coins = []; movingPlatforms = []; 
   particles = [];
-  player.vx = 0;
+  player.vx = 0; 
   player.vy = 0;
-  player.speedBoostTimer = 0;
+  player.speedBoostTimer = 0; 
   player.trail = [];
 
   let foundSpawn = false;
@@ -867,6 +903,8 @@ function draw() {
   }
   for (let y = 0; y <= canvas.height; y += TILE) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  if (portals.orange) drawPortal(portals.orange, '#f97316');
+  if (portals.blue)   drawPortal(portals.blue,   '#60a5fa');
   }
 
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
@@ -1003,7 +1041,10 @@ document.getElementById('btn-clear-map').addEventListener('click', () => {
     Array.from({ length: COLS }, (_, c) => (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? 1 : 0))
   );
 });
-
+function clearPortalAt(r, c) {
+  if (portals.orange && portals.orange.r === r && portals.orange.c === c) portals.orange = null;
+  if (portals.blue   && portals.blue.r   === r && portals.blue.c   === c) portals.blue   = null;
+}
 function paintTile(e) {
   if (!isEditor) return;
   const rect = canvas.getBoundingClientRect();
@@ -1012,6 +1053,11 @@ function paintTile(e) {
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
 
   const tileToPlace = mouseButton === 2 ? 0 : selectedTile;
+  // inside paintTile, before grid[r][c] = tileToPlace:
+  if (tileToPlace === 0) { clearPortalAt(r, c); grid[r][c] = 0; return; }
+  if (tileToPlace === 10) { portals.orange = { r, c }; grid[r][c] = 0; return; }
+  if (tileToPlace === 11) { portals.blue   = { r, c }; grid[r][c] = 0; return; }
+  clearPortalAt(r, c); // a normal tile removes a portal overlapping it
   // Ensure only one spawn point exists
   if (tileToPlace === 8) {
     for (let rr = 0; rr < ROWS; rr++)
@@ -1019,7 +1065,10 @@ function paintTile(e) {
         if (grid[rr][cc] === 8) grid[rr][cc] = 0;
   }
   grid[r][c] = tileToPlace;
+  
 }
+ 
+ 
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('mousedown', e => { isMouseDown = true; mouseButton = e.button; paintTile(e); });
