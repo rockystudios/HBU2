@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>8-Bit Binary Game Studio</title>
+<style>
+  :root {
+    --bg: #121214;
+    --panel: #1e1e24;
+    --accent: #00ff66;
+    --text: #e0e0e0;
+    --border: #33333d;
+  }
+  * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
+  body {
+    margin: 0; padding: 20px; background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column; height: 100vh; gap: 15px;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid var(--border); padding-bottom: 10px;
+  }
+  h1 { margin: 0; font-size: 1.4rem; color: var(--accent); }
+  .workspace {
+    display: grid; grid-template-columns: 1fr 340px 1fr; gap: 15px; flex: 1; min-height: 0;
+  }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 15px; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel h2 { margin: 0 0 10px 0; font-size: 1rem; color: #fff; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+  textarea {
+    flex: 1; background: #0a0a0c; color: var(--accent); border: 1px solid var(--border);
+    padding: 10px; font-size: 14px; resize: none; line-height: 1.5; outline: none;
+  }
+  .controls { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button {
+    background: var(--accent); color: #000; border: none; padding: 8px 12px;
+    font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;
+  }
+  button:hover { opacity: 0.8; }
+  button.secondary { background: #33333d; color: #fff; }
+  canvas {
+    background: #000; border: 2px solid var(--accent); width: 300px; height: 300px;
+    image-rendering: pixelated; align-self: center; margin: auto 0;
+  }
+  .manual { overflow-y: auto; font-size: 0.85rem; line-height: 1.4; }
+  .manual code { background: #000; color: var(--accent); padding: 2px 4px; border-radius: 3px; }
+  .manual table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .manual td, .manual th { border: 1px solid var(--border); padding: 5px; text-align: left; }
+  .status { font-size: 0.85rem; color: #aaa; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>[0101] 8-BIT BINARY GAME STUDIO</h1>
+  <div>Use <strong>Arrow Keys</strong> to play!</div>
+</header>
+
+<div class="workspace">
+  <!-- LEFT: CODE EDITOR -->
+  <div class="panel">
+    <h2>1. Binary Code Editor (8-Bit Instructions)</h2>
+    <textarea id="code" spellcheck="false" placeholder="Enter 8-bit binary instructions..."></textarea>
+    <div class="controls">
+      <button onclick="runCode()">▶ RUN GAME</button>
+      <button class="secondary" onclick="stopCode()">■ STOP</button>
+      <button class="secondary" onclick="loadDemo('mover')">Demo: Mover</button>
+      <button class="secondary" onclick="loadDemo('dodge')">Demo: Dodger</button>
+    </div>
+    <div class="status" id="status">Status: Ready</div>
+  </div>
+
+  <!-- MIDDLE: GAME SCREEN -->
+  <div class="panel">
+    <h2>2. 16x16 Pixel Screen</h2>
+    <canvas id="screen" width="16" height="16"></canvas>
+    <div class="status" id="registers">X: 0 | Y: 0 | Enemy: (0,0)</div>
+  </div>
+
+  <!-- RIGHT: TUTORIAL & OPCODES -->
+  <div class="panel">
+    <h2>3. Binary Instruction Manual</h2>
+    <div class="manual">
+      <p>Every instruction is <strong>8 bits</strong> long:<br><code>[4-bit Opcode] [4-bit Value]</code></p>
+      <p>Spaces and text after <code>;</code> are ignored (comments).</p>
+      <table>
+        <tr><th>Opcode</th><th>Action</th></tr>
+        <tr><td><code>0000</code></td><td>Clear Screen</td></tr>
+        <tr><td><code>0001</code></td><td>Set Player X (0000-1111)</td></tr>
+        <tr><td><code>0010</code></td><td>Set Player Y (0000-1111)</td></tr>
+        <tr><td><code>0011</code></td><td>Draw Player (Value = Color 1-7)</td></tr>
+        <tr><td><code>0100</code></td><td>Move Player on Arrow Key</td></tr>
+        <tr><td><code>0101</code></td><td>Draw Pixel at Enemy X,Y (Color)</td></tr>
+        <tr><td><code>0110</code></td><td>Move Enemy Down (Wraps at bottom)</td></tr>
+        <tr><td><code>0111</code></td><td>Reset Game if Player hits Enemy</td></tr>
+        <tr><td><code>1111</code></td><td>Loop back to start (60 FPS)</td></tr>
+      </table>
+      <p><strong>Colors (4-bit):</strong><br>
+      <code>0001</code> Red | <code>0010</code> Green | <code>0011</code> Blue<br>
+      <code>0100</code> Yellow | <code>0111</code> White</p>
+    </div>
+  </div>
+</div>
+<script>
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d');
+  const codeBox = document.getElementById('code');
+  const statusEl = document.getElementById('status');
+  const regEl = document.getElementById('registers');
+
+  const COLORS = ['#000000', '#ff3333', '#00ff66', '#3399ff', '#ffff33', '#ff33ff', '#33ffff', '#ffffff'];
+  
+  let loopId = null;
+  let state = { x: 7, y: 7, ex: 7, ey: 0, key: null };
+
+  window.addEventListener('keydown', (e) => {
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      state.key = e.key;
+    }
+  });
+
+  function parseBinary(raw) {
+    return raw.split('\n')
+      .map(line => line.split(';')[0].replace(/[^01]/g, '')) // Strip comments & spaces
+      .filter(line => line.length > 0);
+  }
+
+  function runCode() {
+    stopCode();
+    const instructions = parseBinary(codeBox.value);
+    
+    // Validate 8-bit length
+    for (let i = 0; i < instructions.length; i++) {
+      if (instructions[i].length !== 8) {
+        statusEl.textContent = `Error on instruction ${i + 1}: Must be exactly 8 bits!`;
+        statusEl.style.color = '#ff4444';
+        return;
+      }
+    }
+
+    statusEl.textContent = `Running (${instructions.length} bytes loaded)...`;
+    statusEl.style.color = '#00ff66';
+    state = { x: 7, y: 12, ex: Math.floor(Math.random() * 16), ey: 0, key: null };
+
+    let frame = 0;
+    function step() {
+      frame++;
+      for (let i = 0; i < instructions.length; i++) {
+        const opcode = instructions[i].slice(0, 4);
+        const val = parseInt(instructions[i].slice(4, 8), 2);
+
+        switch (opcode) {
+          case '0000': // Clear screen
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 16, 16);
+            break;
+          case '0001': // Set X
+            state.x = val;
+            break;
+          case '0010': // Set Y
+            state.y = val;
+            break;
+          case '0011': // Draw Player
+            ctx.fillStyle = COLORS[val % 8];
+            ctx.fillRect(state.x, state.y, 1, 1);
+            break;
+          case '0100': // Handle Input
+            if (state.key === 'ArrowLeft' && state.x > 0) state.x--;
+            if (state.key === 'ArrowRight' && state.x < 15) state.x++;
+            if (state.key === 'ArrowUp' && state.y > 0) state.y--;
+            if (state.key === 'ArrowDown' && state.y < 15) state.y++;
+            state.key = null;
+            break;
+          case '0101': // Draw Enemy
+            ctx.fillStyle = COLORS[val % 8];
+            ctx.fillRect(state.ex, state.ey, 1, 1);
+            break;
+          case '0110': // Move Enemy (throttled for playability)
+            if (frame % 4 === 0) {
+              state.ey++;
+              if (state.ey > 15) {
+                state.ey = 0;
+                state.ex = Math.floor(Math.random() * 16);
+              }
+            }
+            break;
+          case '0111': // Collision check
+            if (state.x === state.ex && state.y === state.ey) {
+              state.x = 7; state.y = 14; state.ey = 0;
+            }
+            break;
+          case '1111': // Loop frame
+            regEl.textContent = `X: ${state.x} | Y: ${state.y} | Enemy: (${state.ex},${state.ey})`;
+            loopId = requestAnimationFrame(step);
+            return;
+        }
+      }
+      regEl.textContent = `X: ${state.x} | Y: ${state.y} | Enemy: (${state.ex},${state.ey})`;
+    }
+    step();
+  }
+
+  function stopCode() {
+    if (loopId) cancelAnimationFrame(loopId);
+    statusEl.textContent = 'Status: Stopped';
+    statusEl.style.color = '#aaa';
+  }
+
+  const DEMOS = {
+    mover: `; Move a green pixel with arrow keys\n0000 0000 ; Clear screen\n0100 0000 ; Read arrow keys\n0011 0010 ; Draw player (Green)\n1111 0000 ; Loop game`,
+    dodge: `; Dodge the falling red blocks!\n0000 0000 ; Clear screen\n0100 0000 ; Move player\n0110 0000 ; Move enemy down\n0111 0000 ; Check crash\n0011 0010 ; Draw player (Green)\n0101 0001 ; Draw enemy (Red)\n1111 0000 ; Loop game`
+  };
+
+  function loadDemo(name) {
+    codeBox.value = DEMOS[name];
+    runCode();
+  }
+
+  // Load default game on open
+  loadDemo('dodge');
+</script>
+</body>
+</html>
