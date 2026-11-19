@@ -469,6 +469,29 @@ const BUILTIN_LEVELS = [
     "13333333333333333333333333333331",
     "11111111111111111111111111111111"
   ].map(r => r.split("").map(Number))
+},
+{
+  name: "Skyward Bounce",
+  grid: [
+    "11111111111111111111111111111111",
+    "10000000000000000000000000000001",
+    "10000000000000000000000000090001",
+    "10000000000313000000000000313001",
+    "10000000000111000000000000111001",
+    "10000000000000000000000000000001",
+    "10000000000000000000500000000001",
+    "10000000000000000031113000000001",
+    "10000000000000000011111000000001",
+    "10000313000000000000000000000001",
+    "10000111000000000000000000000001",
+    "10000000000000000000000000000001",
+    "10000000000000000000000000000001",
+    "10000000000000000000000000000001",
+    "10000000000000000000000000000001",
+    "10000000000000000000000000000001",
+    "18020000000000000000000000000001",
+    "11111111111111111111111111111111"
+  ].map(r => r.split("").map(Number))
 }
 ];
 
@@ -911,7 +934,11 @@ canvas.addEventListener('mousemove', e => { if (isMouseDown) paintTile(e); });
 window.addEventListener('mouseup', () => isMouseDown = false);
 
 document.getElementById('btn-export').addEventListener('click', () => {
-  const payload = JSON.stringify({ game: "NeonPulse", version: 1, grid });
+  const levelName = prompt("Enter a name for this level:", "HBU") || "CustomLevel";
+  const stringRows = grid.map(row => `    "${row.join("")}"`).join(",\n");
+  
+  const payload = `{\n  name: ${JSON.stringify(levelName)},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
+
   jsonBox.value = payload;
   jsonBox.select();
   navigator.clipboard?.writeText(payload);
@@ -919,14 +946,30 @@ document.getElementById('btn-export').addEventListener('click', () => {
 
 document.getElementById('btn-import').addEventListener('click', () => {
   try {
-    const parsed = JSON.parse(jsonBox.value.trim());
-    if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) throw new Error("Invalid grid");
-    grid = parsed.grid;
+    let raw = jsonBox.value.trim();
+
+    // Clean up JS snippet formatting (trailing comma, .map(...) suffix, unquoted keys)
+    raw = raw.replace(/,\s*$/, '');
+    raw = raw.replace(/\.map\s*\([\s\S]*?\)\s*\}$/, '}');
+    raw = raw.replace(/([{,]\s*)(name|grid)\s*:/g, '$1"$2":');
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) {
+      throw new Error("Invalid grid");
+    }
+
+    // Convert string rows back into arrays of numbers if needed
+    grid = parsed.grid.map(row => 
+      typeof row === "string" ? row.split("").map(Number) : row
+    );
+
     toggleEditor(false);
   } catch (err) {
-    alert("Invalid level JSON! Make sure you pasted the complete JSON text.");
+    alert("Invalid level format! Make sure you pasted the complete level text.");
   }
 });
+
 
 // Start Game
 loadLevel(BUILTIN_LEVELS[0].grid);
