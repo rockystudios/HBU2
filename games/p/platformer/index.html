@@ -717,7 +717,7 @@ function killPlayer() {
   deaths++;
   playSound(120, 'sawtooth', 0.3, 0.2);
   spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444', 25);
-  loadLevel(grid);
+  loadLevel(currentLevel);
 }
 
 function hasAtLeastHalfCoins(collected, coins) {
@@ -740,18 +740,6 @@ function teleportTo(from, to) {
   portalCooldown = 15;
   playSound(520, 'sine', 0.15);
   spawnParticles(from.c * TILE + TILE / 2, from.r * TILE + TILE / 2, '#f97316', 14);
-}
-
-function handlePortals() {
-  if (portalCooldown > 0) { portalCooldown--; return; }
-  if (!portals.orange || !portals.blue) return;
-  if (rectOverlap(player.x, player.y, player.w, player.h,
-                 portals.orange.c * TILE + 8, portals.orange.r * TILE + 8, TILE - 16, TILE - 16)) {
-    teleportTo(portals.orange, portals.blue);
-  } else if (rectOverlap(player.x, player.y, player.w, player.h,
-                 portals.blue.c * TILE + 8, portals.blue.r * TILE + 8, TILE - 16, TILE - 16)) {
-    teleportTo(portals.blue, portals.orange);
-  }
 }
 
 function update() {
@@ -940,7 +928,6 @@ function draw() {
 
   if (portals.orange) drawPortal(portals.orange, '#f97316');
   if (portals.blue)   drawPortal(portals.blue,   '#60a5fa');
-  }
 
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
 
