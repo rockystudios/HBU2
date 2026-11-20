@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JS Mastery Bootcamp — Interactive Course & Terminal</title>
+  <style>
+    :root {
+      --bg-main: #0d1117;
+      --bg-panel: #161b22;
+      --bg-card: #1c2128;
+      --border: #30363d;
+      --text-main: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --code-bg: #010409;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "Fira Code", "Cascadia Code", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    aside {
+      width: 280px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand h1 { font-size: 1.15rem; color: var(--accent); letter-spacing: 0.5px; }
+    .brand p { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+    .progress-box {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .progress-bar-bg {
+      height: 8px;
+      background: var(--code-bg);
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      transition: width 0.3s ease;
+    }
+
+    nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-btn:hover { background: var(--bg-card); }
+    .nav-btn.active {
+      background: rgba(88, 166, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent-hover);
+      font-weight: 600;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: var(--border);
+      color: var(--text-muted);
+    }
+    .badge.done { background: rgba(63, 185, 80, 0.2); color: var(--green); }
+
+    /* Main Workspace Split */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .lesson-pane {
+      flex: 1.2;
+      padding: 30px 40px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      line-height: 1.65;
+    }
+
+    .lesson-pane h2 { font-size: 1.8rem; margin-bottom: 10px; color: #fff; }
+    .lesson-pane h3 { font-size: 1.25rem; margin: 25px 0 10px; color: var(--accent); }
+    .lesson-pane p { margin-bottom: 14px; color: #c9d1d9; }
+    .lesson-pane ul { margin: 0 0 16px 22px; color: #c9d1d9; }
+    .lesson-pane li { margin-bottom: 6px; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      margin: 14px 0;
+      position: relative;
+    }
+
+    code { font-family: var(--font-mono); color: #ff7b72; }
+    pre code { color: #e6edf3; }
+
+    .load-code-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg-card);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .load-code-btn:hover { border-color: var(--accent); }
+
+    /* Quiz & Challenge Cards */
+    .card-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 22px 0;
+    }
+
+    .quiz-option {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-top: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .quiz-option:hover { border-color: var(--accent); }
+    .quiz-option.correct { border-color: var(--green); background: rgba(63, 185, 80, 0.15); }
+    .quiz-option.wrong { border-color: var(--red); background: rgba(248, 81, 73, 0.15); }
+
+    /* Terminal & Editor Pane */
+    .terminal-pane {
+      flex: 0.9;
+      display: flex;
+      flex-direction: column;
+      background: var(--code-bg);
+    }
+
+    .pane-header {
+      background: var(--bg-panel);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .btn {
+      background: var(--green);
+      color: #000;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
+
+    #codeEditor {
+      flex: 1;
+      background: var(--code-bg);
+      color: #79c0ff;
+      border: none;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    #terminalOutput {
+      height: 42%;
+      border-top: 1px solid var(--border);
+      padding: 14px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background: #090c10;
+    }
+
+    .log-line { margin-bottom: 6px; white-space: pre-wrap; word-break: break-word; }
+    .log-info { color: #e6edf3; }
+    .log-warn { color: var(--yellow); }
+    .log-err { color: var(--red); }
+    .log-sys { color: var(--text-muted); font-style: italic; }
+
+    .cli-bar {
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+    .cli-bar span { padding: 8px 10px; color: var(--green); font-family: var(--font-mono); }
+    #cliInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <h1>⚡ JS MASTERY LAB</h1>
+      <p>Full-Stack JS Curriculum + Live REPL</p>
+    </div>
+    <div class="progress-box">
+      <div style="display:flex; justify-content:space-between;">
+        <span>Course Progress</span>
+        <span id="progressText">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+    </div>
+    <nav id="moduleNav"></nav>
+  </aside>
+
+  <main>
+    <section class="lesson-pane" id="lessonContainer">
+      <!-- Modules inject dynamically here -->
+    </section>
+
+    <section class="terminal-pane">
+      <div class="pane-header">
+        <span>📝 SANDBOX EDITOR (script.js)</span>
+        <div>
+          <button class="btn btn-secondary" onclick="clearEditor()">Clear</button>
+          <button class="btn" onclick="runEditorCode()">▶ Run Code (Ctrl+Enter)</button>
+        </div>
+      </div>
+      <textarea id="codeEditor" spellcheck="false">// Welcome to the JS Terminal!
+// Click "Load into Terminal" on any lesson example, or write your own code here.
+
+const greeting = "Hello, Future Senior Dev!";
+console.log(greeting);
+console.table({ language: "JavaScript", engine: "V8 / Browser", ready: true });
+</textarea>
+
+      <div class="pane-header">
+        <span>💻 CONSOLE TERMINAL OUTPUT</span>
+        <button class="btn btn-secondary" onclick="clearTerminal()">Clear Console</button>
+      </div>
+      <div id="terminalOutput">
+        <div class="log-line log-sys">System initialized. Ready for JavaScript execution...</div>
+      </div>
+      <div class="cli-bar">
+        <span>&gt;</span>
+        <input type="text" id="cliInput" placeholder="Type single-line JS expression and press Enter..." />
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Global Course Registry — Every future module pushes into this array
+    window.COURSE_MODULES = [];
+    window.COMPLETED_MODULES = JSON.parse(localStorage.getItem("js_mastery_done") || "[]");
+    const terminalEl = document.getElementById("terminalOutput");
+    const editorEl = document.getElementById("codeEditor");
+    const cliInputEl = document.getElementById("cliInput");
+
+    function printLog(msg, type = "info") {
+      const div = document.createElement("div");
+      div.className = `log-line log-${type}`;
+      div.textContent = msg;
+      terminalEl.appendChild(div);
+      terminalEl.scrollTop = terminalEl.scrollHeight;
+    }
+
+    function formatValue(val) {
+      if (typeof val === "object" && val !== null) {
+        try { return JSON.stringify(val, null, 2); } catch (e) { return String(val); }
+      }
+      return String(val);
+    }
+
+    // Custom sandbox console proxy
+    const sandboxConsole = {
+      log: (...args) => printLog(args.map(formatValue).join(" "), "info"),
+      warn: (...args) => printLog("⚠️ " + args.map(formatValue).join(" "), "warn"),
+      error: (...args) => printLog("❌ " + args.map(formatValue).join(" "), "err"),
+      info: (...args) => printLog("ℹ️ " + args.map(formatValue).join(" "), "info"),
+      table: (data) => printLog("📊 TABLE:\n" + formatValue(data), "info"),
+      clear: () => { terminalEl.innerHTML = ""; }
+    };
+
+    function executeUserCode(codeStr) {
+      try {
+        const runner = new Function("console", `"use strict";\n${codeStr}`);
+        const result = runner(sandboxConsole);
+        if (result !== undefined) {
+          printLog("← " + formatValue(result), "sys");
+        }
+      } catch (err) {
+        printLog(`${err.name}: ${err.message}`, "err");
+      }
+    }
+
+    function runEditorCode() {
+      printLog("--- Running script.js ---", "sys");
+      executeUserCode(editorEl.value);
+    }
+
+    function clearEditor() { editorEl.value = ""; }
+    function clearTerminal() { terminalEl.innerHTML = ""; }
+
+    editorEl.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        runEditorCode();
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = editorEl.selectionStart;
+        const end = editorEl.selectionEnd;
+        editorEl.value = editorEl.value.substring(0, start) + "  " + editorEl.value.substring(end);
+        editorEl.selectionStart = editorEl.selectionEnd = start + 2;
+      }
+    });
+
+    cliInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && cliInputEl.value.trim() !== "") {
+        const cmd = cliInputEl.value;
+        printLog("> " + cmd, "sys");
+        executeUserCode(`return (${cmd});`);
+        cliInputEl.value = "";
+      }
+    });
+
+    function loadIntoEditor(encodedCode) {
+      editorEl.value = decodeURIComponent(encodedCode);
+      printLog("Loaded code snippet into editor.", "sys");
+    }
+
+    function markComplete(moduleId) {
+      if (!window.COMPLETED_MODULES.includes(moduleId)) {
+        window.COMPLETED_MODULES.push(moduleId);
+        localStorage.setItem("js_mastery_done", JSON.stringify(window.COMPLETED_MODULES));
+        renderSidebar();
+      }
+    }
+
+    function checkQuiz(btn, isCorrect, moduleId, qIndex) {
+      const parent = btn.parentElement;
+      const buttons = parent.querySelectorAll(".quiz-option");
+      buttons.forEach(b => b.disabled = true);
+      if (isCorrect) {
+        btn.classList.add("correct");
+        printLog(`✅ Quiz Question ${qIndex + 1} Passed!`, "info");
+        markComplete(moduleId);
+      } else {
+        btn.classList.add("wrong");
+        printLog(`❌ Quiz Question ${qIndex + 1} Incorrect. Review the lesson notes!`, "err");
+      }
+    }
+
+    function runChallengeTest(moduleId) {
+      const mod = window.COURSE_MODULES.find(m => m.id === moduleId);
+      if (!mod || !mod.challenge) return;
+      printLog(`--- Testing Challenge: ${mod.title} ---`, "sys");
+      try {
+        const userCode = editorEl.value;
+        const passed = mod.challenge.testFn(userCode, sandboxConsole);
+        if (passed) {
+          printLog("🎉 ALL UNIT TESTS PASSED! Module marked complete.", "info");
+          markComplete(moduleId);
+        } else {
+          printLog("❌ Unit tests failed. Check requirements and try again.", "err");
+        }
+      } catch (err) {
+        printLog(`Test Execution Error: ${err.message}`, "err");
+      }
+    }
+    function renderSidebar() {
+      const nav = document.getElementById("moduleNav");
+      nav.innerHTML = "";
+      window.COURSE_MODULES.forEach((mod, idx) => {
+        const isDone = window.COMPLETED_MODULES.includes(mod.id);
+        const btn = document.createElement("button");
+        btn.className = "nav-btn";
+        btn.id = `nav-${mod.id}`;
+        btn.innerHTML = `
+          <span>${idx + 1}. ${mod.title}</span>
+          <span class="badge ${isDone ? "done" : ""}">${isDone ? "✓" : "Lesson"}</span>
+        `;
+        btn.onclick = () => loadModule(mod.id);
+        nav.appendChild(btn);
+      });
+
+      const pct = window.COURSE_MODULES.length
+        ? Math.round((window.COMPLETED_MODULES.length / window.COURSE_MODULES.length) * 100)
+        : 0;
+      document.getElementById("progressText").textContent = `${pct}%`;
+      document.getElementById("progressFill").style.width = `${pct}%`;
+    }
+
+    function loadModule(id) {
+      const mod = window.COURSE_MODULES.find(m => m.id === id);
+      if (!mod) return;
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      const activeBtn = document.getElementById(`nav-${id}`);
+      if (activeBtn) activeBtn.classList.add("active");
+
+      const container = document.getElementById("lessonContainer");
+      let html = `<h2>${mod.title}</h2>${mod.content}`;
+
+      if (mod.quizzes && mod.quizzes.length) {
+        html += `<h3>🧠 Knowledge Check</h3>`;
+        mod.quizzes.forEach((q, qIdx) => {
+          html += `<div class="card-box"><p><strong>Q${qIdx + 1}:</strong> ${q.question}</p>`;
+          q.options.forEach(opt => {
+            html += `<button class="quiz-option" onclick="checkQuiz(this, ${opt.correct}, '${mod.id}', ${qIdx})">${opt.text}</button>`;
+          });
+          html += `</div>`;
+        });
+      }
+
+      if (mod.challenge) {
+        const encodedStarter = encodeURIComponent(mod.challenge.starterCode);
+        html += `
+          <h3>🛠️ Hands-On Terminal Challenge</h3>
+          <div class="card-box">
+            <p>${mod.challenge.prompt}</p>
+            <div style="margin-top:12px; display:flex; gap:10px;">
+              <button class="btn btn-secondary" onclick="loadIntoEditor('${encodedStarter}')">Load Starter Code</button>
+              <button class="btn" onclick="runChallengeTest('${mod.id}')">▶ Run Unit Tests</button>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+      container.scrollTop = 0;
+    }
+
+    // ==================== MODULE 1 ====================
+    window.COURSE_MODULES.push({
+      id: "mod-1-types",
+      title: "Variables, Stack/Heap & Types",
+      content: `
+        <p>JavaScript is a dynamically typed, single-threaded, garbage-collected language. Understanding how variables store values in memory separates beginners from professionals.</p>
+        <h3>1. const vs let vs var</h3>
+        <ul>
+          <li><code>const</code>: Block-scoped. Cannot be reassigned. Always default to <code>const</code>.</li>
+          <li><code>let</code>: Block-scoped. Can be reassigned when state mutates (e.g., loop counters).</li>
+          <li><code>var</code>: Function-scoped and hoisted with <code>undefined</code>. Avoid in modern JS.</li>
+        </ul>
+        <h3>2. The 7 Primitive Types vs Reference Types</h3>
+        <p>Primitives (<code>string</code>, <code>number</code>, <code>bigint</code>, <code>boolean</code>, <code>undefined</code>, <code>symbol</code>, <code>null</code>) are immutable and stored by value. Objects, Arrays, and Functions are stored by reference.</p>
+        <pre><button class="load-code-btn" onclick="loadIntoEditor(encodeURIComponent(this.nextElementSibling.innerText))">Load into Terminal</button><code>// Value vs Reference Proof
+let a = 10;
+let b = a;
+b = 20;
+console.log("Primitives:", a, b); // 10, 20
+
+const user1 = { name: "Ada", role: "Admin" };
+const user2 = user1; // Copies memory reference!
+user2.role = "Guest";
+console.log("Objects:", user1.role, user2.role); // Both are "Guest"
+console.log("typeof null quirk:", typeof null); // "object" (famous 1995 bug)</code></pre>
+      `,
+      quizzes: [
+        {
+          question: "What does `typeof null` evaluate to in JavaScript?",
+          options: [
+            { text: '"null"', correct: false },
+            { text: '"object"', correct: true },
+            { text: '"undefined"', correct: false }
+          ]
+        },
+        {
+          question: "If `const arr = [1, 2]`, what happens when you run `arr.push(3)`?",
+          options: [
+            { text: "TypeError: Assignment to constant variable", correct: false },
+            { text: "It succeeds because `const` prevents reassignment, not mutation", correct: true }
+          ]
+        }
+      ],
+      challenge: {
+        prompt: "Write a function named <code>analyzeType(val)</code> that returns <code>'null'</code> if <code>val === null</code>, <code>'array'</code> if <code>Array.isArray(val)</code>, and otherwise returns <code>typeof val</code>.",
+        starterCode: `function analyzeType(val) {\n  // Your code here\n}\n\nconsole.log(analyzeType(null));\nconsole.log(analyzeType([1, 2, 3]));`,
+        testFn: (code, consoleProxy) => {
+          const fn = new Function("console", `${code}; return analyzeType;`);
+          const analyzeType = fn(consoleProxy);
+          return analyzeType(null) === "null" && analyzeType([1]) === "array" && analyzeType(42) === "number";
+        }
+      }
+    });
+
+    // Boot App
+    renderSidebar();
+    if (window.COURSE_MODULES.length > 0) loadModule(window.COURSE_MODULES[0].id);
+  </script>
+</body>
+</html>
