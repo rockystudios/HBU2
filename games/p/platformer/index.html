@@ -921,7 +921,8 @@ function updateCrumbling() {
   for (const k of Object.keys(crumblingState)) {
     const [r, c] = k.split(',').map(Number);
     const tx = c * TILE, ty = r * TILE;
-    if (rectOverlap(player.x, player.y, player.w, player.h, tx + 2, ty + 2, TILE - 4, TILE - 4))
+    // full tile box — the player touches the top edge here when standing on it
+    if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty, TILE, TILE))
       crumblingState[k]--;
     if (crumblingState[k] <= 0) {
       grid[r][c] = 0;
