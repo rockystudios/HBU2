@@ -1127,6 +1127,22 @@ function draw() {
   if (portals.orange) drawPortal(portals.orange, '#f97316');
   if (portals.blue)   drawPortal(portals.blue,   '#60a5fa');
 
+  for (const k of specialTiles.ice) {
+    const [r, c] = k.split(',').map(Number);
+    ctx.fillStyle = 'rgba(34,211,238,.22)';
+    ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+    ctx.strokeStyle = 'rgba(165,243,252,.4)';
+    ctx.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
+  }
+  for (const k of Object.keys(crumblingState)) {
+    const [r, c] = k.split(',').map(Number);
+    const sh = crumblingState[k] < 12 ? Math.round(Math.sin(frameCount * 0.8) * 2) : 0;
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillRect(c * TILE + sh, r * TILE, TILE, TILE);
+    ctx.strokeStyle = '#c4b5fd';
+    ctx.strokeRect(c * TILE + 1 + sh, r * TILE + 1, TILE - 2, TILE - 2);
+  }
+
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
 
   // Draw Grid Tiles
@@ -1268,23 +1284,8 @@ document.getElementById('btn-clear-map').addEventListener('click', () => {
 });
 
 function clearPortalAt(r, c) {
-    if (portals.orange && portals.orange.r === r && portals.orange.c === c) portals.orange = null;
-    if (portals.blue && portals.blue.r === r && portals.blue.c === c) portals.blue = null;
-    for (const k of specialTiles.ice) {
-      const [r, c] = k.split(',').map(Number);
-      ctx.fillStyle = 'rgba(34,211,238,.22)';
-      ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
-      ctx.strokeStyle = 'rgba(165,243,252,.4)';
-      ctx.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
-    }
-    for (const k of Object.keys(crumblingState)) {
-      const [r, c] = k.split(',').map(Number);
-      const sh = crumblingState[k] < 12 ? Math.round(Math.sin(frameCount * 0.8) * 2) : 0;
-      ctx.fillStyle = '#7c3aed';
-      ctx.fillRect(c * TILE + sh, r * TILE, TILE, TILE);
-      ctx.strokeStyle = '#c4b5fd';
-      ctx.strokeRect(c * TILE + 1 + sh, r * TILE + 1, TILE - 2, TILE - 2);
-    }
+  if (portals.orange && portals.orange.r === r && portals.orange.c === c) portals.orange = null;
+  if (portals.blue && portals.blue.r === r && portals.blue.c === c) portals.blue = null;
 }
 
 
