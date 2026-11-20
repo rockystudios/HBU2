@@ -150,6 +150,20 @@
 
 <div class="hint" id="play-hint">Controls: <b>A/D</b> or <b>Arrow Keys</b> to Move | <b>W / Space / Up</b> to Jump (Double Jump supported!) | <b>R</b> to Restart</div>
 <script>
+(function () {
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:40vh;overflow:auto;' +
+    'background:#450a0a;color:#fecaca;font:12px/1.5 monospace;padding:8px 12px;' +
+    'z-index:99999;white-space:pre-wrap;display:none;border-top:2px solid #dc2626';
+  document.body.appendChild(box);
+  const show = m => { box.style.display = 'block'; box.textContent += m + '\n'; };
+  window.addEventListener('error', e =>
+    show('ERROR: ' + (e.message || e.error) + ' @ line ' + e.lineno));
+  window.addEventListener('unhandledrejection', e =>
+    show('PROMISE: ' + (e.reason && e.reason.message || e.reason)));
+})();
+</script>
+<script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -787,18 +801,12 @@ function cloneGrid(g) {
 function handlePortals() {
   if (portalCooldown > 0) { portalCooldown--; return; }
   if (!portals.orange || !portals.blue) return;
-  if (rectOverlap(player.x, player.y, player.w, player.h, tx + 2, ty + 2, TILE - 4, TILE - 4))
+  if (rectOverlap(player.x, player.y, player.w, player.h,
                  portals.orange.c * TILE + 8, portals.orange.r * TILE + 8, TILE - 16, TILE - 16)) {
-    const dx = (player.x + player.w / 2) - (portals.orange.c * TILE + TILE / 2);
-    const dy = (player.y + player.h / 2) - (portals.orange.r * TILE + TILE / 2);
-    player.x = portals.blue.c * TILE + TILE / 2 + dx - player.w / 2;
-    player.y = portals.blue.r * TILE + TILE / 2 + dy - player.h / 2;
-    player.vy = 0; portalCooldown = 15;
-    playSound(520, 'sine', 0.15);
-    spawnParticles(portals.orange.c * TILE + TILE / 2, portals.orange.r * TILE + TILE / 2, '#f97316', 14);
+    teleportTo(portals.orange, portals.blue);
   } else if (rectOverlap(player.x, player.y, player.w, player.h,
                  portals.blue.c * TILE + 8, portals.blue.r * TILE + 8, TILE - 16, TILE - 16)) {
-    // mirror: blue -> orange (swap orange/blue in the above)
+    teleportTo(portals.blue, portals.orange);
   }
 }
  
@@ -913,7 +921,7 @@ function updateCrumbling() {
   for (const k of Object.keys(crumblingState)) {
     const [r, c] = k.split(',').map(Number);
     const tx = c * TILE, ty = r * TILE;
-    if (ov(player.x, player.y, player.w, player.h, tx + 2, ty + 2, TILE - 4, TILE - 4))
+    if (rectOverlap(player.x, player.y, player.w, player.h, tx + 2, ty + 2, TILE - 4, TILE - 4))
       crumblingState[k]--;
     if (crumblingState[k] <= 0) {
       grid[r][c] = 0;
@@ -927,22 +935,21 @@ function update() {
   frameCount++;
   if (isEditor) return;
 
-  // Horizontal movement
   let moveDir = 0;
-  const ms = player.speed;
+  if (keys['ArrowLeft'] || keys['KeyA']) moveDir -= 1;
+  if (keys['ArrowRight'] || keys['KeyD']) moveDir += 1;
+
+  if (player.speedBoostTimer > 0) player.speedBoostTimer--;
+  const maxSpeed = player.speedBoostTimer > 0 ? player.speed * 1.75 : player.speed;
+
   if (player.grounded && isOnIce()) {
     player.vx += moveDir * 0.22;
     player.vx *= 0.985;
     if (Math.abs(player.vx) < 0.02) player.vx = 0;
-    player.vx = Math.max(-ms, Math.min(ms, player.vx));
+    player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
   } else {
-    player.vx = moveDir * ms;
+    player.vx = moveDir * maxSpeed;
   }
-
-  if (player.speedBoostTimer > 0) player.speedBoostTimer--;
-  const maxSpeed = player.speedBoostTimer > 0 ? player.speed * 1.75 : player.speed;
-  player.vx = moveDir * maxSpeed;
-
   // Gravity
   player.vy += 0.52;
   if (player.vy > 13) player.vy = 13;
@@ -1035,6 +1042,7 @@ function resolveTileCollisions(horizontal) {
           player.vy = 0;
         }
       } else if (tile === 2) { // Jump Boost Pad
+        
         if (rectOverlap(player.x, player.y, player.w, player.h, tx + 2, ty + 14, TILE - 4, 16)) {
           player.vy = -16.5;
           player.grounded = false;
@@ -1227,8 +1235,8 @@ function draw() {
 }
 
 function loop() {
-  update();
-  draw();
+  try { update(); } catch (e) { console.error(e); }
+  try { draw(); } catch (e) { console.error(e); }
   requestAnimationFrame(loop);
 }
  
@@ -1272,6 +1280,8 @@ document.getElementById('btn-clear-map').addEventListener('click', () => {
   portals = { orange: null, blue: null };
   specialTiles = { ice: new Set(), crumbling: new Set() };
   crumblingState = {};
+});
+
 function clearPortalAt(r, c) {
   if (portals.orange && portals.orange.r === r && portals.orange.c === c) portals.orange = null;
   if (portals.blue && portals.blue.r === r && portals.blue.c === c) portals.blue = null;
@@ -1286,11 +1296,18 @@ function paintTile(e) {
 
   const tileToPlace = mouseButton === 2 ? 0 : selectedTile;
 
-  if (tileToPlace === 0) { clearPortalAt(r, c); grid[r][c] = 0; return; }
+    const key = r + ',' + c;
+
+  if (tileToPlace === 0) {
+    clearPortalAt(r, c);
+    specialTiles.ice.delete(key);
+    specialTiles.crumbling.delete(key);
+    delete crumblingState[key];
+    grid[r][c] = 0;
+    return;
+  }
   if (tileToPlace === 10) { portals.orange = { r, c }; grid[r][c] = 0; return; }
   if (tileToPlace === 11) { portals.blue = { r, c }; grid[r][c] = 0; return; }
-  const key = r + ',' + c;
-  if (tileToPlace === 0)  { specialTiles.ice.delete(key); specialTiles.crumbling.delete(key); delete crumblingState[key]; grid[r][c] = 0; return; }
   if (tileToPlace === 12) { specialTiles.ice.delete(key); specialTiles.crumbling.add(key); crumblingState[key] = 45; grid[r][c] = 0; return; }
   if (tileToPlace === 13) { specialTiles.crumbling.delete(key); delete crumblingState[key]; specialTiles.ice.add(key); grid[r][c] = 0; return; }
   specialTiles.ice.delete(key); specialTiles.crumbling.delete(key); delete crumblingState[key];
@@ -1341,13 +1358,13 @@ document.getElementById('btn-import').addEventListener('click', () => {
       typeof row === "string" ? row.split("").map(Number) : row
     );
     portals = parsed.portals || { orange: null, blue: null };
-    const level = {
+    loadLevel({
       grid,
       portals,
       ice: parsed.ice || [],
       crumbling: parsed.crumbling || []
-    };
-    loadLevel(level);
+    });
+    toggleEditor(false);
     toggleEditor(false);
 
     toggleEditor(false);
