@@ -1114,7 +1114,6 @@ function draw() {
   ctx.fillStyle = '#0b0e17';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Subtle background grid
   ctx.strokeStyle = isEditor ? '#1e293b' : '#111626';
   ctx.lineWidth = 1;
   for (let x = 0; x <= canvas.width; x += TILE) {
@@ -1127,25 +1126,8 @@ function draw() {
   if (portals.orange) drawPortal(portals.orange, '#f97316');
   if (portals.blue)   drawPortal(portals.blue,   '#60a5fa');
 
-  for (const k of specialTiles.ice) {
-    const [r, c] = k.split(',').map(Number);
-    ctx.fillStyle = 'rgba(34,211,238,.22)';
-    ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
-    ctx.strokeStyle = 'rgba(165,243,252,.4)';
-    ctx.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
-  }
-  for (const k of Object.keys(crumblingState)) {
-    const [r, c] = k.split(',').map(Number);
-    const sh = crumblingState[k] < 12 ? Math.round(Math.sin(frameCount * 0.8) * 2) : 0;
-    ctx.fillStyle = '#7c3aed';
-    ctx.fillRect(c * TILE + sh, r * TILE, TILE, TILE);
-    ctx.strokeStyle = '#c4b5fd';
-    ctx.strokeRect(c * TILE + 1 + sh, r * TILE + 1, TILE - 2, TILE - 2);
-  }
-
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
 
-  // Draw Grid Tiles
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const tile = grid[r][c];
@@ -1200,8 +1182,26 @@ function draw() {
     }
   }
 
+  // ICE — always rendered (editor + play)
+  for (const k of specialTiles.ice) {
+    const [r, c] = k.split(',').map(Number);
+    ctx.fillStyle = 'rgba(34,211,238,.22)';
+    ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+    ctx.strokeStyle = 'rgba(165,243,252,.6)';
+    ctx.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
+  }
+
+  // CRUMBLING — always rendered; shake when low on time
+  for (const k of Object.keys(crumblingState)) {
+    const [r, c] = k.split(',').map(Number);
+    const sh = crumblingState[k] < 12 ? Math.round(Math.sin(frameCount * 0.8) * 2) : 0;
+    ctx.fillStyle = '#7c3aed';
+    ctx.fillRect(c * TILE + sh, r * TILE, TILE, TILE);
+    ctx.strokeStyle = '#c4b5fd';
+    ctx.strokeRect(c * TILE + 1 + sh, r * TILE + 1, TILE - 2, TILE - 2);
+  }
+
   if (!isEditor) {
-    // Active Coins
     for (const c of coins) {
       if (c.collected) continue;
       ctx.fillStyle = '#f59e0b';
@@ -1210,13 +1210,11 @@ function draw() {
       ctx.fill();
     }
 
-    // Active Moving Platforms
     ctx.fillStyle = '#06b6d4';
     for (const mp of movingPlatforms) {
       ctx.fillRect(mp.x, mp.y, mp.w, mp.h);
     }
 
-    // Player Trail & Body
     for (const t of player.trail) {
       ctx.fillStyle = player.speedBoostTimer > 0 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.2)';
       ctx.fillRect(t.x, t.y, player.w, player.h);
@@ -1225,7 +1223,7 @@ function draw() {
     ctx.fillRect(player.x, player.y, player.w, player.h);
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(player.x + (player.vx >= 0 ? 13 : 4), player.y + 6, 5, 5);
-    // Particles
+
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = p.color;
@@ -1234,6 +1232,7 @@ function draw() {
     ctx.globalAlpha = 1;
   }
 }
+
 
 function loop() {
   try { update(); } catch (e) { console.error(e); }
