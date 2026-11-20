@@ -921,9 +921,12 @@ function updateCrumbling() {
   for (const k of Object.keys(crumblingState)) {
     const [r, c] = k.split(',').map(Number);
     const tx = c * TILE, ty = r * TILE;
-    // full tile box — the player touches the top edge here when standing on it
-    if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty, TILE, TILE))
+
+    // Shift player's Y check down by 2px so standing flush on top counts as touching
+    if (rectOverlap(player.x, player.y + 2, player.w, player.h, tx, ty, TILE, TILE)) {
       crumblingState[k]--;
+    }
+
     if (crumblingState[k] <= 0) {
       grid[r][c] = 0;
       specialTiles.crumbling.delete(k);
@@ -932,6 +935,7 @@ function updateCrumbling() {
     }
   }
 }
+
 function update() {
   frameCount++;
   if (isEditor) return;
