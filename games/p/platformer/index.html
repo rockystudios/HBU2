@@ -136,6 +136,7 @@
     <button class="tool-btn" data-tile="12"><span class="swatch" style="background:#7c3aed"></span>Crumbling</button>
     <button class="tool-btn" data-tile="13"><span class="swatch" style="background:#22d3ee"></span>Ice</button>
     <button class="tool-btn" data-tile="14"><span class="swatch" style="background:#f97316"></span>Push Block</button>
+    <button class="tool-btn" data-tile="15"><span class="swatch" style="background:#94a3b8"></span>One-Way</button>
     <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
 
   </div>
@@ -1181,6 +1182,7 @@ function resolveTileCollisions(horizontal) {
             player.y = ty + TILE;
           }
           player.vy = 0;
+          
         }
       } else if (tile === 2) { // Jump Boost Pad
         
@@ -1201,6 +1203,18 @@ function resolveTileCollisions(horizontal) {
           killPlayer();
           return true;
         }
+      } else if (tile === 15 && !horizontal) {
+        // Ceiling one-way: solid ONLY when jumping up into it from below.
+        // Falling down onto it passes straight through.
+        if (player.vy < 0 &&
+            player.x + player.w > tx && player.x < tx + TILE &&
+            player.y <= ty + TILE &&                    // head reached the underside
+            player.y - player.vy >= ty + TILE) {        // head started below it
+          player.y = ty + TILE;                         // bonk, stop the rise
+          player.vy = 0;
+          player.jumpsLeft = 2;
+        }
+      }
       } else if (tile === 6) { // Speed Boost Pad
         if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty + 18, TILE, 12)) {
           player.speedBoostTimer = 90;
@@ -1388,6 +1402,20 @@ function draw() {
       ctx.arc(c.x, c.y + Math.sin(frameCount * 0.1) * 3, 7, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.fillStyle = '#64748b';
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (grid[r][c] === 15) {
+          // thin body, solid lip on the underside
+          ctx.fillStyle = 'rgba(100,116,139,0.35)';
+          ctx.fillRect(c * TILE, r * TILE, TILE, TILE - 6);
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(c * TILE, r * TILE + TILE - 6, TILE, 6);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.fillRect(c * TILE, r * TILE + TILE - 3, TILE, 3);
+        }
+      }
+    }
 
     ctx.fillStyle = '#06b6d4';
     for (const mp of movingPlatforms) {
@@ -1540,7 +1568,7 @@ document.getElementById('btn-import').addEventListener('click', () => {
 
     raw = raw.replace(/,\s*$/, '');
     raw = raw.replace(/\.map\s*$[\s\S]*?$\s*\}$/, '}');
-    raw = raw.replace(/([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid)\s*:/g, '$1"$2":');
+    raw = raw.replace(/([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid|oneWay)\s*:/g, '$1"$2":');
    
 
     const parsed = JSON.parse(raw);
