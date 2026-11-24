@@ -1601,9 +1601,21 @@ window.addEventListener('mouseup', () => isMouseDown = false);
 
 document.getElementById('btn-export').addEventListener('click', () => {
   const levelName = prompt("Enter a name for this level:", "HBU") || "CustomLevel";
-  const stringRows = grid.map(row => `    "${row.join("")}"`).join(",\n");
 
-    const payload = `{\n  name: ${JSON.stringify(levelName)},\n  portals: ${JSON.stringify(portals)},\n  ice: ${JSON.stringify([...specialTiles.ice])},\n  crumbling: ${JSON.stringify([...specialTiles.crumbling])},\n  pushBlocks: ${JSON.stringify([...specialTiles.pushBlocks])},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
+  // Arrays preserve multi-digit tile values such as 15.
+  const gridRows = grid.map(row => `    ${JSON.stringify(row)}`).join(",\n");
+
+  // JavaScript level object: can also be pasted into BUILTIN_LEVELS.
+  const payload = `{
+  name: ${JSON.stringify(levelName)},
+  portals: ${JSON.stringify(portals)},
+  ice: ${JSON.stringify([...specialTiles.ice])},
+  crumbling: ${JSON.stringify([...specialTiles.crumbling])},
+  pushBlocks: ${JSON.stringify([...specialTiles.pushBlocks])},
+  grid: [
+${gridRows}
+  ]
+},`;
 
   jsonBox.value = payload;
   jsonBox.select();
@@ -1615,26 +1627,60 @@ document.getElementById('btn-import').addEventListener('click', () => {
   try {
     let raw = jsonBox.value.trim();
 
+    // Accept a trailing comma from a built-in level object.
     raw = raw.replace(/,\s*$/, '');
-    raw = raw.replace(/\.map\s*$[\s\S]*?$\s*\}$/, '}');
-    raw = raw.replace(/([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid|oneWay)\s*:/g, '$1"$2":');
-   
+
+    // Accept the old exported ".map(r => r.split('').map(Number))" suffix.
+    raw = raw.replace(
+      /\.map\s*$\s*r\s*=>\s*r\.split\s*\(\s*(['"])\1\s*$\.map\s*$\s*Number\s*$\s*\)/g,
+      ''
+    );
+
+    // Convert unquoted top-level property names to JSON property names.
+    raw = raw.replace(
+      /([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid)\s*:/g,
+      '$1"$2":'
+    );
 
     const parsed = JSON.parse(raw);
 
     if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) {
-      throw new Error("Invalid grid");
+      throw new Error(`Grid must contain ${ROWS} rows.`);
     }
 
-    grid = parsed.grid.map(row =>
-      typeof row === "string" ? row.split("").map(Number) : row
-    );
-    portals = parsed.portals || { orange: null, blue: null };
-    loadLevel({ grid, portals, ice: parsed.ice || [], crumbling: parsed.crumbling || [], pushBlocks: parsed.pushBlocks || [] });
+    const importedGrid = parsed.grid.map((row, r) => {
+      const cells = typeof row === 'string'
+        ? row.split('').map(Number)
+        : row;
 
-    toggleEditor(false);
+      if (!Array.isArray(cells) || cells.length !== COLS ||
+          cells.some(cell => !Number.isInteger(cell))) {
+        throw new Error(`Row ${r + 1} must contain ${COLS} numeric tiles.`);
+      }
+
+      return [...cells];
+    });
+
+    const level = {
+      name: parsed.name || 'Custom Level',
+      grid: importedGrid,
+      portals: parsed.portals || { orange: null, blue: null },
+      ice: parsed.ice || [],
+      crumbling: parsed.crumbling || [],
+      pushBlocks: parsed.pushBlocks || []
+    };
+
+    // loadLevel initializes special tiles and the player.
+    loadLevel(level);
+
+    // Close the editor without loading a second time.
+    isEditor = false;
+    editorPanel.classList.remove('visible');
+    btnMode.textContent = 'Open Level Maker';
+    btnMode.className = 'secondary';
+    updateHUD();
   } catch (err) {
-    alert("Invalid level format! Make sure you pasted the complete level text.");
+    alert(`Invalid level format: ${err.message}`);
   }
 });
 
