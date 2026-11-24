@@ -1274,24 +1274,25 @@ function resolveTileCollisions(horizontal) {
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
         } else if (tile === 9) { // Goal Portal
-            if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
-              playSound(880, 'sine', 0.4);
-              spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
-          
-              if (isEditor) {
-                // No progression while editing — just flash the portal.
-                toggleEditor(true);
+          if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
+            playSound(880, 'sine', 0.4);
+            spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
+        
+            if (isEditor) {
+              // Reload the current level without advancing
+              loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
+            } else {
+              const collected = coins.filter(c => c.collected).length;
+              if (!hasAtLeastHalfCoins(collected, coins)) {
+                killPlayer();               // not enough coins — back to spawn
               } else {
-                const collected = coins.filter(c => c.collected).length;
-                if (!hasAtLeastHalfCoins(collected, coins)) {
-                  killPlayer();               // not enough coins — back to spawn
-                } else {
-                  currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
-                }
+                currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
+                loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
               }
-           return true;
-         }
+            }
+            return true;
+          }
+
        }
     }
   }
