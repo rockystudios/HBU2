@@ -1214,7 +1214,6 @@ function resolveTileCollisions(horizontal) {
           player.vy = 0;
           player.jumpsLeft = 2;
         }
-      }
       } else if (tile === 6) { // Speed Boost Pad
         if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty + 18, TILE, 12)) {
           player.speedBoostTimer = 90;
