@@ -135,6 +135,7 @@
     <button class="tool-btn" data-tile="11"><span class="swatch" style="background:#60a5fa"></span>Blue Portal</button>
     <button class="tool-btn" data-tile="12"><span class="swatch" style="background:#7c3aed"></span>Crumbling</button>
     <button class="tool-btn" data-tile="13"><span class="swatch" style="background:#22d3ee"></span>Ice</button>
+    <button class="tool-btn" data-tile="14"><span class="swatch" style="background:#f97316"></span>Push Block</button>
     <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
 
   </div>
@@ -848,8 +849,9 @@ let movingPlatforms = [];
 let portals = { orange: null, blue: null };   // {r, c} tile coords
 let portalCooldown = 0;
 let currentLevel = null;
-let specialTiles = { ice: new Set(), crumbling: new Set() };
+let specialTiles = { ice: new Set(), crumbling: new Set(), pushBlocks: new Set() };
 let crumblingState = {};      // key -> frames left
+let pushBlocks = [];   // { x, y, w, h } — 1 tile each (TILE x TILE)
 
 
 const player = {
@@ -903,6 +905,12 @@ function loadLevel(level) {
   specialTiles.ice = new Set((level.ice || []).map(k => String(k)));
   specialTiles.crumbling = new Set((level.crumbling || []).map(k => String(k)));
   crumblingState = {};
+  pushBlocks = [];
+  const pb = new Set((level.pushBlocks || []).map(k => String(k)));
+  for (const k of pb) {
+    const [r, c] = k.split(',').map(Number);
+    pushBlocks.push({ x: c * TILE, y: r * TILE, w: TILE, h: TILE });
+  }
   for (const k of specialTiles.crumbling) crumblingState[k] = 45;
 
   let foundSpawn = false;
@@ -1045,6 +1053,29 @@ function update() {
 
   // Move X & resolve solid tiles
   player.x += player.vx;
+    // Pushable blocks — player can push them horizontally
+  for (const b of pushBlocks) {
+    // Only push when player is roughly at the same vertical band and moving toward it
+    const vertOverlap = player.y + player.h > b.y + 4 && player.y < b.y + b.h - 4;
+    if (!vertOverlap) continue;
+
+    if (player.vx > 0 && player.x + player.w <= b.x + 8 && player.x + player.w + player.vx >= b.x) {
+      tryPush(b, 1);
+    } else if (player.vx < 0 && player.x >= b.x + b.w - 8 && player.x + player.vx <= b.x + b.w) {
+      tryPush(b, -1);
+    }
+  }
+    // Push block landing
+  for (const b of pushBlocks) {
+    if (player.vy >= 0 &&
+        player.x + player.w > b.x && player.x < b.x + b.w &&
+        player.y + player.h >= b.y && player.y + player.h <= b.y + b.h + 10) {
+      player.y = b.y - player.h;
+      player.vy = 0;
+      player.grounded = true;
+      player.jumpsLeft = 2;
+    }
+  }
   resolveTileCollisions(true);
 
   // Move Y & resolve solid tiles
@@ -1174,6 +1205,33 @@ function resolveTileCollisions(horizontal) {
   return false;
  
 }
+
+function tryPush(b, dir) {
+  const dest = b.x + dir * TILE;
+  const rightCol = Math.min(COLS - 1, Math.floor((dest + b.w - 0.01) / TILE));
+  const leftCol = Math.max(0, Math.floor(dest / TILE));
+  const topRow = Math.max(0, Math.floor(b.y / TILE));
+  const botRow = Math.min(ROWS - 1, Math.floor((b.y + b.h - 0.01) / TILE));
+
+  // Can't push outside the map
+  if (dest < 0 || dest + b.w > COLS * TILE) return;
+
+  // Can't push into a solid tile or spike or goal or other moving platform
+  let blocked = false;
+  for (let r = topRow; r <= botRow; r++) {
+    for (let c = leftCol; c <= rightCol; c++) {
+      const t = grid[r][c];
+      if (t === 1 || t === 3 || t === 4 || t === 9) blocked = true;
+    }
+  }
+  // Can't push into another push block
+  for (const o of pushBlocks) {
+    if (o === b) continue;
+    if (o.y < b.y + b.h && o.y + o.h > b.y &&
+        o.x < dest + b.w && o.x + o.w > dest) blocked = true;
+  }
+  if (!blocked) b.x = dest;
+}
  
 function drawPortal(p, color) {
   const x = p.c * TILE + TILE / 2;
@@ -1211,12 +1269,12 @@ function draw() {
 
   const laserActive = Math.floor(frameCount / 75) % 2 === 0;
 
+  // Grid tiles
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const tile = grid[r][c];
       const x = c * TILE;
       const y = r * TILE;
-
       if (tile === 1) {
         ctx.fillStyle = '#1e3a8a';
         ctx.fillRect(x, y, TILE, TILE);
@@ -1265,7 +1323,7 @@ function draw() {
     }
   }
 
-  // ICE — always rendered (editor + play)
+  // ICE — editor + play
   for (const k of specialTiles.ice) {
     const [r, c] = k.split(',').map(Number);
     ctx.fillStyle = 'rgba(34,211,238,.22)';
@@ -1274,7 +1332,7 @@ function draw() {
     ctx.strokeRect(c * TILE + 2, r * TILE + 2, TILE - 4, TILE - 4);
   }
 
-  // CRUMBLING — always rendered; shake when low on time
+  // CRUMBLING — editor + play
   for (const k of Object.keys(crumblingState)) {
     const [r, c] = k.split(',').map(Number);
     const sh = crumblingState[k] < 12 ? Math.round(Math.sin(frameCount * 0.8) * 2) : 0;
@@ -1282,6 +1340,17 @@ function draw() {
     ctx.fillRect(c * TILE + sh, r * TILE, TILE, TILE);
     ctx.strokeStyle = '#c4b5fd';
     ctx.strokeRect(c * TILE + 1 + sh, r * TILE + 1, TILE - 2, TILE - 2);
+  }
+
+  // PUSH BLOCKS — editor view (from the placed set)
+  if (isEditor) {
+    ctx.fillStyle = '#b45309';
+    for (const k of specialTiles.pushBlocks) {
+      const [r, c] = k.split(',').map(Number);
+      ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.strokeRect(c * TILE + 1, r * TILE + 1, TILE - 2, TILE - 2);
+    }
   }
 
   if (!isEditor) {
@@ -1296,6 +1365,13 @@ function draw() {
     ctx.fillStyle = '#06b6d4';
     for (const mp of movingPlatforms) {
       ctx.fillRect(mp.x, mp.y, mp.w, mp.h);
+    }
+
+    ctx.fillStyle = '#b45309';
+    for (const b of pushBlocks) {
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.strokeRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
     }
 
     for (const t of player.trail) {
@@ -1316,7 +1392,6 @@ function draw() {
   }
 }
 
-
 function loop() {
   try { update(); } catch (e) { console.error(e); }
   try { draw(); } catch (e) { console.error(e); }
@@ -1334,7 +1409,7 @@ function toggleEditor(forceState) {
   editorPanel.classList.toggle('visible', isEditor);
   btnMode.textContent = isEditor ? 'Play Custom Level' : 'Open Level Maker';
   btnMode.className = isEditor ? 'success' : 'secondary';
-  if (!isEditor) loadLevel({ grid, portals, ice: [...specialTiles.ice], crumbling: [...specialTiles.crumbling] });
+  if (!isEditor) loadLevel({ grid, portals, ice: [...specialTiles.ice], crumbling: [...specialTiles.crumbling], pushBlocks: [...specialTiles.pushBlocks] });
   
   updateHUD();
   
@@ -1361,8 +1436,10 @@ document.getElementById('btn-clear-map').addEventListener('click', () => {
     Array.from({ length: COLS }, (_, c) => (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? 1 : 0))
   );
   portals = { orange: null, blue: null };
-  specialTiles = { ice: new Set(), crumbling: new Set() };
+  specialTiles = { ice: new Set(), crumbling: new Set(), pushBlocks: new Set() };
   crumblingState = {};
+  pushBlocks = [];
+ 
 });
 
 function clearPortalAt(r, c) {
@@ -1386,6 +1463,7 @@ function paintTile(e) {
     clearPortalAt(r, c);
     specialTiles.ice.delete(key);
     specialTiles.crumbling.delete(key);
+    specialTiles.pushBlocks.delete(key);
     delete crumblingState[key];
     grid[r][c] = 0;
     return;
@@ -1394,6 +1472,12 @@ function paintTile(e) {
   if (tileToPlace === 11) { portals.blue = { r, c }; grid[r][c] = 0; return; }
   if (tileToPlace === 12) { specialTiles.ice.delete(key); specialTiles.crumbling.add(key); crumblingState[key] = 45; grid[r][c] = 0; return; }
   if (tileToPlace === 13) { specialTiles.crumbling.delete(key); delete crumblingState[key]; specialTiles.ice.add(key); grid[r][c] = 0; return; }
+  if (tileToPlace === 14) {
+    specialTiles.ice.delete(key); specialTiles.crumbling.delete(key);
+    delete crumblingState[key];
+    (specialTiles.pushBlocks ||= new Set()).add(key);
+    grid[r][c] = 0; return;
+  }
   specialTiles.ice.delete(key); specialTiles.crumbling.delete(key); delete crumblingState[key];
 
   if (tileToPlace === 8) {
@@ -1415,7 +1499,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const levelName = prompt("Enter a name for this level:", "HBU") || "CustomLevel";
   const stringRows = grid.map(row => `    "${row.join("")}"`).join(",\n");
 
-  const payload = `{\n  name: ${JSON.stringify(levelName)},\n  portals: ${JSON.stringify(portals)},\n  ice: ${JSON.stringify([...specialTiles.ice])},\n  crumbling: ${JSON.stringify([...specialTiles.crumbling])},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
+    const payload = `{\n  name: ${JSON.stringify(levelName)},\n  portals: ${JSON.stringify(portals)},\n  ice: ${JSON.stringify([...specialTiles.ice])},\n  crumbling: ${JSON.stringify([...specialTiles.crumbling])},\n  pushBlocks: ${JSON.stringify([...specialTiles.pushBlocks])},\n  grid: [\n${stringRows}\n  ].map(r => r.split("").map(Number))\n},`;
 
   jsonBox.value = payload;
   jsonBox.select();
@@ -1429,7 +1513,7 @@ document.getElementById('btn-import').addEventListener('click', () => {
 
     raw = raw.replace(/,\s*$/, '');
     raw = raw.replace(/\.map\s*$[\s\S]*?$\s*\}$/, '}');
-    raw = raw.replace(/([{,]\s*)(name|portals|ice|crumbling|grid)\s*:/g, '$1"$2":');
+    raw = raw.replace(/([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid)\s*:/g, '$1"$2":');
    
 
     const parsed = JSON.parse(raw);
@@ -1442,14 +1526,7 @@ document.getElementById('btn-import').addEventListener('click', () => {
       typeof row === "string" ? row.split("").map(Number) : row
     );
     portals = parsed.portals || { orange: null, blue: null };
-    loadLevel({
-      grid,
-      portals,
-      ice: parsed.ice || [],
-      crumbling: parsed.crumbling || []
-    });
-    toggleEditor(false);
-    toggleEditor(false);
+    loadLevel({ grid, portals, ice: parsed.ice || [], crumbling: parsed.crumbling || [], pushBlocks: parsed.pushBlocks || [] });
 
     toggleEditor(false);
   } catch (err) {
