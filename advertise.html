@@ -38,6 +38,9 @@
       <h1>Advertise on HBU</h1>
       <p class="intro">Want to advertise something on this website? Send a request below. If Rocky approves it, your image will appear in the HBU home-screen ad spot and clicks will open the link you provide.</p>
       <form id="ad-form">
+        <label>HBU username<input id="account-username" maxlength="24" autocomplete="username" required placeholder="Your HBU username"></label>
+        <label>HBU password<input id="account-password" type="password" autocomplete="current-password" required placeholder="Your HBU password"></label>
+        <p class="hint">Sign in to your HBU account before sending this request. Your password is only used to verify your account.</p>
         <label>Advertiser or business name
           <input id="advertiser" maxlength="60" autocomplete="organization" required placeholder="Your name or business">
         </label>
@@ -118,6 +121,8 @@
 
     document.querySelector("#ad-form").addEventListener("submit", async event => {
       event.preventDefault();
+      const username = document.querySelector("#account-username").value.trim();
+      const password = document.querySelector("#account-password").value;
       const advertiser = document.querySelector("#advertiser").value.trim();
       const contact = document.querySelector("#contact").value.trim();
       const destinationText = document.querySelector("#destination").value.trim();
@@ -134,6 +139,8 @@
           method: "POST",
           headers: { apikey: anonKey, "Content-Type": "application/json" },
           body: JSON.stringify({
+            p_username: username,
+            p_password: password,
             p_advertiser_name: advertiser,
             p_contact: contact,
             p_image_data: imageData,
@@ -144,6 +151,7 @@
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error(body?.message || body?.hint || "The request could not be sent.");
         document.querySelector("#ad-form").reset();
+        document.querySelector("#account-password").value = "";
         imageData = "";
         preview.removeAttribute("src");
         preview.style.display = "none";
