@@ -1117,13 +1117,13 @@ async function handleOwner(action: string, staff: string, body: Record<string, u
   if (action.startsWith("admin_owner_ad_")) {
     if (staff.toLowerCase() !== "rocky") throw new UserError("Only the owner can review advertising requests.", 403);
     if (action === "admin_owner_ad_list") {
-      const requests = await db("hbu_ad_requests?select=id,advertiser_name,contact,duration_days,status,requested_at,starts_at,expires_at&order=requested_at.desc&limit=100");
+      const requests = await db("hbu_ad_requests?select=id,advertiser_name,contact,duration_days,status,requested_at,starts_at,expires_at,ip_address,submitted_by&order=requested_at.desc&limit=100");
       return json({ requests: requests ?? [] });
     }
     const id = Number(body.id);
     if (!Number.isSafeInteger(id) || id <= 0) throw new UserError("Invalid advertising request.");
     if (action === "admin_owner_ad_get") {
-      const rows = await db("hbu_ad_requests?select=id,advertiser_name,contact,image_data,target_url,duration_days,status,requested_at,starts_at,expires_at&id=eq." + id + "&limit=1");
+      const rows = await db("hbu_ad_requests?select=id,advertiser_name,contact,image_data,target_url,duration_days,status,requested_at,starts_at,expires_at,ip_address,submitted_by&id=eq." + id + "&limit=1");
       if (!rows?.length) throw new UserError("That advertising request no longer exists.", 404);
       return json({ request: rows[0] });
     }
@@ -1667,12 +1667,13 @@ async function handleRequest(req: Request): Promise<Response> {
     if (action === "signup") return await signup(req, body);
     if (action === "login") return await loginAccount(req, body);
     const isVoiceAction = typeof action === "string" && ["voice_list", "voice_create", "voice_token", "voice_kick"].includes(action);
+    const isAdSubmit = action === "submit_ad";
     const isAdminAction = typeof action === "string" && (action.startsWith("admin_") || action === "app_ai" || action === "delete_message");
-    if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && !isVoiceAction && typeof message !== "string")) {
+    if (typeof username !== "string" || typeof password !== "string" || (!isAdminAction && !isVoiceAction && !isAdSubmit && typeof message !== "string")) {
       throw new UserError("Missing username, password or message.");
     }
-    const text = (isAdminAction || isVoiceAction) ? "" : message.trim();
-    if (!isAdminAction && !isVoiceAction && (!text || text.length > MAX_LENGTH)) throw new UserError("Message must be 1-500 characters.");
+    const text = (isAdminAction || isVoiceAction || isAdSubmit) ? "" : message.trim();
+    if (!isAdminAction && !isVoiceAction && !isAdSubmit && (!text || text.length > MAX_LENGTH)) throw new UserError("Message must be 1-500 characters.");
 
     const ipSubject = await requestIpSubject(req);
     await requireRateLimit(ipSubject, "send_message_endpoint", 600, 60);
@@ -1698,6 +1699,26 @@ async function handleRequest(req: Request): Promise<Response> {
       if (currentRole !== "user" && !(await hasAcceptedRolePolicy(realName, currentRole))) {
         throw new UserError("You must read and accept the HBU Staff Abuse & Consequences Policy before using HBU with this role.", 403);
       }
+    }
+    if (isAdSubmit) {
+      await requireRateLimit("account:" + realName.toLowerCase(), "submit_ad", 3, 86400);
+      const advertiser = typeof body.advertiser_name === "string" ? body.advertiser_name.trim() : "";
+      const contact = typeof body.contact === "string" ? body.contact.trim() : "";
+      const imageData = typeof body.image_data === "string" ? body.image_data : "";
+      const targetUrl = typeof body.target_url === "string" ? body.target_url : "";
+      const duration = Number(body.duration_days);
+      if (advertiser.length < 2 || advertiser.length > 60) throw new UserError("Enter an advertiser name between 2 and 60 characters.");
+      if (contact.length < 3 || contact.length > 160) throw new UserError("Enter contact information between 3 and 160 characters.");
+      if (!/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(imageData) || imageData.length > 900000) throw new UserError("Upload a valid image no larger than 650 KB.");
+      let destination: URL;
+      try { destination = new URL(targetUrl); } catch { throw new UserError("Enter a valid HTTPS destination."); }
+      if (destination.protocol !== "https:" || targetUrl.length > 2048) throw new UserError("The ad destination must use HTTPS.");
+      if (!Number.isInteger(duration) || duration < 1 || duration > 30) throw new UserError("Choose an ad duration from 1 to 30 days.");
+      const ipAddress = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64) || null;
+      const prior = await db("hbu_ad_requests?select=id&contact=ilike." + enc(contact) + "&requested_at=gt." + enc(new Date(Date.now() - 86400000).toISOString()) + "&limit=3");
+      if ((prior ?? []).length >= 3) throw new UserError("This contact has already submitted 3 requests in the last 24 hours.", 429);
+      await db("hbu_ad_requests", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ advertiser_name: advertiser, contact, image_data: imageData, target_url: destination.href, duration_days: duration, submitted_by: realName, ip_address: ipAddress }) });
+      return json({ ok: true });
     }
     if (isVoiceAction) {
       const voiceLimits: Record<string, [number, number]> = {

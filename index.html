@@ -7373,7 +7373,7 @@
         for (const request of requests) {
           const item = document.createElement("li");
           const summary = document.createElement("span");
-          summary.textContent = request.advertiser_name + " · " + request.status + " · " + request.duration_days + " day(s)";
+          summary.textContent = request.advertiser_name + " · " + request.status + " · " + request.duration_days + " day(s) · IP: " + (request.ip_address || "unavailable");
           const contact = document.createElement("small");
           contact.textContent = request.contact;
           const review = document.createElement("button");
@@ -7387,7 +7387,7 @@
               const ad = result.request;
               selectedOwnerAdId = ad.id;
               ownerAdPreview.src = ad.image_data;
-              ownerAdDetails.textContent = "Advertiser: " + ad.advertiser_name + "\nContact: " + ad.contact + "\nRequested duration: " + ad.duration_days + " day(s)\nSubmitted: " + new Date(ad.requested_at).toLocaleString() + "\nStatus: " + ad.status;
+              ownerAdDetails.textContent = "Advertiser: " + ad.advertiser_name + "\nContact: " + ad.contact + "\nRequested duration: " + ad.duration_days + " day(s)\nSubmitted: " + new Date(ad.requested_at).toLocaleString() + "\nStatus: " + ad.status + "\nHBU account: " + (ad.submitted_by || "unknown") + "\nIP address: " + (ad.ip_address || "unavailable");
               ownerAdDestination.href = ad.target_url;
               ownerAdDestination.textContent = ad.target_url;
               ownerAdReview.querySelector("#owner-ad-review-title").textContent = "Review: " + ad.advertiser_name;

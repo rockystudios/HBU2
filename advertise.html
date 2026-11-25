@@ -38,6 +38,9 @@
       <h1>Advertise on HBU</h1>
       <p class="intro">Want to advertise something on this website? Send a request below. If Rocky approves it, your image will appear in the HBU home-screen ad spot and clicks will open the link you provide.</p>
       <form id="ad-form">
+        <label>HBU username<input id="account-username" maxlength="24" autocomplete="username" required placeholder="Your HBU username"></label>
+        <label>HBU password<input id="account-password" type="password" autocomplete="current-password" required placeholder="Your HBU password"></label>
+        <p class="hint">Sign in to your HBU account before sending this request. Your password is only used to verify your account.</p>
         <label>Advertiser or business name
           <input id="advertiser" maxlength="60" autocomplete="organization" required placeholder="Your name or business">
         </label>
@@ -66,12 +69,23 @@
         <button id="submit" type="submit">Send advertising request</button>
       </form>
       <p class="status" id="status" role="status" aria-live="polite"></p>
-      <div class="notice">Submitting a request does not automatically publish the ad. Rocky must review and approve it first. <strong>Rocky will reach out to you about payments shortly.</strong></div>
+      <div class="notice">Your HBU username must be signed in to submit. Your IP address is collected for abuse prevention and shown only to the site owner. Submitting a request does not automatically publish the ad. Rocky must review and approve it first. <strong>Rocky will reach out to you about payments shortly.</strong></div>
     </section>
   </main>
   <script>
     const gatewayUrl = "https://hbu2.schooogle.workers.dev";
     const anonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
+    function getDeviceId() {
+      const key = "hbu-device-id-v1";
+      let value = "";
+      try { value = localStorage.getItem(key) || ""; } catch {}
+      if (!/^[a-f0-9-]{36}$/i.test(value)) {
+        value = crypto.randomUUID();
+        try { localStorage.setItem(key, value); } catch {}
+      }
+      return value;
+    }
+    const deviceId = getDeviceId();
     const imageInput = document.querySelector("#image");
     const preview = document.querySelector("#preview");
     const imageNote = document.querySelector("#image-note");
@@ -118,6 +132,8 @@
 
     document.querySelector("#ad-form").addEventListener("submit", async event => {
       event.preventDefault();
+      const username = document.querySelector("#account-username").value.trim();
+      const password = document.querySelector("#account-password").value;
       const advertiser = document.querySelector("#advertiser").value.trim();
       const contact = document.querySelector("#contact").value.trim();
       const destinationText = document.querySelector("#destination").value.trim();
@@ -130,20 +146,15 @@
       status.classList.remove("success");
       status.textContent = "Sending your request…";
       try {
-        const response = await fetch(gatewayUrl + "/rest/v1/rpc/hbu_submit_ad", {
+        const response = await fetch(gatewayUrl + "/functions/v1/send-message", {
           method: "POST",
-          headers: { apikey: anonKey, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            p_advertiser_name: advertiser,
-            p_contact: contact,
-            p_image_data: imageData,
-            p_target_url: destination.href,
-            p_duration_days: duration
-          })
+          headers: { apikey: anonKey, "Content-Type": "application/json", "X-HBU-Device-ID": deviceId },
+          body: JSON.stringify({ action: "submit_ad", username, password, device_id: deviceId, advertiser_name: advertiser, contact, image_data: imageData, target_url: destination.href, duration_days: duration })
         });
         const body = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(body?.message || body?.hint || "The request could not be sent.");
+        if (!response.ok) throw new Error(body?.error || body?.message || body?.hint || "The request could not be sent.");
         document.querySelector("#ad-form").reset();
+        document.querySelector("#account-password").value = "";
         imageData = "";
         preview.removeAttribute("src");
         preview.style.display = "none";
