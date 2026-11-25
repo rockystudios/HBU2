@@ -1019,6 +1019,10 @@
           <span class="app-glyph app-icon-social" aria-hidden="true"></span>
           <span class="app-label">HBU Game Hub</span>
         </button>
+        <button class="app-icon" type="button" data-app="platformer" aria-label="Open Platformer game">
+          <span class="app-glyph" aria-hidden="true">🏃</span>
+          <span class="app-label">Platformer</span>
+        </button>
       </nav>
       </section>
       <aside class="home-ad" aria-label="Advertisement">
@@ -6257,7 +6261,15 @@
       });
     }
     for (const [name, win] of Object.entries(windowEls)) wireWindow(name, win);
-    for (const icon of document.querySelectorAll(".app-icon")) icon.addEventListener("click", () => openApp(icon.dataset.app));
+    for (const icon of document.querySelectorAll(".app-icon")) {
+      icon.addEventListener("click", () => {
+        if (icon.dataset.app === "platformer") {
+          window.open("http://rockystudios.github.io/HBU2/games/p/platformer", "_blank", "noopener,noreferrer");
+          return;
+        }
+        openApp(icon.dataset.app);
+      });
+    }
     window.addEventListener("resize", () => Object.values(windowEls).forEach(clampWindow));
     document.addEventListener("keydown", event => {
       if (event.key !== "Escape") return;
