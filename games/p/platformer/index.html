@@ -1146,8 +1146,8 @@ function update() {
   if (isEditor) return;
 
   let moveDir = 0;
-  if (keys['ArrowLeft'] || keys['KeyA']) moveDir -= 1;
-  if (keys['ArrowRight'] || keys['KeyD']) moveDir += 1;
+  if ((!multiplayerEnabled && keys['ArrowLeft']) || keys['KeyA']) moveDir -= 1;
+  if ((!multiplayerEnabled && keys['ArrowRight']) || keys['KeyD']) moveDir += 1;
 
   if (player.speedBoostTimer > 0) player.speedBoostTimer--;
   const maxSpeed = player.speedBoostTimer > 0 ? player.speed * 1.75 : player.speed;
