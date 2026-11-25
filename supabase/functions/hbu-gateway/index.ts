@@ -166,7 +166,11 @@ Deno.serve(async (req: Request) => {
     if (value) headers.set(name, value);
   }
   if (pathname === "/functions/v1/send-message") {
-    // Server-side service auth replaces the separately managed gateway token.
+    // The upstream request uses service-role auth. Keep apikey and
+    // Authorization on the same key; mixing the browser publishable key
+    // with the service-role bearer token causes Supabase's
+    // "Conflicting API keys" rejection.
+    headers.set("apikey", SERVICE_KEY);
     headers.set("Authorization", "Bearer " + SERVICE_KEY);
   }
 
@@ -179,6 +183,9 @@ Deno.serve(async (req: Request) => {
     if (receiver !== "eq.everyone" || select !== "id,user,message,text_color,created_at" || !Number.isInteger(limit) || limit < 1 || limit > 100) {
       return json({ error: "Only the public chat history query is allowed." }, 403);
     }
+    // This proxy path also uses service-role auth, so both API-key
+    // headers must identify the same key.
+    headers.set("apikey", SERVICE_KEY);
     headers.set("Authorization", "Bearer " + SERVICE_KEY);
   }
 
