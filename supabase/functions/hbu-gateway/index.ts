@@ -4,6 +4,9 @@
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+// Same private token used by the Cloudflare gateway and the database lockdown.
+// It is injected only by this server-side Edge Function, never by the browser.
+const GATEWAY_TOKEN = Deno.env.get("HBU_GATEWAY_TOKEN") ?? "";
 const GATEWAY_PREFIX = "/hbu-gateway";
 
 const CORS_HEADERS = {
@@ -133,6 +136,12 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Method not allowed." }, 405);
   }
   if (!req.headers.get("apikey")) return json({ error: "Missing Supabase publishable API key." }, 401);
+  // Browser-facing REST calls use the publishable key, but the database
+  // lockdown also requires this private header. Never accept it from the
+  // browser: inject the server-side secret after validating the route.
+  if (pathname.startsWith("/rest/v1/") && GATEWAY_TOKEN.length < 40) {
+    return json({ error: "HBU2 gateway token is not configured in Supabase Edge Function secrets." }, 503);
+  }
 
   let body: Uint8Array | null = null;
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -164,6 +173,9 @@ Deno.serve(async (req: Request) => {
   for (const name of ["authorization", "apikey", "content-type", "prefer", "range", "accept", "x-client-info", "cache-control", "pragma"]) {
     const value = req.headers.get(name);
     if (value) headers.set(name, value);
+  }
+  if (pathname.startsWith("/rest/v1/")) {
+    headers.set("x-hbu-gateway-token", GATEWAY_TOKEN);
   }
   if (pathname === "/functions/v1/send-message") {
     // The upstream request uses service-role auth. Keep apikey and
