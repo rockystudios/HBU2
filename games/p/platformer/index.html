@@ -77,6 +77,8 @@
   }
   #editor-panel.visible { display: flex; }
   .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #tool-search { min-width:220px; flex:1; background:#0b0e17; color:#e2e8f0; border:1px solid #334155; border-radius:6px; padding:8px; }
+  .tool-btn[hidden] { display:none; }
   .tool-btn { display: flex; align-items: center; gap: 6px; background: #1e293b; border: 1px solid #334155; }
   .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
   .json-row { display: flex; gap: 8px; width: 100%; }
@@ -137,6 +139,12 @@
     <button class="tool-btn" data-tile="13"><span class="swatch" style="background:#22d3ee"></span>Ice</button>
     <button class="tool-btn" data-tile="14"><span class="swatch" style="background:#f97316"></span>Push Block</button>
     <button class="tool-btn" data-tile="15"><span class="swatch" style="background:#94a3b8"></span>One-Way</button>
+    <button class="tool-btn" data-tile="16"><span class="swatch" style="background:#34d399"></span>Checkpoint</button>
+    <button class="tool-btn" data-tile="17"><span class="swatch" style="background:#fb4b24"></span>Lava</button>
+    <button class="tool-btn" data-tile="18"><span class="swatch" style="background:#f0abfc"></span>Super Spring</button>
+    <button class="tool-btn" data-tile="19"><span class="swatch" style="background:#38bdf8"></span>Player 1 Spawn</button>
+    <button class="tool-btn" data-tile="20"><span class="swatch" style="background:#f472b6"></span>Player 2 Spawn</button>
+    <input id="tool-search" type="search" placeholder="Search building items..." aria-label="Search building items">
     <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
 
   </div>
@@ -933,6 +941,10 @@ let currentLevel = null;
 let specialTiles = { ice: new Set(), crumbling: new Set(), pushBlocks: new Set() };
 let crumblingState = {};      // key -> frames left
 let pushBlocks = [];   // { x, y, w, h } — 1 tile each (TILE x TILE)
+let multiplayerEnabled = false;
+let player1Spawn = null, player2Spawn = null, player1Checkpoint = null;
+let player1AtGoal = false, player2AtGoal = false;
+const player2 = { x:100,y:300,w:22,h:26,vx:0,vy:0,grounded:false,jumpsLeft:2,color:"#f472b6" };
 
 
 const player = {
@@ -995,6 +1007,8 @@ function loadLevel(level) {
   for (const k of specialTiles.crumbling) crumblingState[k] = 45;
 
   let foundSpawn = false;
+  player1Spawn = null; player2Spawn = null; player1Checkpoint = null;
+  player1AtGoal = false; player2AtGoal = false;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const val = grid[r][c];
@@ -1002,6 +1016,10 @@ function loadLevel(level) {
         player.x = c * TILE + 4;
         player.y = r * TILE + 2;
         foundSpawn = true;
+      } else if (val === 19) {
+        player1Spawn = { x:c*TILE+4, y:r*TILE+2 };
+      } else if (val === 20) {
+        player2Spawn = { x:c*TILE+4, y:r*TILE+2 };
       } else if (val === 5) {
         coins.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2, collected: false });
       } else if (val === 7) {
@@ -1012,7 +1030,11 @@ function loadLevel(level) {
       }
     }
   }
-  if (!foundSpawn) { player.x = 60; player.y = 60; }
+  multiplayerEnabled = !!(player1Spawn && player2Spawn);
+  if (multiplayerEnabled) {
+    player.x=player1Spawn.x; player.y=player1Spawn.y;
+    Object.assign(player2,{x:player2Spawn.x,y:player2Spawn.y,vx:0,vy:0,grounded:false,jumpsLeft:2});
+  } else if (!foundSpawn) { player.x=60; player.y=60; }
   updateHUD();
 }
 
@@ -1050,9 +1072,17 @@ function jump() {
 
 function killPlayer() {
   deaths++;
-  playSound(120, 'sawtooth', 0.3, 0.2);
-  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444', 25);
+  playSound(120,"sawtooth",0.3,0.2);
+  spawnParticles(player.x+player.w/2,player.y+player.h/2,"#ef4444",25);
+  if(player1Checkpoint){player.x=player1Checkpoint.x;player.y=player1Checkpoint.y;player.vx=0;player.vy=0;player.jumpsLeft=2;player1AtGoal=false;return;}
   loadLevel(currentLevel);
+}
+
+function completeCurrentLevel() {
+  const collected=coins.filter(c=>c.collected).length;
+  if(!hasAtLeastHalfCoins(collected,coins)){killPlayer();return;}
+  currentLevelIdx=(currentLevelIdx+1)%BUILTIN_LEVELS.length;
+  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
 }
 
 function hasAtLeastHalfCoins(collected, coins) {
@@ -1202,6 +1232,7 @@ function update() {
   }
 
   // Out of bounds
+  if (multiplayerEnabled) updateSecondPlayer();
   if (player.y > canvas.height + 40) killPlayer();
 
   // Update particles
@@ -1211,6 +1242,34 @@ function update() {
     p.y += p.vy;
     p.life -= 0.04;
     if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function updateSecondPlayer() {
+  const p=player2;
+  const dir=(keys.ArrowLeft?-1:0)+(keys.ArrowRight?1:0);
+  p.vx=dir*4.5; p.vy=Math.min(13,p.vy+0.52);
+  p.x+=p.vx; collideSecondPlayer(p,true);
+  p.grounded=false; p.y+=p.vy; collideSecondPlayer(p,false);
+  for(const coin of coins) if(!coin.collected&&rectOverlap(p.x,p.y,p.w,p.h,coin.x-8,coin.y-8,16,16)){
+    coin.collected=true;playSound(780,"triangle",0.14);spawnParticles(coin.x,coin.y,"#f59e0b",10);updateHUD();
+  }
+  if(p.y>canvas.height+40){p.x=player2Spawn.x;p.y=player2Spawn.y;p.vx=0;p.vy=0;p.jumpsLeft=2;player2AtGoal=false;}
+}
+function collideSecondPlayer(p,horizontal){
+  const laserActive=Math.floor(frameCount/75)%2===0;
+  const c0=Math.max(0,Math.floor(p.x/TILE)),c1=Math.min(COLS-1,Math.floor((p.x+p.w-0.01)/TILE));
+  const r0=Math.max(0,Math.floor(p.y/TILE)),r1=Math.min(ROWS-1,Math.floor((p.y+p.h-0.01)/TILE));
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){
+    const t=grid[r][c],x=c*TILE,y=r*TILE;
+    if(t===1||specialTiles.crumbling.has(r+","+c)){
+      if(horizontal){p.x=p.vx>0?x-p.w:x+TILE;p.vx=0;}
+      else if(p.vy>0){p.y=y-p.h;p.vy=0;p.grounded=true;p.jumpsLeft=2;}
+      else if(p.vy<0){p.y=y+TILE;p.vy=0;}
+    } else if((t===3||(t===4&&laserActive)||t===17)&&rectOverlap(p.x,p.y,p.w,p.h,x+3,y+3,TILE-6,TILE-6)){
+      p.x=player2Spawn.x;p.y=player2Spawn.y;p.vx=0;p.vy=0;p.jumpsLeft=2;player2AtGoal=false;return;
+    } else if(t===18&&p.vy>=0&&rectOverlap(p.x,p.y,p.w,p.h,x+2,y+12,TILE-4,18)){p.vy=-22;p.grounded=false;p.jumpsLeft=2;}
+    else if(t===9&&rectOverlap(p.x,p.y,p.w,p.h,x+4,y+4,TILE-8,TILE-8)){player2AtGoal=true;if(player1AtGoal)completeCurrentLevel();}
   }
 }
 
@@ -1273,29 +1332,36 @@ function resolveTileCollisions(horizontal) {
           player.vy = 0;
           player.jumpsLeft = 2;
         }
+      } else if (tile === 17) { // Lava
+        if(rectOverlap(player.x,player.y,player.w,player.h,tx+2,ty+4,TILE-4,TILE-4)){killPlayer();return true;}
+      } else if (tile === 16) { // Checkpoint
+        if(rectOverlap(player.x,player.y,player.w,player.h,tx,ty,TILE,TILE)) player1Checkpoint={x:tx+4,y:ty-player.h};
+      } else if (tile === 18) { // Super spring
+        if(player.vy>=0&&rectOverlap(player.x,player.y,player.w,player.h,tx+2,ty+12,TILE-4,18)){player.vy=-22;player.grounded=false;player.jumpsLeft=2;playSound(740,"sine",0.28);spawnParticles(tx+15,ty+12,"#f0abfc",18);}
       } else if (tile === 6) { // Speed Boost Pad
         if (rectOverlap(player.x, player.y, player.w, player.h, tx, ty + 18, TILE, 12)) {
           player.speedBoostTimer = 90;
           playSound(640, 'square', 0.12, 0.08);
           spawnParticles(player.x + player.w / 2, player.y + player.h, '#a855f7', 5);
         }
-        } else if (tile === 9) { // Goal Portal
+        } else if (tile === 16) {
+        ctx.fillStyle="#34d399";ctx.fillRect(x+4,y+5,22,24);ctx.fillStyle="#d1fae5";ctx.fillRect(x+8,y+9,14,5);
+      } else if (tile === 17) {
+        ctx.fillStyle="#fb4b24";ctx.beginPath();ctx.moveTo(x,y+30);ctx.lineTo(x+6,y+12);ctx.lineTo(x+12,y+30);ctx.lineTo(x+19,y+10);ctx.lineTo(x+25,y+30);ctx.lineTo(x+30,y+13);ctx.lineTo(x+30,y+30);ctx.fill();
+      } else if (tile === 18) {
+        ctx.fillStyle="#c026d3";ctx.fillRect(x+2,y+18,26,10);ctx.fillStyle="#f5d0fe";ctx.fillRect(x+6,y+12,18,6);
+      } else if (tile === 19) {
+        ctx.strokeStyle="#38bdf8";ctx.lineWidth=3;ctx.strokeRect(x+4,y+3,22,25);ctx.fillStyle="#38bdf8";ctx.font="bold 10px sans-serif";ctx.fillText("P1",x+7,y+17);ctx.lineWidth=1;
+      } else if (tile === 20) {
+        ctx.strokeStyle="#f472b6";ctx.lineWidth=3;ctx.strokeRect(x+4,y+3,22,25);ctx.fillStyle="#f472b6";ctx.font="bold 10px sans-serif";ctx.fillText("P2",x+7,y+17);ctx.lineWidth=1;
+      } else if (tile === 9) { // Goal Portal
           if (rectOverlap(player.x, player.y, player.w, player.h, tx + 4, ty + 4, TILE - 8, TILE - 8)) {
             playSound(880, 'sine', 0.4);
             spawnParticles(tx + TILE / 2, ty + TILE / 2, '#fde047', 30);
         
-            if (isEditor) {
-              // Reload the current level without advancing
-              loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
-            } else {
-              const collected = coins.filter(c => c.collected).length;
-              if (!hasAtLeastHalfCoins(collected, coins)) {
-                killPlayer();               // not enough coins — back to spawn
-              } else {
-                currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-                loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
-              }
-            }
+            if(isEditor) loadLevel(currentLevel);
+            else if(multiplayerEnabled){player1AtGoal=true;if(player2AtGoal)completeCurrentLevel();}
+            else completeCurrentLevel();
             return true;
           }
 
@@ -1491,6 +1557,7 @@ function draw() {
     }
     ctx.fillStyle = player.speedBoostTimer > 0 ? '#d8b4fe' : '#38bdf8';
     ctx.fillRect(player.x, player.y, player.w, player.h);
+    if(multiplayerEnabled){ctx.fillStyle="#f472b6";ctx.fillRect(player2.x,player2.y,player2.w,player2.h);ctx.fillStyle="#f9a8d4";ctx.font="bold 11px sans-serif";ctx.fillText("P2",player2.x-1,player2.y-5);ctx.fillStyle="#38bdf8";ctx.fillText("P1",player.x-1,player.y-5);}
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(player.x + (player.vx >= 0 ? 13 : 4), player.y + 6, 5, 5);
 
@@ -1542,6 +1609,11 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
   });
 });
 
+document.getElementById("tool-search").addEventListener("input", event => {
+  const query=event.target.value.trim().toLowerCase();
+  document.querySelectorAll("#tool-buttons .tool-btn").forEach(button=>{button.hidden=!button.textContent.toLowerCase().includes(query);});
+});
+
 document.getElementById('btn-clear-map').addEventListener('click', () => {
   grid = Array.from({ length: ROWS }, (_, r) =>
     Array.from({ length: COLS }, (_, c) => (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1 ? 1 : 0))
@@ -1591,10 +1663,11 @@ function paintTile(e) {
   }
   specialTiles.ice.delete(key); specialTiles.crumbling.delete(key); delete crumblingState[key];
 
-  if (tileToPlace === 8) {
-    for (let rr = 0; rr < ROWS; rr++)
-      for (let cc = 0; cc < COLS; cc++)
-        if (grid[rr][cc] === 8) grid[rr][cc] = 0;
+  if ([8,19,20].includes(tileToPlace)) {
+    for(let rr=0;rr<ROWS;rr++)for(let cc=0;cc<COLS;cc++){
+      if(grid[rr][cc]===tileToPlace)grid[rr][cc]=0;
+      if(tileToPlace===19&&grid[rr][cc]===8)grid[rr][cc]=0;
+    }
   }
   grid[r][c] = tileToPlace;
 }
@@ -1606,110 +1679,34 @@ canvas.addEventListener('mousedown', e => { isMouseDown = true; mouseButton = e.
 canvas.addEventListener('mousemove', e => { if (isMouseDown) paintTile(e); });
 window.addEventListener('mouseup', () => isMouseDown = false);
 
-document.getElementById('btn-export').addEventListener('click', () => {
-  const levelName = prompt("Enter a name for this level:", "HBU") || "CustomLevel";
-
-  // Arrays preserve multi-digit tile values such as 15.
-  const gridRows = grid.map(row => `    ${JSON.stringify(row)}`).join(",\n");
-
-  // JavaScript level object: can also be pasted into BUILTIN_LEVELS.
-  const payload = `{
-  name: ${JSON.stringify(levelName)},
-  portals: ${JSON.stringify(portals)},
-  ice: ${JSON.stringify([...specialTiles.ice])},
-  crumbling: ${JSON.stringify([...specialTiles.crumbling])},
-  pushBlocks: ${JSON.stringify([...specialTiles.pushBlocks])},
-  grid: [
-${gridRows}
-  ]
-},`;
-
-  jsonBox.value = payload;
-  jsonBox.select();
-  navigator.clipboard?.writeText(payload);
+document.getElementById("btn-export").addEventListener("click", () => {
+  const levelName=prompt("Enter a name for this level:","HBU")||"CustomLevel";
+  const payload=JSON.stringify({format:"neon-pulse-level",version:2,name:levelName,grid,portals,ice:[...specialTiles.ice],crumbling:[...specialTiles.crumbling],pushBlocks:[...specialTiles.pushBlocks]},null,2);
+  jsonBox.value=payload;jsonBox.select();navigator.clipboard?.writeText(payload).catch(()=>{});
 });
 
-
-document.getElementById('btn-import').addEventListener('click', () => {
+document.getElementById("btn-import").addEventListener("click", () => {
   try {
-    let raw = jsonBox.value.trim();
-    if (!raw) throw new Error("Paste a level export first.");
-
-    // Support both the new strict JSON format and older HBU object exports.
-    raw = raw.replace(/,\\s*$/, "");
-    raw = raw.replace(
-      /\\.map\\s*\\(\\s*r\\s*=>\\s*r\\.split\\s*\\(\\s*(['"])\\1\\s*\\)\\.map\\s*\\(\\s*Number\\s*\\)\\s*\\)/g,
-      ""
-    );
-    raw = raw.replace(
-      /([{,]\\s*)(name|portals|ice|crumbling|pushBlocks|grid)\\s*:/g,
-      '$1"$2":'
-    );
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("The level must be a JSON object.");
-    }
-    if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) {
-      throw new Error(`Grid must contain exactly ${ROWS} rows.`);
-    }
-
-    const importedGrid = parsed.grid.map((row, r) => {
-      const cells = typeof row === "string" ? row.split("").map(Number) : row;
-      if (!Array.isArray(cells) || cells.length !== COLS ||
-          cells.some(cell => !Number.isInteger(cell) || cell < 0 || cell > 18)) {
-        throw new Error(`Row ${r + 1} must contain ${COLS} tile numbers from 0 to 18.`);
-      }
-      return [...cells];
+    const raw=jsonBox.value.trim().replace(/^\\uFEFF/,"");
+    if(!raw)throw new Error("Paste a level export first.");
+    // Backwards-compatible cleanup for old unquoted-key/trailing-comma exports.
+    const normalized=raw.replace(/([{,]\\s*)(name|portals|ice|crumbling|pushBlocks|grid)\\s*:/g,'$1"$2":').replace(/,\\s*([}\\]])/g,"$1").replace(/,\\s*$/,"");
+    const parsed=JSON.parse(normalized);
+    if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))throw new Error("The level must be a JSON object.");
+    if(!Array.isArray(parsed.grid)||parsed.grid.length!==ROWS)throw new Error(`Grid must contain exactly ${ROWS} rows.`);
+    const decodeCell=v=>Number.isInteger(v)?v:(typeof v==="string"&&/^[0-9A-F]$/i.test(v)?(v.toUpperCase()==="A"?15:v.toUpperCase()>="B"?15+v.toUpperCase().charCodeAt(0)-64:Number(v)):NaN);
+    const importedGrid=parsed.grid.map((row,r)=>{
+      const cells=typeof row==="string"?[...row].map(decodeCell):row.map(decodeCell);
+      if(cells.length!==COLS||cells.some(v=>!Number.isInteger(v)||v<0||v>20))throw new Error(`Row ${r+1} must have ${COLS} cells; use arrays for IDs 10-20 or A-F for 15-20.`);
+      return cells;
     });
-
-    const validateTileKeys = (value, label) => {
-      if (value == null) return [];
-      if (!Array.isArray(value)) throw new Error(label + " must be an array.");
-      return value.map(key => {
-        if (typeof key !== "string" || !/^\\d+,\\d+$/.test(key)) {
-          throw new Error(label + " contains an invalid tile coordinate.");
-        }
-        const [r, col] = key.split(",").map(Number);
-        if (r < 0 || r >= ROWS || col < 0 || col >= COLS) {
-          throw new Error(label + " contains a coordinate outside the level.");
-        }
-        return key;
-      });
-    };
-
-    const importedPortals = parsed.portals || { orange: null, blue: null };
-    for (const color of ["orange", "blue"]) {
-      const portal = importedPortals[color];
-      if (portal !== null && portal !== undefined &&
-          (!Number.isInteger(portal.r) || !Number.isInteger(portal.c) ||
-           portal.r < 0 || portal.r >= ROWS || portal.c < 0 || portal.c >= COLS)) {
-        throw new Error("Portal coordinates are invalid.");
-      }
-    }
-
-    const level = {
-      name: typeof parsed.name === "string" && parsed.name.trim()
-        ? parsed.name.trim().slice(0, 50) : "Custom Level",
-      grid: importedGrid,
-      portals: { orange: importedPortals.orange || null, blue: importedPortals.blue || null },
-      ice: validateTileKeys(parsed.ice, "Ice"),
-      crumbling: validateTileKeys(parsed.crumbling, "Crumbling"),
-      pushBlocks: validateTileKeys(parsed.pushBlocks, "Push blocks")
-    };
-
-    loadLevel(level);
-    currentLevelIdx = -1;
-    isEditor = false;
-    editorPanel.classList.remove("visible");
-    btnMode.textContent = "Open Level Maker";
-    btnMode.className = "secondary";
-    updateHUD();
-  } catch (err) {
-    alert(`Could not import level: ${err.message}`);
-  }
+    const validateKeys=(value,label)=>{if(value==null)return[];if(!Array.isArray(value))throw new Error(label+" must be an array.");return value.map(key=>{if(typeof key!=="string"||!/^\\d+,\\d+$/.test(key))throw new Error(label+" contains an invalid coordinate.");const [r,c]=key.split(",").map(Number);if(r<0||r>=ROWS||c<0||c>=COLS)throw new Error(label+" contains an out-of-range coordinate.");return key;});};
+    const p=parsed.portals||{orange:null,blue:null};
+    for(const color of ["orange","blue"]){const v=p[color];if(v!=null&&(!Number.isInteger(v.r)||!Number.isInteger(v.c)||v.r<0||v.r>=ROWS||v.c<0||v.c>=COLS))throw new Error("Portal coordinates are invalid.");}
+    loadLevel({name:typeof parsed.name==="string"&&parsed.name.trim()?parsed.name.trim().slice(0,50):"Custom Level",grid:importedGrid,portals:{orange:p.orange||null,blue:p.blue||null},ice:validateKeys(parsed.ice,"Ice"),crumbling:validateKeys(parsed.crumbling,"Crumbling"),pushBlocks:validateKeys(parsed.pushBlocks,"Push blocks")});
+    currentLevelIdx=-1;isEditor=false;editorPanel.classList.remove("visible");btnMode.textContent="Open Level Maker";btnMode.className="secondary";updateHUD();
+  } catch(err) { alert(`Could not import level: ${err.message}`); }
 });
-
 
 // Start Game
 loadLevel(BUILTIN_LEVELS[0]);
