@@ -14,8 +14,13 @@ create table if not exists public.hbu_ad_requests (
   starts_at timestamptz,
   expires_at timestamptz,
   reviewed_at timestamptz,
-  reviewed_by text
+  reviewed_by text,
+  submitted_by text,
+  ip_address text
 );
+
+alter table public.hbu_ad_requests add column if not exists submitted_by text;
+alter table public.hbu_ad_requests add column if not exists ip_address text;
 
 create index if not exists hbu_ad_requests_status_requested_idx
   on public.hbu_ad_requests (status, requested_at desc);
@@ -107,7 +112,7 @@ $$;
 
 revoke all on function public.hbu_submit_ad(text, text, text, text, integer) from public;
 revoke all on function public.hbu_get_active_ad() from public;
-grant execute on function public.hbu_submit_ad(text, text, text, text, integer) to anon, authenticated;
+revoke execute on function public.hbu_submit_ad(text, text, text, text, integer) from anon, authenticated;
 grant execute on function public.hbu_get_active_ad() to anon, authenticated;
 
 notify pgrst, 'reload schema';
