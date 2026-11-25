@@ -142,7 +142,7 @@ Deno.serve(async (req: Request) => {
   // Do not broaden this exception to arbitrary REST routes.
   const isDirectMessageReadRpc =
     req.method === "POST" &&
-    /^\\/rest\\/v1\\/rpc\\/hbu_(?:inbox|dm_partners|get_dms)$/.test(pathname);
+    new RegExp("^/rest/v1/rpc/hbu_(?:inbox|dm_partners|get_dms)$").test(pathname);
 
   // All other browser-facing REST calls require the private gateway token.
   if (pathname.startsWith("/rest/v1/") && !isDirectMessageReadRpc && GATEWAY_TOKEN.length < 40) {
