@@ -4977,16 +4977,33 @@
             username, password, device_id: hbuDeviceId(), student_id: signupMode ? authStudentId.value.trim() : undefined
           })
         });
-        const result = await Promise.race([
-          response.json().catch(() => null),
+        const responseText = await Promise.race([
+          response.text().catch(() => ""),
           new Promise((_, reject) => window.setTimeout(
             () => reject(new Error("The account service sent a response but did not finish sending its data. Please retry.")),
             10000
           ))
         ]);
+        let result = null;
+        try {
+          result = responseText ? JSON.parse(responseText) : null;
+        } catch {
+          // Some gateway/proxy failures return plain text instead of JSON.
+        }
         if (!response.ok) {
-          const details = result?.receivedPath ? `\nGateway received path: ${result.receivedPath}` : "";
-          throw new Error((result?.error || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`) + details);
+          const serverMessage = [
+            result?.error,
+            result?.message,
+            result?.msg,
+            result?.details,
+            result?.hint,
+            typeof result === "string" ? result : "",
+            !result && responseText ? responseText.trim().slice(0, 350) : ""
+          ].find(value => typeof value === "string" && value.trim());
+          const receivedPath = result?.receivedPath ? `\nGateway received path: ${result.receivedPath}` : "";
+          const gateway = response.headers.get("X-HBU-Gateway");
+          const gatewayInfo = gateway ? `\nGateway: ${gateway}` : "";
+          throw new Error(`${serverMessage || `${signupMode ? "Sign up" : "Login"} failed (${response.status}).`}${receivedPath}${gatewayInfo}`);
         }
         accountCreated = signupMode;
         if (result?.resetPending === true && !signupMode) {
