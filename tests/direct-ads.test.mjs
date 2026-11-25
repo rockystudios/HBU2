@@ -22,7 +22,10 @@ test("advertiser form collects image, HTTPS destination, contact and duration", 
   assert.match(form, /type="file" accept="image\/png,image\/jpeg,image\/webp,image\/gif"/);
   assert.match(form, /https:\/\/example\.com/);
   assert.match(form, /Rocky will reach out to you about payments shortly/);
-  assert.match(form, /hbu_submit_ad/);
+  assert.match(form, /account-username/);
+  assert.match(form, /account-password/);
+  assert.match(form, /submit_ad/);
+  assert.match(form, /X-HBU-Device-ID/);
   assert.match(form, /650 \* 1024/);
 });
 
