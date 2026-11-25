@@ -138,11 +138,7 @@
     <button class="tool-btn" data-tile="14"><span class="swatch" style="background:#f97316"></span>Push Block</button>
     <button class="tool-btn" data-tile="15"><span class="swatch" style="background:#94a3b8"></span>One-Way</button>
     <button class="tool-btn" data-tile="16"><span class="swatch" style="background:#34d399"></span>Checkpoint</button>
-    <button class="tool-btn" data-tile="17"><span class="swatch" style="background:#fb4b24"></span>Lava</button>
     <button class="tool-btn" data-tile="18"><span class="swatch" style="background:#f0abfc"></span>Super Spring</button>
-    <button class="tool-btn" data-tile="19"><span class="swatch" style="background:#38bdf8"></span>Player 1 Spawn</button>
-    <button class="tool-btn" data-tile="20"><span class="swatch" style="background:#f472b6"></span>Player 2 Spawn</button>
-    <input id="tool-search" type="search" placeholder="Search building items..." aria-label="Search building items">
     <button id="btn-clear-map" class="danger" style="margin-left:auto;">Clear Grid</button>
 
   </div>
@@ -1421,8 +1417,6 @@ function draw() {
         ctx.strokeRect(x + 4, y + 2, 22, 26);
       } else if (tile === 16) {
         ctx.fillStyle="#34d399";ctx.fillRect(x+4,y+5,22,24);ctx.fillStyle="#d1fae5";ctx.fillRect(x+8,y+9,14,5);
-      } else if (tile === 17) {
-        ctx.fillStyle="#fb4b24";ctx.beginPath();ctx.moveTo(x,y+30);ctx.lineTo(x+6,y+12);ctx.lineTo(x+12,y+30);ctx.lineTo(x+19,y+10);ctx.lineTo(x+25,y+30);ctx.lineTo(x+30,y+13);ctx.lineTo(x+30,y+30);ctx.fill();
       } else if (tile === 18) {
         ctx.fillStyle="#c026d3";ctx.fillRect(x+2,y+18,26,10);ctx.fillStyle="#f5d0fe";ctx.fillRect(x+6,y+12,18,6);
       } else if (tile === 9) {
