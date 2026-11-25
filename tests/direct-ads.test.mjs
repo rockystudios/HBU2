@@ -34,7 +34,9 @@ test("database keeps requests private and only exposes the current approved ad",
   assert.match(migration, /revoke all on public\.hbu_ad_requests from anon, authenticated/i);
   assert.match(migration, /status = 'approved'/);
   assert.match(migration, /expires_at > now\(\)/);
-  assert.match(migration, /grant execute on function public\.hbu_submit_ad/);
+  assert.ok(migration.includes("revoke execute on function public.hbu_submit_ad"));
+  assert.match(migration, /ip_address text/);
+  assert.match(migration, /submitted_by text/);
 });
 
 test("Owner review actions are explicitly owner-only", () => {
@@ -42,4 +44,7 @@ test("Owner review actions are explicitly owner-only", () => {
   assert.match(edge, /admin_owner_ad_get/);
   assert.match(edge, /admin_owner_ad_review/);
   assert.match(edge, /staff\.toLowerCase\(\) !== "rocky"/);
+  assert.ok(edge.includes("submitted_by: realName"));
+  assert.ok(edge.includes("ip_address: ipAddress"));
+  assert.ok(home.includes("IP address: "));
 });
