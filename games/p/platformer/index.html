@@ -1089,9 +1089,15 @@ function updateCrumbling() {
     const [r, c] = k.split(',').map(Number);
     const tx = c * TILE, ty = r * TILE;
 
-    // Shift player's Y check down by 2px so standing flush on top counts as touching
-    if (rectOverlap(player.x, player.y + 2, player.w, player.h, tx, ty, TILE, TILE)) {
-      crumblingState[k]--;
+    // Only start the timer when the player is actually standing on top.
+    // Side bumps and brushing the underside must not consume the block.
+    const standingOnTop =
+      player.vy >= 0 &&
+      player.x + player.w > tx + 2 &&
+      player.x < tx + TILE - 2 &&
+      Math.abs((player.y + player.h) - ty) <= 3;
+    if (standingOnTop) {
+      crumblingState[k] = Math.max(0, crumblingState[k] - 1);
     }
 
     if (crumblingState[k] <= 0) {
@@ -1627,61 +1633,80 @@ ${gridRows}
 document.getElementById('btn-import').addEventListener('click', () => {
   try {
     let raw = jsonBox.value.trim();
+    if (!raw) throw new Error("Paste a level export first.");
 
-    // Accept a trailing comma from a built-in level object.
-    raw = raw.replace(/,\s*$/, '');
-
-    // Accept the old exported ".map(r => r.split('').map(Number))" suffix.
+    // Support both the new strict JSON format and older HBU object exports.
+    raw = raw.replace(/,\\s*$/, "");
     raw = raw.replace(
-      /\.map\s*$\s*r\s*=>\s*r\.split\s*\(\s*(['"])\1\s*$\.map\s*$\s*Number\s*$\s*\)/g,
-      ''
+      /\\.map\\s*\\(\\s*r\\s*=>\\s*r\\.split\\s*\\(\\s*(['"])\\1\\s*\\)\\.map\\s*\\(\\s*Number\\s*\\)\\s*\\)/g,
+      ""
     );
-
-    // Convert unquoted top-level property names to JSON property names.
     raw = raw.replace(
-      /([{,]\s*)(name|portals|ice|crumbling|pushBlocks|grid)\s*:/g,
+      /([{,]\\s*)(name|portals|ice|crumbling|pushBlocks|grid)\\s*:/g,
       '$1"$2":'
     );
 
     const parsed = JSON.parse(raw);
-
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("The level must be a JSON object.");
+    }
     if (!Array.isArray(parsed.grid) || parsed.grid.length !== ROWS) {
-      throw new Error(`Grid must contain ${ROWS} rows.`);
+      throw new Error(`Grid must contain exactly ${ROWS} rows.`);
     }
 
     const importedGrid = parsed.grid.map((row, r) => {
-      const cells = typeof row === 'string'
-        ? row.split('').map(Number)
-        : row;
-
+      const cells = typeof row === "string" ? row.split("").map(Number) : row;
       if (!Array.isArray(cells) || cells.length !== COLS ||
-          cells.some(cell => !Number.isInteger(cell))) {
-        throw new Error(`Row ${r + 1} must contain ${COLS} numeric tiles.`);
+          cells.some(cell => !Number.isInteger(cell) || cell < 0 || cell > 18)) {
+        throw new Error(`Row ${r + 1} must contain ${COLS} tile numbers from 0 to 18.`);
       }
-
       return [...cells];
     });
 
-    const level = {
-      name: parsed.name || 'Custom Level',
-      grid: importedGrid,
-      portals: parsed.portals || { orange: null, blue: null },
-      ice: parsed.ice || [],
-      crumbling: parsed.crumbling || [],
-      pushBlocks: parsed.pushBlocks || []
+    const validateTileKeys = (value, label) => {
+      if (value == null) return [];
+      if (!Array.isArray(value)) throw new Error(label + " must be an array.");
+      return value.map(key => {
+        if (typeof key !== "string" || !/^\\d+,\\d+$/.test(key)) {
+          throw new Error(label + " contains an invalid tile coordinate.");
+        }
+        const [r, col] = key.split(",").map(Number);
+        if (r < 0 || r >= ROWS || col < 0 || col >= COLS) {
+          throw new Error(label + " contains a coordinate outside the level.");
+        }
+        return key;
+      });
     };
 
-    // loadLevel initializes special tiles and the player.
-    loadLevel(level);
+    const importedPortals = parsed.portals || { orange: null, blue: null };
+    for (const color of ["orange", "blue"]) {
+      const portal = importedPortals[color];
+      if (portal !== null && portal !== undefined &&
+          (!Number.isInteger(portal.r) || !Number.isInteger(portal.c) ||
+           portal.r < 0 || portal.r >= ROWS || portal.c < 0 || portal.c >= COLS)) {
+        throw new Error("Portal coordinates are invalid.");
+      }
+    }
 
-    // Close the editor without loading a second time.
+    const level = {
+      name: typeof parsed.name === "string" && parsed.name.trim()
+        ? parsed.name.trim().slice(0, 50) : "Custom Level",
+      grid: importedGrid,
+      portals: { orange: importedPortals.orange || null, blue: importedPortals.blue || null },
+      ice: validateTileKeys(parsed.ice, "Ice"),
+      crumbling: validateTileKeys(parsed.crumbling, "Crumbling"),
+      pushBlocks: validateTileKeys(parsed.pushBlocks, "Push blocks")
+    };
+
+    loadLevel(level);
+    currentLevelIdx = -1;
     isEditor = false;
-    editorPanel.classList.remove('visible');
-    btnMode.textContent = 'Open Level Maker';
-    btnMode.className = 'secondary';
+    editorPanel.classList.remove("visible");
+    btnMode.textContent = "Open Level Maker";
+    btnMode.className = "secondary";
     updateHUD();
   } catch (err) {
-    alert(`Invalid level format: ${err.message}`);
+    alert(`Could not import level: ${err.message}`);
   }
 });
 
