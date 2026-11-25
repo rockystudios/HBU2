@@ -946,7 +946,7 @@ let specialTiles = { ice: new Set(), crumbling: new Set(), pushBlocks: new Set()
 let crumblingState = {};      // key -> frames left
 let pushBlocks = [];   // { x, y, w, h } — 1 tile each (TILE x TILE)
 let multiplayerEnabled = false;
-let player1Spawn = null, player2Spawn = null, player1Checkpoint = null;
+let player1Spawn = null, player2Spawn = null;
 let player1AtGoal = false, player2AtGoal = false;
 const player2 = { x:100,y:300,w:22,h:26,vx:0,vy:0,grounded:false,jumpsLeft:2,color:"#f472b6" };
 
