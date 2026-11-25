@@ -962,7 +962,7 @@ const keys = {};
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (!isEditor && (e.code === 'Space' || e.code === 'KeyW')) jump();
-  if (!isEditor && e.code === 'ArrowUp' && multiplayerEnabled && (player2.grounded || player2.jumpsLeft > 0)) {
+  if (!isEditor && !e.repeat && e.code === 'ArrowUp' && multiplayerEnabled && (player2.grounded || player2.jumpsLeft > 0)) {
     player2.vy = -10.5; player2.grounded = false; player2.jumpsLeft--;
     playSound(320,"sine",0.15);
   } else if (!isEditor && e.code === 'ArrowUp' && !multiplayerEnabled) jump();
@@ -1696,7 +1696,7 @@ document.getElementById("btn-import").addEventListener("click", () => {
     const parsed=JSON.parse(normalized);
     if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))throw new Error("The level must be a JSON object.");
     if(!Array.isArray(parsed.grid)||parsed.grid.length!==ROWS)throw new Error(`Grid must contain exactly ${ROWS} rows.`);
-    const decodeCell=v=>Number.isInteger(v)?v:(typeof v==="string"&&/^[0-9A-F]$/i.test(v)?(v.toUpperCase()==="A"?15:v.toUpperCase()>="B"?15+v.toUpperCase().charCodeAt(0)-64:Number(v)):NaN);
+    const decodeCell=v=>Number.isInteger(v)?v:(typeof v==="string"&&/^[0-9A-F]$/i.test(v)?(v.toUpperCase()==="A"?15:v.toUpperCase()>="B"?15+v.toUpperCase().charCodeAt(0)-65:Number(v)):NaN);
     const importedGrid=parsed.grid.map((row,r)=>{
       const cells=typeof row==="string"?[...row].map(decodeCell):row.map(decodeCell);
       if(cells.length!==COLS||cells.some(v=>!Number.isInteger(v)||v<0||v>20))throw new Error(`Row ${r+1} must have ${COLS} cells; use arrays for IDs 10-20 or A-F for 15-20.`);
