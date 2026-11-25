@@ -75,7 +75,17 @@
   <script>
     const gatewayUrl = "https://hbu2.schooogle.workers.dev";
     const anonKey = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
-    const deviceId = localStorage.getItem("hbu-device-id-v1") || "";
+    function getDeviceId() {
+      const key = "hbu-device-id-v1";
+      let value = "";
+      try { value = localStorage.getItem(key) || ""; } catch {}
+      if (!/^[a-f0-9-]{36}$/i.test(value)) {
+        value = crypto.randomUUID();
+        try { localStorage.setItem(key, value); } catch {}
+      }
+      return value;
+    }
+    const deviceId = getDeviceId();
     const imageInput = document.querySelector("#image");
     const preview = document.querySelector("#preview");
     const imageNote = document.querySelector("#image-note");
