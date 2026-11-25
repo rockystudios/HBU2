@@ -136,10 +136,16 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Method not allowed." }, 405);
   }
   if (!req.headers.get("apikey")) return json({ error: "Missing Supabase publishable API key." }, 401);
-  // Browser-facing REST calls use the publishable key, but the database
-  // lockdown also requires this private header. Never accept it from the
-  // browser: inject the server-side secret after validating the route.
-  if (pathname.startsWith("/rest/v1/") && GATEWAY_TOKEN.length < 40) {
+  // These three read-only DM RPCs authenticate the HBU username/password
+  // inside their SQL functions. Execute them with the server-side role so
+  // they do not depend on the separately rotated PostgREST gateway token.
+  // Do not broaden this exception to arbitrary REST routes.
+  const isDirectMessageReadRpc =
+    req.method === "POST" &&
+    new RegExp("^/rest/v1/rpc/hbu_(?:inbox|dm_partners|get_dms)$").test(pathname);
+
+  // All other browser-facing REST calls require the private gateway token.
+  if (pathname.startsWith("/rest/v1/") && !isDirectMessageReadRpc && GATEWAY_TOKEN.length < 40) {
     return json({ error: "HBU2 gateway token is not configured in Supabase Edge Function secrets." }, 503);
   }
 
@@ -174,8 +180,15 @@ Deno.serve(async (req: Request) => {
     const value = req.headers.get(name);
     if (value) headers.set(name, value);
   }
-  if (pathname.startsWith("/rest/v1/")) {
+  if (pathname.startsWith("/rest/v1/") && !isDirectMessageReadRpc) {
     headers.set("x-hbu-gateway-token", GATEWAY_TOKEN);
+  }
+  if (isDirectMessageReadRpc) {
+    // The SQL RPCs verify p_username and p_password before returning any DM
+    // data. The service-role JWT also satisfies the database pre-request
+    // gateway hook, avoiding a stale gateway-token hash for these reads.
+    headers.set("apikey", SERVICE_KEY);
+    headers.set("Authorization", "Bearer " + SERVICE_KEY);
   }
   if (pathname === "/functions/v1/send-message") {
     // The upstream request uses service-role auth. Keep apikey and
