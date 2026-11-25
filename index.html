@@ -2329,12 +2329,19 @@
     const supabaseAuthFunctionsUrl = supabaseProjectUrl + "/functions/v1/hbu-gateway/functions/v1";
     const cloudflareRequiredKey = "hbu-cloudflare-required";
     let cloudflareRequired = localStorage.getItem(cloudflareRequiredKey) === "true";
-    let apiBaseUrl = cloudflareRequired ? cloudflareGatewayUrl : supabaseProjectUrl;
+    // All browser REST and Edge Function requests must pass through the
+    // Supabase-hosted HBU gateway so it can inject the private database token.
+    // Use the Cloudflare Worker only when the owner explicitly requires it.
+    let apiBaseUrl = cloudflareRequired
+      ? cloudflareGatewayUrl
+      : supabaseProjectUrl + "/functions/v1/hbu-gateway";
     let supabaseRestUrl = apiBaseUrl + "/rest/v1";
     let supabaseFunctionsUrl = apiBaseUrl + "/functions/v1";
     let supabaseMessagesUrl = supabaseRestUrl + "/messages";
     function applyApiRoute() {
-      apiBaseUrl = cloudflareRequired ? cloudflareGatewayUrl : supabaseProjectUrl;
+      apiBaseUrl = cloudflareRequired
+        ? cloudflareGatewayUrl
+        : supabaseProjectUrl + "/functions/v1/hbu-gateway";
       supabaseRestUrl = apiBaseUrl + "/rest/v1";
       supabaseFunctionsUrl = apiBaseUrl + "/functions/v1";
       supabaseMessagesUrl = supabaseRestUrl + "/messages";
