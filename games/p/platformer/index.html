@@ -94,9 +94,43 @@
     resize: none;
   }
   .hint { font-size: 0.8rem; color: #94a3b8; margin-top: 6px; }
+
+#start-screen{position:fixed;inset:0;z-index:100000;background:radial-gradient(circle at 50% 15%,#1e3a8a 0,#0d0f1a 55%);display:flex;align-items:center;justify-content:center;padding:20px}
+.start-card{width:min(760px,100%);background:#161b2e;border:1px solid #334155;border-radius:18px;padding:28px;box-shadow:0 25px 80px #0009}
+.start-card h2{font-size:2rem;color:#38bdf8;margin-bottom:8px}.start-card p{color:#94a3b8;margin:8px 0 18px}
+.start-actions{display:flex;gap:12px;flex-wrap:wrap}.start-actions button{padding:13px 20px;font-size:1rem}
+#mp-panel,#mp-lobby{display:none}#mp-levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin:14px 0}
+.mp-level{background:#1e293b;border:1px solid #334155;text-align:left;padding:12px}
+.mp-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.mp-row input{background:#0b0e17;color:#fff;border:1px solid #475569;border-radius:7px;padding:11px;min-width:140px}
+#mp-room-list{display:grid;gap:8px;margin-top:12px}.mp-room{display:flex;justify-content:space-between;align-items:center;background:#0b1224;border:1px solid #334155;border-radius:8px;padding:10px}
+#mp-status{color:#fbbf24;font-weight:700;margin:12px 0}.mp-small{font-size:.82rem;color:#94a3b8}
+body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.game-started) #editor-panel,body:not(.game-started) #play-hint{visibility:hidden}
 </style>
 </head>
 <body>
+<div id="start-screen">
+ <section class="start-card">
+  <div id="mode-panel">
+   <h2>NEON PULSE</h2><p>Choose how you want to play.</p>
+   <div class="start-actions"><button id="choose-single" class="success">Single Player</button><button id="choose-multi">Multiplayer</button></div>
+  </div>
+  <div id="mp-panel">
+   <h2>Multiplayer</h2><p>Choose a level, then create a private room or find a public room. Rooms hold two players.</p>
+   <div id="mp-levels"></div>
+   <div class="mp-row"><button id="create-private" class="success">Create Room Code</button><button id="create-public">Create Public Room</button></div>
+   <div class="mp-row"><input id="room-code-input" maxlength="6" placeholder="6-character code"><button id="join-code">Join by Code</button></div>
+   <h3>Public rooms</h3><div id="mp-room-list"><span class="mp-small">Loading rooms…</span></div>
+   <div class="mp-row"><button id="refresh-rooms" class="secondary">Refresh</button><button id="back-mode" class="secondary">Back</button></div>
+  </div>
+  <div id="mp-lobby">
+   <h2>Room <span id="mp-room-code"></span></h2>
+   <div id="mp-status">Waiting for another player…</div>
+   <p id="mp-lobby-level"></p><p class="mp-small">Share the room code with your friend. The game starts automatically when they join.</p>
+   <div class="start-actions"><button id="copy-room" class="secondary">Copy Code</button><button id="cancel-room" class="danger">Leave Room</button></div>
+  </div>
+ </section>
+</div>
+
 
 <header>
   <h1>NEON PULSE</h1>
@@ -950,6 +984,117 @@ const player = {
 };
 
 const keys = {};
+let onlineRoom = null;
+let onlineSeat = null;
+let onlineToken = null;
+let onlineOther = null;
+let onlineSyncTimer = null;
+let onlineFinishPending = false;
+let onlineLevelIndex = 0;
+let selectedOnlineLevel = 0;
+const ROOM_API = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1/platformer-rooms";
+const ROOM_API_KEY = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
+async function roomRequest(payload) {
+  const response = await fetch(ROOM_API,{method:"POST",headers:{"Content-Type":"application/json","apikey":ROOM_API_KEY},body:JSON.stringify(payload)});
+  const data=await response.json().catch(()=>({error:"Invalid room service response."}));
+  if(!response.ok)throw new Error(data.error||"Room request failed.");
+  return data;
+}
+function showStartPanel(panel) {
+  document.getElementById("mode-panel").style.display=panel==="mode"?"block":"none";
+  document.getElementById("mp-panel").style.display=panel==="multi"?"block":"none";
+  document.getElementById("mp-lobby").style.display=panel==="lobby"?"block":"none";
+}
+function renderOnlineLevels() {
+  const holder=document.getElementById("mp-levels");holder.innerHTML="";
+  BUILTIN_LEVELS.forEach((level,index)=>{
+    const button=document.createElement("button");button.className="mp-level";
+    button.textContent=(index===selectedOnlineLevel?"✓ ":"")+level.name;
+    button.addEventListener("click",()=>{selectedOnlineLevel=index;renderOnlineLevels();});
+    holder.appendChild(button);
+  });
+}
+async function refreshPublicRooms() {
+  const holder=document.getElementById("mp-room-list");holder.textContent="Loading rooms…";
+  try {
+    const data=await roomRequest({action:"list"});
+    holder.innerHTML="";
+    if(!data.rooms.length){holder.textContent="No public rooms waiting right now.";return;}
+    data.rooms.forEach(room=>{
+      const row=document.createElement("div");row.className="mp-room";
+      const label=document.createElement("span");label.textContent=room.level_name+" · "+room.room_code;
+      const join=document.createElement("button");join.textContent="Join";
+      join.addEventListener("click",()=>joinOnlineRoom(room.room_code));row.append(label,join);holder.appendChild(row);
+    });
+  } catch(error){holder.textContent=error.message;}
+}
+async function createOnlineRoom(isPublic) {
+  try {
+    const level=BUILTIN_LEVELS[selectedOnlineLevel];
+    const data=await roomRequest({action:"create",isPublic,level});
+    enterOnlineLobby(data);
+  } catch(error){alert(error.message);}
+}
+async function joinOnlineRoom(code) {
+  try { const data=await roomRequest({action:"join",roomCode:code});enterOnlineLobby(data); }
+  catch(error){alert(error.message);refreshPublicRooms();}
+}
+function enterOnlineLobby(data) {
+  onlineRoom=data.roomCode;onlineToken=data.token;onlineSeat=data.seat;
+  document.getElementById("mp-room-code").textContent=onlineRoom;
+  document.getElementById("mp-lobby-level").textContent="Level: "+(data.level.name||"Custom Level");
+  document.getElementById("mp-status").textContent=onlineSeat==="host"?"Waiting for another player…":"Joining room…";
+  showStartPanel("lobby");
+  if(onlineSeat==="guest")startOnlineGame(data.level);
+  if(onlineSeat==="host")pollLobby();
+}
+async function pollLobby() {
+  if(!onlineRoom||onlineSeat!=="host")return;
+  try {
+    const data=await roomRequest({action:"sync",roomCode:onlineRoom,token:onlineToken,state:{x:player.x,y:player.y,level:onlineLevelIndex}});
+    if(data.ended){endOnlineGame(data.reason);return;}
+    if(data.status==="playing"){startOnlineGame(data.level);return;}
+  } catch(error){document.getElementById("mp-status").textContent=error.message;}
+  setTimeout(pollLobby,1000);
+}
+function startOnlineGame(level) {
+  if(onlineSyncTimer)clearInterval(onlineSyncTimer);
+  onlineLevelIndex=selectedOnlineLevel;
+  if(onlineSeat==="guest"){
+    const found=BUILTIN_LEVELS.findIndex(l=>l.name===level.name);
+    onlineLevelIndex=found>=0?found:0;
+  }
+  currentLevelIdx=onlineLevelIndex;isEditor=false;document.body.classList.add("game-started");
+  document.getElementById("start-screen").style.display="none";
+  loadLevel(level);onlineFinishPending=false;
+  onlineSyncTimer=setInterval(syncOnlineGame,250);
+}
+async function syncOnlineGame() {
+  if(!onlineRoom||!onlineToken)return;
+  try {
+    const data=await roomRequest({action:"sync",roomCode:onlineRoom,token:onlineToken,state:{x:player.x,y:player.y,vx:player.vx,vy:player.vy,grounded:player.grounded,frame:frameCount,level:currentLevelIdx,coins:coins.filter(c=>c.collected).length,finished:onlineFinishPending}});
+    if(data.ended){endOnlineGame(data.reason);return;}
+    onlineOther=data.other||null;
+    if(onlineSeat==="host"&&onlineOther?.finished){onlineFinishPending=false;completeCurrentLevel();}
+    if(onlineSeat==="guest"&&Number.isInteger(onlineOther?.level)&&onlineOther.level!==currentLevelIdx){
+      currentLevelIdx=onlineOther.level;onlineFinishPending=false;loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
+    }
+  }catch(error){console.warn("Multiplayer sync:",error.message);}
+}
+function endOnlineGame(reason) {
+  if(onlineSyncTimer)clearInterval(onlineSyncTimer);
+  onlineRoom=null;onlineToken=null;onlineSeat=null;onlineOther=null;
+  document.body.classList.remove("game-started");document.getElementById("start-screen").style.display="flex";
+  showStartPanel("mode");alert(reason||"The other player left. The room has ended.");
+}
+async function leaveOnlineRoom() {
+  if(onlineRoom&&onlineToken){try{await roomRequest({action:"leave",roomCode:onlineRoom,token:onlineToken});}catch(e){}}
+  if(onlineSyncTimer)clearInterval(onlineSyncTimer);
+  onlineRoom=null;onlineToken=null;onlineSeat=null;onlineOther=null;
+  document.body.classList.remove("game-started");document.getElementById("start-screen").style.display="flex";showStartPanel("multi");
+}
+window.addEventListener("pagehide",()=>{if(onlineRoom&&onlineToken){fetch(ROOM_API,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json","apikey":ROOM_API_KEY},body:JSON.stringify({action:"leave",roomCode:onlineRoom,token:onlineToken})}).catch(()=>{});}});
+
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (!isEditor && (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp')) jump();
@@ -1059,6 +1204,8 @@ function killPlayer() {
 }
 
 function completeCurrentLevel() {
+  if(onlineRoom&&onlineSeat==="guest"){onlineFinishPending=true;return;}
+
   const collected=coins.filter(c=>c.collected).length;
   if(!hasAtLeastHalfCoins(collected,coins)){killPlayer();return;}
   currentLevelIdx=(currentLevelIdx+1)%BUILTIN_LEVELS.length;
@@ -1499,6 +1646,10 @@ function draw() {
       ctx.fillStyle = player.speedBoostTimer > 0 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(56, 189, 248, 0.2)';
       ctx.fillRect(t.x, t.y, player.w, player.h);
     }
+    if(onlineRoom&&onlineOther){
+      ctx.fillStyle="#f472b6";ctx.fillRect(onlineOther.x||0,onlineOther.y||0,player.w,player.h);
+      ctx.fillStyle="#f9a8d4";ctx.font="bold 11px sans-serif";ctx.fillText("P"+(onlineSeat==="host"?"2":"1"),(onlineOther.x||0),(onlineOther.y||0)-5);
+    }
     ctx.fillStyle = player.speedBoostTimer > 0 ? '#d8b4fe' : '#38bdf8';
     ctx.fillRect(player.x, player.y, player.w, player.h);
     ctx.fillStyle = '#0f172a';
@@ -1643,7 +1794,18 @@ document.getElementById("btn-import").addEventListener("click", () => {
   } catch(err) { alert(`Could not import level: ${err.message}`); }
 });
 
-// Start Game
+// Main menu and mode selection
+document.getElementById("choose-single").addEventListener("click",()=>{document.body.classList.add("game-started");document.getElementById("start-screen").style.display="none";currentLevelIdx=0;loadLevel(BUILTIN_LEVELS[0]);});
+document.getElementById("choose-multi").addEventListener("click",()=>{showStartPanel("multi");renderOnlineLevels();refreshPublicRooms();});
+document.getElementById("back-mode").addEventListener("click",()=>showStartPanel("mode"));
+document.getElementById("create-private").addEventListener("click",()=>createOnlineRoom(false));
+document.getElementById("create-public").addEventListener("click",()=>createOnlineRoom(true));
+document.getElementById("join-code").addEventListener("click",()=>joinOnlineRoom(document.getElementById("room-code-input").value.trim()));
+document.getElementById("refresh-rooms").addEventListener("click",refreshPublicRooms);
+document.getElementById("cancel-room").addEventListener("click",leaveOnlineRoom);
+document.getElementById("copy-room").addEventListener("click",()=>navigator.clipboard?.writeText(onlineRoom||""));
+document.getElementById("room-code-input").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6));
+// Start in the mode picker; gameplay is launched from the menu.
 loadLevel(BUILTIN_LEVELS[0]);
  
 loop();
