@@ -106,6 +106,37 @@
 #mp-room-list{display:grid;gap:8px;margin-top:12px}.mp-room{display:flex;justify-content:space-between;align-items:center;background:#0b1224;border:1px solid #334155;border-radius:8px;padding:10px}
 #mp-status{color:#fbbf24;font-weight:700;margin:12px 0}.mp-small{font-size:.82rem;color:#94a3b8}
 body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.game-started) #editor-panel,body:not(.game-started) #play-hint{visibility:hidden}
+
+/* Mobile gameplay controls */
+#game-actions{position:absolute;top:12px;right:12px;z-index:20;display:flex;gap:8px}
+#btn-fullscreen{background:rgba(15,23,42,.88);border:1px solid #64748b;padding:10px 12px}
+#touch-controls{display:none;position:fixed;left:0;right:0;bottom:max(18px,env(safe-area-inset-bottom));z-index:100001;align-items:flex-end;justify-content:space-between;padding:0 22px;pointer-events:none}
+#move-stick{width:142px;height:82px;border:2px solid rgba(226,232,240,.65);border-radius:48px;background:rgba(15,23,42,.58);position:relative;touch-action:none;pointer-events:auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px #0008}
+#move-stick::after{content:"LEFT  •  RIGHT";position:absolute;bottom:5px;font-size:9px;letter-spacing:1px;color:#cbd5e1;pointer-events:none}
+#move-knob{width:54px;height:54px;border-radius:50%;background:linear-gradient(145deg,#38bdf8,#2563eb);border:2px solid #bae6fd;box-shadow:0 3px 12px #0008;transform:translateX(0);pointer-events:none}
+#jump-touch{width:86px;height:86px;border-radius:50%;background:linear-gradient(145deg,#10b981,#047857);border:3px solid #a7f3d0;font-size:15px;font-weight:900;letter-spacing:.5px;touch-action:none;pointer-events:auto;box-shadow:0 5px 20px #0009}
+#jump-touch:active{transform:scale(.94)}
+body.mobile-game #touch-controls{display:flex}
+body.fullscreen-mode{padding:0;min-height:100dvh;overflow:hidden}
+body.fullscreen-mode header,body.fullscreen-mode #editor-panel,body.fullscreen-mode #play-hint{display:none!important}
+body.fullscreen-mode #game-wrapper{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;border:0;border-radius:0;box-shadow:none;display:flex;align-items:center;justify-content:center;background:#0b0e17;z-index:99998}
+body.fullscreen-mode #game{width:100%;height:100%;max-width:100vw;max-height:100dvh;object-fit:contain}
+body.fullscreen-mode #game-actions{position:fixed;top:max(12px,env(safe-area-inset-top));right:12px;z-index:100000}
+body.fullscreen-mode #btn-fullscreen{background:rgba(15,23,42,.72)}
+@media (max-width:700px),(pointer:coarse){
+  body{padding:8px}
+  header{padding:8px 10px;gap:8px;flex-wrap:wrap}
+  header .stats{gap:8px;font-size:.72rem;flex-wrap:wrap}
+  header .controls-bar{flex-wrap:wrap}
+  #game-wrapper{width:100%;max-width:960px}
+  #game{width:100%;height:auto;aspect-ratio:16/9}
+  body.mobile-game #play-hint{display:none}
+}
+@media (max-width:420px){
+  #touch-controls{padding-left:14px;padding-right:14px}
+  #move-stick{width:126px;height:76px}
+  #jump-touch{width:78px;height:78px}
+}
 </style>
 </head>
 <body>
@@ -152,6 +183,16 @@ body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.g
 
 <div id="game-wrapper">
   <canvas id="game" width="960" height="540"></canvas>
+</div>
+
+<div id="game-actions">
+  <button id="btn-fullscreen" class="secondary" type="button" aria-label="Toggle fullscreen">⛶ Fullscreen</button>
+</div>
+<div id="touch-controls" aria-label="Mobile game controls">
+  <div id="move-stick" role="group" aria-label="Move left or right">
+    <div id="move-knob"></div>
+  </div>
+  <button id="jump-touch" type="button" aria-label="Jump">JUMP</button>
 </div>
 
 <div id="editor-panel">
@@ -1114,6 +1155,81 @@ window.addEventListener('keydown', e => {
   if (!isEditor && e.code === 'KeyR') loadLevel(currentLevel);
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
+
+// Mobile-only horizontal joystick and jump button.
+const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+if (isTouchDevice) document.body.classList.add("mobile-game");
+const moveStick = document.getElementById("move-stick");
+const moveKnob = document.getElementById("move-knob");
+const jumpTouch = document.getElementById("jump-touch");
+let stickPointerId = null;
+function setStickFromPointer(event) {
+  const rect = moveStick.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const maxTravel = (rect.width - moveKnob.offsetWidth) / 2;
+  const offsetX = Math.max(-maxTravel, Math.min(maxTravel, event.clientX - centerX));
+  moveKnob.style.transform = "translateX(" + offsetX + "px)";
+  const direction = Math.abs(offsetX) < maxTravel * 0.2 ? 0 : Math.sign(offsetX);
+  keys["ArrowLeft"] = direction < 0;
+  keys["ArrowRight"] = direction > 0;
+}
+function releaseStick(event) {
+  if (stickPointerId !== event.pointerId) return;
+  stickPointerId = null;
+  keys["ArrowLeft"] = false;
+  keys["ArrowRight"] = false;
+  moveKnob.style.transform = "translateX(0)";
+}
+moveStick.addEventListener("pointerdown", event => {
+  if (isEditor) return;
+  event.preventDefault();
+  stickPointerId = event.pointerId;
+  moveStick.setPointerCapture(event.pointerId);
+  setStickFromPointer(event);
+});
+moveStick.addEventListener("pointermove", event => {
+  if (stickPointerId === event.pointerId) {
+    event.preventDefault();
+    setStickFromPointer(event);
+  }
+});
+moveStick.addEventListener("pointerup", releaseStick);
+moveStick.addEventListener("pointercancel", releaseStick);
+jumpTouch.addEventListener("pointerdown", event => {
+  if (isEditor) return;
+  event.preventDefault();
+  jump();
+});
+
+// Fullscreen focuses only on the game: hide the entire HUD/header.
+const fullscreenButton = document.getElementById("btn-fullscreen");
+function syncFullscreenUI() {
+  const active = Boolean(document.fullscreenElement) || document.body.classList.contains("fullscreen-fallback");
+  document.body.classList.toggle("fullscreen-mode", active);
+  fullscreenButton.textContent = active ? "✕ Exit Fullscreen" : "⛶ Fullscreen";
+}
+fullscreenButton.addEventListener("click", async () => {
+  if (document.fullscreenElement || document.body.classList.contains("fullscreen-fallback")) {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      try { await document.exitFullscreen(); } catch (error) { console.warn("Could not exit fullscreen:", error); }
+    }
+    document.body.classList.remove("fullscreen-fallback");
+    syncFullscreenUI();
+    return;
+  }
+  if (document.documentElement.requestFullscreen) {
+    try {
+      await document.documentElement.requestFullscreen();
+      syncFullscreenUI();
+      return;
+    } catch (error) {
+      console.warn("Native fullscreen unavailable; using game-only view.", error);
+    }
+  }
+  document.body.classList.add("fullscreen-fallback");
+  syncFullscreenUI();
+});
+document.addEventListener("fullscreenchange", syncFullscreenUI);
 function cloneGrid(g) {
   return g.map(row => [...row]);
 }
