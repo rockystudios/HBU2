@@ -145,7 +145,7 @@ body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.g
     <a class="secondary" href="multiplayer.html">Multiplayer Level Maker</a>
     <button id="btn-mode" class="success">Open Level Maker</button>
     <button id="btn-reset" class="secondary">Restart (R)</button>
-    <button id="btn-next" class="secondary">Next Built-in Level</button>
+    <button id="btn-next" class="secondary">Next Built-in Level</button><button id="btn-leave-online" class="danger" style="display:none">Leave Match</button>
   </div>
 </header>
 
@@ -1075,7 +1075,7 @@ async function syncOnlineGame() {
     const data=await roomRequest({action:"sync",roomCode:onlineRoom,token:onlineToken,state:{x:player.x,y:player.y,vx:player.vx,vy:player.vy,grounded:player.grounded,frame:frameCount,level:currentLevelIdx,coins:coins.filter(c=>c.collected).length,finished:onlineFinishPending}});
     if(data.ended){endOnlineGame(data.reason);return;}
     onlineOther=data.other||null;
-    if(onlineSeat==="host"&&onlineOther?.finished){onlineFinishPending=false;completeCurrentLevel();}
+    if(onlineSeat==="host"&&onlineOther?.finished&&onlineOther.level===currentLevelIdx){onlineFinishPending=false;completeCurrentLevel();}
     if(onlineSeat==="guest"&&Number.isInteger(onlineOther?.level)&&onlineOther.level!==currentLevelIdx){
       currentLevelIdx=onlineOther.level;onlineFinishPending=false;loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
     }
@@ -1084,7 +1084,7 @@ async function syncOnlineGame() {
 function endOnlineGame(reason) {
   if(onlineSyncTimer)clearInterval(onlineSyncTimer);
   onlineRoom=null;onlineToken=null;onlineSeat=null;onlineOther=null;
-  document.body.classList.remove("game-started");document.getElementById("start-screen").style.display="flex";
+  document.body.classList.remove("game-started");document.getElementById("btn-leave-online").style.display="none";document.getElementById("start-screen").style.display="flex";
   showStartPanel("mode");alert(reason||"The other player left. The room has ended.");
 }
 async function leaveOnlineRoom() {
@@ -1802,7 +1802,7 @@ document.getElementById("create-private").addEventListener("click",()=>createOnl
 document.getElementById("create-public").addEventListener("click",()=>createOnlineRoom(true));
 document.getElementById("join-code").addEventListener("click",()=>joinOnlineRoom(document.getElementById("room-code-input").value.trim()));
 document.getElementById("refresh-rooms").addEventListener("click",refreshPublicRooms);
-document.getElementById("cancel-room").addEventListener("click",leaveOnlineRoom);
+document.getElementById("cancel-room").addEventListener("click",leaveOnlineRoom);\ndocument.getElementById("btn-leave-online").addEventListener("click",leaveOnlineRoom);
 document.getElementById("copy-room").addEventListener("click",()=>navigator.clipboard?.writeText(onlineRoom||""));
 document.getElementById("room-code-input").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6));
 // Start in the mode picker; gameplay is launched from the menu.
