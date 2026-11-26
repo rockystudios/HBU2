@@ -1802,7 +1802,8 @@ document.getElementById("create-private").addEventListener("click",()=>createOnl
 document.getElementById("create-public").addEventListener("click",()=>createOnlineRoom(true));
 document.getElementById("join-code").addEventListener("click",()=>joinOnlineRoom(document.getElementById("room-code-input").value.trim()));
 document.getElementById("refresh-rooms").addEventListener("click",refreshPublicRooms);
-document.getElementById("cancel-room").addEventListener("click",leaveOnlineRoom);\ndocument.getElementById("btn-leave-online").addEventListener("click",leaveOnlineRoom);
+document.getElementById("cancel-room").addEventListener("click",leaveOnlineRoom);
+document.getElementById("btn-leave-online").addEventListener("click",leaveOnlineRoom);
 document.getElementById("copy-room").addEventListener("click",()=>navigator.clipboard?.writeText(onlineRoom||""));
 document.getElementById("room-code-input").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6));
 // Start in the mode picker; gameplay is launched from the menu.
