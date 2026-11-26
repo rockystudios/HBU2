@@ -115,7 +115,7 @@ body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.g
    <div class="start-actions"><button id="choose-single" class="success">Single Player</button><button id="choose-multi">Multiplayer</button></div>
   </div>
   <div id="mp-panel">
-   <h2>Multiplayer</h2><p>Choose a level, then create a private room or find a public room. Rooms hold two players.</p>
+   <h2>Multiplayer</h2><p>Choose a co-op level. Both players must collect at least half the coins and reach the exit to advance. Rooms hold two players.</p>
    <div id="mp-levels"></div>
    <div class="mp-row"><button id="create-private" class="success">Create Room Code</button><button id="create-public">Create Public Room</button></div>
    <div class="mp-row"><input id="room-code-input" maxlength="6" placeholder="6-character code"><button id="join-code">Join by Code</button></div>
@@ -1227,6 +1227,9 @@ function completeCurrentLevel() {
 
 function advanceOnlineLevel() {
   if(!onlineRoom||onlineSeat!=="host")return;
+  const localCollected=coins.filter(coin=>coin.collected).length;
+  const remoteCollected=Number(onlineOther?.coins||0);
+  if(!hasAtLeastHalfCoins(localCollected,coins)||!hasAtLeastHalfCoins(remoteCollected,coins))return;
   const coopIndices=BUILTIN_LEVELS.map((level,index)=>level.coop?index:-1).filter(index=>index>=0);
   const currentPosition=coopIndices.indexOf(currentLevelIdx);
   onlineLevelIndex=coopIndices[(currentPosition+1)%coopIndices.length];
