@@ -115,7 +115,7 @@ body:not(.game-started) header,body:not(.game-started) #game-wrapper,body:not(.g
    <div class="start-actions"><button id="choose-single" class="success">Single Player</button><button id="choose-multi">Multiplayer</button></div>
   </div>
   <div id="mp-panel">
-   <h2>Multiplayer</h2><p>Choose a level, then create a private room or find a public room. Rooms hold two players.</p>
+   <h2>Multiplayer</h2><p>Choose a co-op level. Both players must collect at least half the coins and reach the exit to advance. Rooms hold two players.</p>
    <div id="mp-levels"></div>
    <div class="mp-row"><button id="create-private" class="success">Create Room Code</button><button id="create-public">Create Public Room</button></div>
    <div class="mp-row"><input id="room-code-input" maxlength="6" placeholder="6-character code"><button id="join-code">Join by Code</button></div>
@@ -950,7 +950,10 @@ const BUILTIN_LEVELS = [
     "10000100008000000000000000000001",
     "11111111111111111111111111111111"
   ].map(r => [...r].map(tile => tile === 'A' ? 15 : Number(tile)))
-},
+},,
+{"name":"Twin Towers","description":"Split up: climb opposite towers, collect the route coins, then meet at the central exit.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,1],[1,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,1],[1,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,1],[1,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,1],[1,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]},
+{"name":"The Broken Bridge","description":"Two routes, one destination. Jump the hazards and regroup on the upper bridge.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,1],[1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,1],[1,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,1],[1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,1],[1,0,8,0,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,3,3,3,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]},
+{"name":"Mirror Run","description":"Take opposite sides of the mirrored course. Both players must reach the same exit.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":[[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,1],[1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,1],[1,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1],[1,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,1],[1,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,1],[1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1],[1,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,3,3,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]}
 ];
 
 let currentLevelIdx = 0;
@@ -991,7 +994,7 @@ let onlineOther = null;
 let onlineSyncTimer = null;
 let onlineFinishPending = false;
 let onlineLevelIndex = 0;
-let selectedOnlineLevel = 0;
+let selectedOnlineLevel = Math.max(0,BUILTIN_LEVELS.findIndex(level=>level.coop));
 const ROOM_API = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1/platformer-rooms";
 const ROOM_API_KEY = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
 async function roomRequest(payload) {
@@ -1008,8 +1011,9 @@ function showStartPanel(panel) {
 function renderOnlineLevels() {
   const holder=document.getElementById("mp-levels");holder.innerHTML="";
   BUILTIN_LEVELS.forEach((level,index)=>{
+    if(!level.coop)return;
     const button=document.createElement("button");button.className="mp-level";
-    button.textContent=(index===selectedOnlineLevel?"✓ ":"")+level.name;
+    button.textContent=(index===selectedOnlineLevel?"✓ ":"")+level.name+" — "+level.description;
     button.addEventListener("click",()=>{selectedOnlineLevel=index;renderOnlineLevels();});
     holder.appendChild(button);
   });
@@ -1075,7 +1079,7 @@ async function syncOnlineGame() {
     const data=await roomRequest({action:"sync",roomCode:onlineRoom,token:onlineToken,state:{x:player.x,y:player.y,vx:player.vx,vy:player.vy,grounded:player.grounded,frame:frameCount,level:currentLevelIdx,coins:coins.filter(c=>c.collected).length,finished:onlineFinishPending}});
     if(data.ended){endOnlineGame(data.reason);return;}
     onlineOther=data.other||null;
-    if(onlineSeat==="host"&&onlineOther?.finished&&onlineOther.level===currentLevelIdx){onlineFinishPending=false;completeCurrentLevel();}
+    if(onlineSeat==="host"&&onlineFinishPending&&onlineOther?.finished&&onlineOther.level===currentLevelIdx){advanceOnlineLevel();}
     if(onlineSeat==="guest"&&Number.isInteger(onlineOther?.level)&&onlineOther.level!==currentLevelIdx){
       currentLevelIdx=onlineOther.level;onlineFinishPending=false;loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
     }
@@ -1159,6 +1163,11 @@ function loadLevel(level) {
       }
     }
   }
+  if (onlineRoom && level.player2Spawn && onlineSeat === "guest") {
+    player.x = level.player2Spawn.c * TILE + 4;
+    player.y = level.player2Spawn.r * TILE + 2;
+    foundSpawn = true;
+  }
   if (!foundSpawn) { player.x=60; player.y=60; }
   updateHUD();
 }
@@ -1204,7 +1213,11 @@ function killPlayer() {
 }
 
 function completeCurrentLevel() {
-  if(onlineRoom&&onlineSeat==="guest"){onlineFinishPending=true;return;}
+  if(onlineRoom){
+    onlineFinishPending=true;
+    if(onlineSeat==="host"&&onlineOther?.finished)advanceOnlineLevel();
+    return;
+  }
 
   const collected=coins.filter(c=>c.collected).length;
   if(!hasAtLeastHalfCoins(collected,coins)){killPlayer();return;}
@@ -1212,6 +1225,19 @@ function completeCurrentLevel() {
   loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
 }
 
+function advanceOnlineLevel() {
+  if(!onlineRoom||onlineSeat!=="host")return;
+  const localCollected=coins.filter(coin=>coin.collected).length;
+  const remoteCollected=Number(onlineOther?.coins||0);
+  if(!hasAtLeastHalfCoins(localCollected,coins)||!hasAtLeastHalfCoins(remoteCollected,coins))return;
+  const coopIndices=BUILTIN_LEVELS.map((level,index)=>level.coop?index:-1).filter(index=>index>=0);
+  const currentPosition=coopIndices.indexOf(currentLevelIdx);
+  onlineLevelIndex=coopIndices[(currentPosition+1)%coopIndices.length];
+  currentLevelIdx=onlineLevelIndex;
+  onlineFinishPending=false;
+  onlineOther=null;
+  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
+}
 function hasAtLeastHalfCoins(collected, coins) {
   if (!coins || coins.length === 0) return true; // no coins required
   return collected / coins.length >= 0.5;
