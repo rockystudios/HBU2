@@ -95,7 +95,8 @@
   }
   .hint { font-size: 0.8rem; color: #94a3b8; margin-top: 6px; }
 
-#start-screen{position:fixed;inset:0;z-index:100000;background:radial-gradient(circle at 50% 15%,#1e3a8a 0,#0d0f1a 55%);display:flex;align-items:center;justify-content:center;padding:20px}
+#start-screen{position:fixed;inset:0;z-index:100000;background:radial-gradient(circle at 50% 15%,#1e3a8a 0,#0d0f1a 55%);display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:auto}
+#start-screen button{position:relative;z-index:1;pointer-events:auto;touch-action:manipulation}
 .start-card{width:min(760px,100%);background:#161b2e;border:1px solid #334155;border-radius:18px;padding:28px;box-shadow:0 25px 80px #0009}
 .start-card h2{font-size:2rem;color:#38bdf8;margin-bottom:8px}.start-card p{color:#94a3b8;margin:8px 0 18px}
 .start-actions{display:flex;gap:12px;flex-wrap:wrap}.start-actions button{padding:13px 20px;font-size:1rem}
@@ -212,9 +213,19 @@ const ROWS = 18; // 540 / 30
 
 // Simple Web Audio Synthesizer (No external files needed)
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
-const actx = new AudioCtx();
+let actx = null;
+
+// Audio is optional. Some browsers or privacy settings block AudioContext;
+// never let audio initialization prevent the game menu from loading.
+try {
+  if (AudioCtx) actx = new AudioCtx();
+} catch (error) {
+  console.warn('Audio is unavailable; continuing without sound.', error);
+}
+
 function playSound(freq, type, duration, vol = 0.12) {
-  if (actx.state === 'suspended') actx.resume();
+  if (!actx) return;
+  if (actx.state === 'suspended') actx.resume().catch(() => {});
   const osc = actx.createOscillator();
   const gain = actx.createGain();
   osc.type = type;
