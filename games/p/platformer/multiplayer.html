@@ -157,7 +157,7 @@
   <div class="hint">Left-click or drag on canvas to place tiles. Right-click to erase. Use Test Play to try your level locally. This page is an editor only; online matches start from the main game.</div>
 </div>
 
-<div class="hint" id="play-hint">Controls: <b>Player 1:</b> A/D + W/Space | <b>Player 2:</b> Left/Right + Up (Double Jump supported!) | <b>R</b> to Restart</div>
+<div class="hint" id="play-hint">Editor: click or drag to place tiles. Test Play: A/D + W/Space to move and jump. R to restart.</div>
 <script>
 (function () {
   const box = document.createElement('div');
@@ -1034,11 +1034,9 @@ function loadLevel(level) {
       }
     }
   }
-  multiplayerEnabled = !!(player1Spawn && player2Spawn);
-  if (multiplayerEnabled) {
-    player.x=player1Spawn.x; player.y=player1Spawn.y;
-    Object.assign(player2,{x:player2Spawn.x,y:player2Spawn.y,vx:0,vy:0,grounded:false,jumpsLeft:2});
-  } else if (!foundSpawn) { player.x=60; player.y=60; }
+  multiplayerEnabled = false;
+  if (player1Spawn) { player.x=player1Spawn.x; player.y=player1Spawn.y; }
+  else if (!foundSpawn) { player.x=60; player.y=60; }
   updateHUD();
 }
 
@@ -1713,9 +1711,12 @@ document.getElementById("btn-import").addEventListener("click", () => {
   } catch(err) { alert(`Could not import level: ${err.message}`); }
 });
 
-// Start Game
+// Start in editor mode. Test Play is a local preview, never an online match.
 loadLevel(BUILTIN_LEVELS[0]);
- 
+isEditor = true;
+editorPanel.classList.add("visible");
+btnMode.textContent = "Test Play";
+btnMode.className = "success";
 loop();
 </script>
 </body>
