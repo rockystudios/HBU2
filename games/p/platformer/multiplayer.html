@@ -112,10 +112,10 @@
     <div>Name: <span id="ui-name">Idk</span></div>
   </div>
   <div class="controls-bar">
-    <a class="secondary" href="index.html">Single Player Editor</a>
-    <button id="btn-mode" class="success">Open Level Maker</button>
+    <a class="secondary" href="index.html">Back to Game</a>
+    <button id="btn-mode" class="success">Test Play</button>
     <button id="btn-reset" class="secondary">Restart (R)</button>
-    <button id="btn-next" class="secondary">Next Built-in Level</button>
+    
   </div>
 </header>
 
@@ -154,7 +154,7 @@
       <button id="btn-import" class="success">Import & Play</button>
     </div>
   </div>
-  <div class="hint">Left-click or drag on canvas to place tiles. Right-click to erase. Click "Play Custom Level" when done!</div>
+  <div class="hint">Left-click or drag on canvas to place tiles. Right-click to erase. Use Test Play to try your level locally. This page is an editor only; online matches start from the main game.</div>
 </div>
 
 <div class="hint" id="play-hint">Controls: <b>Player 1:</b> A/D + W/Space | <b>Player 2:</b> Left/Right + Up (Double Jump supported!) | <b>R</b> to Restart</div>
@@ -925,7 +925,7 @@ const BUILTIN_LEVELS = [
 
 let currentLevelIdx = 0;
 let grid = [];
-let isEditor = false;
+let isEditor = true;
 let selectedTile = 1;
 let isMouseDown = false;
 let mouseButton = 0;
@@ -1599,7 +1599,7 @@ const jsonBox = document.getElementById('json-box');
 function toggleEditor(forceState) {
   isEditor = typeof forceState === 'boolean' ? forceState : !isEditor;
   editorPanel.classList.toggle('visible', isEditor);
-  btnMode.textContent = isEditor ? 'Play Custom Level' : 'Open Level Maker';
+  btnMode.textContent = isEditor ? 'Test Play' : 'Stop Test Play';
   btnMode.className = isEditor ? 'success' : 'secondary';
   if (!isEditor) loadLevel({ grid, portals, ice: [...specialTiles.ice], crumbling: [...specialTiles.crumbling], pushBlocks: [...specialTiles.pushBlocks] });
   
@@ -1609,11 +1609,7 @@ function toggleEditor(forceState) {
 
 btnMode.addEventListener('click', () => toggleEditor());
 document.getElementById('btn-reset').addEventListener('click', () => loadLevel(currentLevel));
-document.getElementById('btn-next').addEventListener('click', () => {
-  if (isEditor) toggleEditor(false);
-  currentLevelIdx = (currentLevelIdx + 1) % BUILTIN_LEVELS.length;
-  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
-});
+
 
 document.querySelectorAll('.tool-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1713,7 +1709,7 @@ document.getElementById("btn-import").addEventListener("click", () => {
     const p=parsed.portals||{orange:null,blue:null};
     for(const color of ["orange","blue"]){const v=p[color];if(v!=null&&(!Number.isInteger(v.r)||!Number.isInteger(v.c)||v.r<0||v.r>=ROWS||v.c<0||v.c>=COLS))throw new Error("Portal coordinates are invalid.");}
     loadLevel({name:typeof parsed.name==="string"&&parsed.name.trim()?parsed.name.trim().slice(0,50):"Custom Level",grid:importedGrid,portals:{orange:p.orange||null,blue:p.blue||null},ice:validateKeys(parsed.ice,"Ice"),crumbling:validateKeys(parsed.crumbling,"Crumbling"),pushBlocks:validateKeys(parsed.pushBlocks,"Push blocks")});
-    currentLevelIdx=-1;isEditor=false;editorPanel.classList.remove("visible");btnMode.textContent="Open Level Maker";btnMode.className="secondary";updateHUD();
+    currentLevelIdx=-1;isEditor=true;editorPanel.classList.add("visible");btnMode.textContent="Test Play";btnMode.className="success";updateHUD();
   } catch(err) { alert(`Could not import level: ${err.message}`); }
 });
 
