@@ -950,7 +950,10 @@ const BUILTIN_LEVELS = [
     "10000100008000000000000000000001",
     "11111111111111111111111111111111"
   ].map(r => [...r].map(tile => tile === 'A' ? 15 : Number(tile)))
-},
+},,
+{"name":"Twin Towers","description":"Split up: climb opposite towers, collect the route coins, then meet at the central exit.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":["11111111111111111111111111111111","10000000000000000000000000000001","10000000000000090000000000000001","10000000000000050000000000000001","10000000001111111111110000000001","10000000000000000000000000000001","10005000000000000000000000050001","10111111000000000000000011111101","10000000000000000000000000000001","10000005000000000000000050000001","10000111111000000000011111100001","10000000000000000000000000000001","10005000000000000000000005000001","10111111000000000000000111111001","10000000000000000000000000000001","10000000003330000003330000000001","11111111111113333331111111111111","11111111111111111111111111111111"]},
+{"name":"The Broken Bridge","description":"Two routes, one destination. Jump the hazards and regroup on the upper bridge.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":["11111111111111111111111111111111","10000000000000000000000000000001","10000000000000090000000000000001","10000000000000050000000000000001","10000000111111111111111100000001","10000000000000000000000000000001","10000500000000000000000000500001","10111111100000000000000111111101","10000000000000000000000000000001","10000050000000000000000050000001","10001111110000000000001111110001","10000000000000000000000000000001","10000500000000000000000000500001","10111111100000000000000111111101","10000000003330000003330000000001","10000000000000000000000000000001","11111111111113333331111111111111","11111111111111111111111111111111"]},
+{"name":"Mirror Run","description":"Take opposite sides of the mirrored course. Both players must reach the same exit.","coop":true,"player2Spawn":{"r":14,"c":27},"grid":["11111111111111111111111111111111","10000000000000000000000000000001","10000000000000090000000000000001","10000000000000050000000000000001","10000000000000000000000000000001","10000000000000000000000000000001","10000000000000000000000000000001","10000011111110000001111111000001","10005000000000000000000000050001","10111111000000000000000011111101","10000000500000000000005000000001","10000011111100000000111111000001","10005000000000000000000000500001","10111110000000000000000011111101","10000000000000000000000000000001","10000000000033000033000000000001","11111111111113333331111111111111","11111111111111111111111111111111"]}
 ];
 
 let currentLevelIdx = 0;
@@ -991,7 +994,7 @@ let onlineOther = null;
 let onlineSyncTimer = null;
 let onlineFinishPending = false;
 let onlineLevelIndex = 0;
-let selectedOnlineLevel = 0;
+let selectedOnlineLevel = Math.max(0,BUILTIN_LEVELS.findIndex(level=>level.coop));
 const ROOM_API = "https://xvkjvuxhawlljakfkllu.supabase.co/functions/v1/platformer-rooms";
 const ROOM_API_KEY = "sb_publishable_uyxd5lS77wdXpD56QF_lgg_zaujLjZZ";
 async function roomRequest(payload) {
@@ -1008,8 +1011,9 @@ function showStartPanel(panel) {
 function renderOnlineLevels() {
   const holder=document.getElementById("mp-levels");holder.innerHTML="";
   BUILTIN_LEVELS.forEach((level,index)=>{
+    if(!level.coop)return;
     const button=document.createElement("button");button.className="mp-level";
-    button.textContent=(index===selectedOnlineLevel?"✓ ":"")+level.name;
+    button.textContent=(index===selectedOnlineLevel?"✓ ":"")+level.name+" — "+level.description;
     button.addEventListener("click",()=>{selectedOnlineLevel=index;renderOnlineLevels();});
     holder.appendChild(button);
   });
@@ -1075,7 +1079,7 @@ async function syncOnlineGame() {
     const data=await roomRequest({action:"sync",roomCode:onlineRoom,token:onlineToken,state:{x:player.x,y:player.y,vx:player.vx,vy:player.vy,grounded:player.grounded,frame:frameCount,level:currentLevelIdx,coins:coins.filter(c=>c.collected).length,finished:onlineFinishPending}});
     if(data.ended){endOnlineGame(data.reason);return;}
     onlineOther=data.other||null;
-    if(onlineSeat==="host"&&onlineOther?.finished&&onlineOther.level===currentLevelIdx){onlineFinishPending=false;completeCurrentLevel();}
+    if(onlineSeat==="host"&&onlineFinishPending&&onlineOther?.finished&&onlineOther.level===currentLevelIdx){advanceOnlineLevel();}
     if(onlineSeat==="guest"&&Number.isInteger(onlineOther?.level)&&onlineOther.level!==currentLevelIdx){
       currentLevelIdx=onlineOther.level;onlineFinishPending=false;loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
     }
@@ -1159,6 +1163,11 @@ function loadLevel(level) {
       }
     }
   }
+  if (onlineRoom && level.player2Spawn && onlineSeat === "guest") {
+    player.x = level.player2Spawn.c * TILE + 4;
+    player.y = level.player2Spawn.r * TILE + 2;
+    foundSpawn = true;
+  }
   if (!foundSpawn) { player.x=60; player.y=60; }
   updateHUD();
 }
@@ -1204,7 +1213,11 @@ function killPlayer() {
 }
 
 function completeCurrentLevel() {
-  if(onlineRoom&&onlineSeat==="guest"){onlineFinishPending=true;return;}
+  if(onlineRoom){
+    onlineFinishPending=true;
+    if(onlineSeat==="host"&&onlineOther?.finished)advanceOnlineLevel();
+    return;
+  }
 
   const collected=coins.filter(c=>c.collected).length;
   if(!hasAtLeastHalfCoins(collected,coins)){killPlayer();return;}
@@ -1212,6 +1225,14 @@ function completeCurrentLevel() {
   loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
 }
 
+function advanceOnlineLevel() {
+  if(!onlineRoom||onlineSeat!=="host")return;
+  onlineLevelIndex=(onlineLevelIndex+1)%BUILTIN_LEVELS.length;
+  currentLevelIdx=onlineLevelIndex;
+  onlineFinishPending=false;
+  onlineOther=null;
+  loadLevel(BUILTIN_LEVELS[currentLevelIdx]);
+}
 function hasAtLeastHalfCoins(collected, coins) {
   if (!coins || coins.length === 0) return true; // no coins required
   return collected / coins.length >= 0.5;
