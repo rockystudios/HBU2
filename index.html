@@ -205,6 +205,9 @@
     .chat-live.offline { color: #ff8a9b; }
     .chat-join { padding: 28px 20px; }
     .chat-join-form { max-width: 420px; display: grid; gap: 12px; }
+    .auth-error { display: none; margin: 2px 0 0; padding: 12px 14px; border: 1px solid rgba(255,110,130,.65); border-radius: 10px; background: rgba(150,25,45,.18); color: #ffb4bf; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .auth-error.show { display: block; }
+
     .chat-join-form label { display: grid; gap: 8px; color: #c9c1d8; font-size: 13px; font-weight: 700; }
     .auth-tabs { margin-bottom: 14px; display: flex; gap: 8px; }
     .auth-tabs .icon-button[aria-pressed="true"] { border-color: rgba(192,132,252,.55); color: #e9c9ff; background: rgba(168,85,247,.16); }
@@ -1153,6 +1156,7 @@
               </label>
               <a href="connection-test.html" target="_blank" rel="noopener noreferrer">Test account connection</a>
               <button class="button button-primary" id="auth-submit" type="submit">Log in</button>
+              <p class="auth-error" id="auth-error" role="alert" aria-live="assertive"></p>
             </form>
             <form class="chat-join-form" id="reset-form" hidden>
               <p class="app-note" id="reset-note"></p>
@@ -2496,6 +2500,17 @@
     const authStudentId = document.querySelector("#auth-student-id");
     const studentIdLabel = document.querySelector("#student-id-label");
     const authSubmit = document.querySelector("#auth-submit");
+    const authError = document.querySelector("#auth-error");
+    function showAuthError(message) {
+      const text = String(message || "Something went wrong while contacting the account service.");
+      authError.textContent = text;
+      authError.classList.add("show");
+      messageStatus.textContent = text;
+    }
+    function clearAuthError() {
+      authError.textContent = "";
+      authError.classList.remove("show");
+    }
     const tabLogin = document.querySelector("#tab-login");
     const tabSignup = document.querySelector("#tab-signup");
     const dmList = document.querySelector("#dm-list");
@@ -2738,7 +2753,7 @@
       // database is under load. Ten seconds caused healthy login/challenge
       // requests to be aborted too early, so allow up to 30 seconds.
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30000);
+      const timer = setTimeout(() => controller.abort(), 15000);
       try {
         return await fetch(url, { ...options, headers: { ...(options.headers || {}), "X-HBU-Device-ID": (typeof hbuDeviceId === "function" ? hbuDeviceId() : "") }, signal: controller.signal, cache: "no-store" });
       } catch (error) {
@@ -2749,7 +2764,7 @@
           message: error?.message || String(error)
         });
         if (error?.name === "AbortError") {
-          throw new Error("The account service timed out after 30 seconds. Check your connection, then use Test account connection.");
+          throw new Error("The account service did not respond within 15 seconds. The server may be unavailable. Try again later or use Test account connection.");
         }
         const reason = error?.message ? String(error.message).slice(0, 180) : "The browser did not provide a network error detail.";
         throw new Error(`Cannot reach the account service from ${location.origin}. Browser error: ${error?.name || "NetworkError"} — ${reason}. If this continues, use Test account connection.`);
@@ -4973,6 +4988,7 @@
       const username = authUsername.value.trim();
       const password = authPassword.value;
       if (!username || !password) return;
+      clearAuthError();
       authSubmit.disabled = true;
       // Keep the login/signup tabs available while the request is running.
       const submitLabel = signupMode ? "Create account" : "Log in";
@@ -5032,7 +5048,8 @@
         showChat();
       } catch (error) {
         console.error("Could not sign in.", error);
-        messageStatus.textContent = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : error.message;
+        const detail = accountCreated ? `Your account was created, but login failed. Try logging in: ${error.message}` : (error?.message || "Unknown account service error.");
+        showAuthError(detail);
       } finally {
         authSubmit.disabled = false;
         authSubmit.textContent = submitLabel;
